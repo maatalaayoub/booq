@@ -114,17 +114,12 @@ function PreviewCard({ settings, user, businessData }) {
 
       {/* Name — top padding accounts for avatar bleed */}
       <div className={`px-4 pb-3 ${settings.showProfile ? 'pt-10' : 'pt-3'}`}>
-        {settings.showProfile && (
-          <>
-            <p className="text-sm font-bold text-[#364153] truncate">
-              {settings.businessName || 'Your Business Name'}
-            </p>
-            <p className="text-xs text-gray-400 truncate capitalize mb-3">
-              {businessData?.professionalType?.replace(/_/g, ' ') || 'Professional Type'}
-            </p>
-          </>
-        )}
-
+        <p className="text-sm font-bold text-[#364153] truncate">
+          {settings.businessName || 'Your Business Name'}
+        </p>
+        <p className="text-xs text-gray-400 truncate capitalize mb-3">
+          {businessData?.professionalType?.replace(/_/g, ' ') || 'Professional Type'}
+        </p>
 
         {/* Bio */}
         {settings.showBio && (
@@ -472,11 +467,11 @@ export default function PublicPageManager() {
             </div>
             <div className="p-4 space-y-4">
 
-              {/* Show / hide profile section */}
+              {/* Show / hide profile photo */}
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <p className="text-sm font-medium text-gray-800">Show Profile Section</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Display your name and avatar on the public page</p>
+                  <p className="text-sm font-medium text-gray-800">Show Profile Photo</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Display your avatar photo on the public page</p>
                 </div>
                 <button
                   type="button"
@@ -487,21 +482,19 @@ export default function PublicPageManager() {
                 </button>
               </div>
 
-              {/* Business name input */}
-              {settings.showProfile && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Business Name</label>
-                  <input
-                    type="text"
-                    value={settings.businessName}
-                    onChange={e => set('businessName', e.target.value)}
-                    maxLength={60}
-                    placeholder="e.g. Ayoub Cuts, Studio Maatala..."
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153]"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">{settings.businessName.length}/60</p>
-                </div>
-              )}
+              {/* Business name input — always visible */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Business Name</label>
+                <input
+                  type="text"
+                  value={settings.businessName}
+                  onChange={e => set('businessName', e.target.value)}
+                  maxLength={60}
+                  placeholder="e.g. Ayoub Cuts, Studio Maatala..."
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153]"
+                />
+                <p className="text-xs text-gray-400 mt-1">{settings.businessName.length}/60</p>
+              </div>
 
             </div>
           </div>
