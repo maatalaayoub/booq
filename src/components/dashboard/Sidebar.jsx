@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  Globe,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -59,8 +60,13 @@ export default function Sidebar() {
     },
     { 
       icon: Tag, 
-      label: t('dashboard.sidebar.services') || 'Services et Prix', 
+      label: t('dashboard.sidebar.services') || 'Services & Prices', 
       href: `/${locale}/business/dashboard/services` 
+    },
+    { 
+      icon: Globe, 
+      label: t('dashboard.sidebar.publicPage') || 'Public Page', 
+      href: `/${locale}/business/dashboard/public-page` 
     },
     { 
       icon: DollarSign, 

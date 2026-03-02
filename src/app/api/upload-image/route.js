@@ -21,8 +21,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing file or type' }, { status: 400 });
     }
 
-    if (!['avatar', 'cover'].includes(type)) {
-      return NextResponse.json({ error: 'Invalid type. Must be avatar or cover.' }, { status: 400 });
+    if (!['avatar', 'cover', 'gallery_cover'].includes(type)) {
+      return NextResponse.json({ error: 'Invalid type. Must be avatar, cover, or gallery_cover.' }, { status: 400 });
     }
 
     // Validate file size
@@ -58,7 +58,9 @@ export async function POST(request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const filePath = `${type}s/${dbUser.id}.${ext}`;
+    const filePath = type === 'gallery_cover'
+      ? `covers/${dbUser.id}-${Date.now()}.${ext}`
+      : `${type}s/${dbUser.id}.${ext}`;
 
     // Upload (upsert — overwrite previous)
     const { error: uploadError } = await supabase.storage
@@ -80,6 +82,11 @@ export async function POST(request) {
 
     // Add cache-busting query param so browser picks up the new image
     const url = `${publicUrl}?t=${Date.now()}`;
+
+    // For gallery covers, just return the URL — caller saves it in settings
+    if (type === 'gallery_cover') {
+      return NextResponse.json({ url });
+    }
 
     // Save URL to user_profile
     const column = type === 'cover' ? 'cover_image_url' : 'profile_image_url';

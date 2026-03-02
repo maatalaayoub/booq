@@ -740,3 +740,104 @@ CREATE TRIGGER update_business_services_updated_at
 
 -- Migration: remove category column from business_services
 ALTER TABLE business_services DROP COLUMN IF EXISTS category;
+
+-- ─── BUSINESS PUBLIC PAGE SETTINGS ──────────────────────────────────────────
+-- Stores per-business public-page configuration as a single JSONB document.
+-- One row per business_info record (enforced by the UNIQUE constraint).
+-- All mutations go through the service-role API route, so RLS uses the
+-- authenticated user's relationship to business_info for security.
+
+DROP TABLE IF EXISTS business_public_page_settings CASCADE;
+
+CREATE TABLE business_public_page_settings (
+  id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_info_id  UUID        NOT NULL
+                                  REFERENCES business_info(id)
+                                  ON DELETE CASCADE
+                                  ON UPDATE CASCADE,
+  settings          JSONB       NOT NULL DEFAULT '{}'::jsonb,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+  CONSTRAINT uq_bpps_business_info UNIQUE (business_info_id),
+  -- Ensure settings is a JSON object, not an array or scalar
+  CONSTRAINT chk_bpps_settings_is_object CHECK (jsonb_typeof(settings) = 'object')
+);
+
+-- Fast look-up by business
+CREATE INDEX idx_bpps_business_info_id
+  ON business_public_page_settings (business_info_id);
+
+-- Auto-update updated_at on every write
+CREATE TRIGGER trg_bpps_updated_at
+  BEFORE UPDATE ON business_public_page_settings
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- ── Row Level Security ─────────────────────────────────────────────────────
+ALTER TABLE business_public_page_settings ENABLE ROW LEVEL SECURITY;
+
+-- Service-role key (used by API routes) bypasses RLS entirely.
+-- Authenticated users may only touch the row that belongs to their own
+-- business_info record (looked up through the users table).
+
+CREATE POLICY "owner can select own public page settings"
+  ON business_public_page_settings
+  FOR SELECT
+  TO authenticated
+  USING (
+    business_info_id IN (
+      SELECT bi.id
+      FROM   business_info bi
+      JOIN   users u ON u.id = bi.user_id
+      WHERE  u.clerk_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "owner can insert own public page settings"
+  ON business_public_page_settings
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    business_info_id IN (
+      SELECT bi.id
+      FROM   business_info bi
+      JOIN   users u ON u.id = bi.user_id
+      WHERE  u.clerk_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "owner can update own public page settings"
+  ON business_public_page_settings
+  FOR UPDATE
+  TO authenticated
+  USING (
+    business_info_id IN (
+      SELECT bi.id
+      FROM   business_info bi
+      JOIN   users u ON u.id = bi.user_id
+      WHERE  u.clerk_id = auth.uid()::text
+    )
+  )
+  WITH CHECK (
+    business_info_id IN (
+      SELECT bi.id
+      FROM   business_info bi
+      JOIN   users u ON u.id = bi.user_id
+      WHERE  u.clerk_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "owner can delete own public page settings"
+  ON business_public_page_settings
+  FOR DELETE
+  TO authenticated
+  USING (
+    business_info_id IN (
+      SELECT bi.id
+      FROM   business_info bi
+      JOIN   users u ON u.id = bi.user_id
+      WHERE  u.clerk_id = auth.uid()::text
+    )
+  );
+
