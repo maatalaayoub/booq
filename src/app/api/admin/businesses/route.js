@@ -15,7 +15,7 @@ export async function GET(request) {
   const search = searchParams.get('search');
   const category = searchParams.get('category');
 
-  // Get all business users joined with business_info
+  // Get all business users joined with business_info, services, and card settings
   let query = supabase
     .from('users')
     .select(`
@@ -23,9 +23,10 @@ export async function GET(request) {
       user_profile ( first_name, last_name, phone, city, profile_image_url ),
       business_info (
         id, business_category, professional_type, onboarding_completed,
-        shop_salon_info ( business_name, address, city, phone ),
-        mobile_service_info ( business_name, address, city, phone ),
-        business_card_settings ( settings )
+        shop_salon_info ( business_name, address, city, phone, latitude, longitude ),
+        mobile_service_info ( business_name, address, city, phone, latitude, longitude ),
+        business_card_settings ( settings ),
+        business_services ( id, name, description, duration_minutes, price, currency, is_active )
       )
     `)
     .eq('role', 'business')
