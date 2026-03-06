@@ -840,3 +840,95 @@ CREATE POLICY "owner can delete own card settings"
       WHERE  u.clerk_id = auth.uid()::text
     )
   );
+
+-- ============================================
+-- MIGRATION: Allow 'admin' role
+-- ============================================
+-- The users table role CHECK constraint needs to include 'admin'.
+-- Admins are ONLY created via direct DB insert — never through the app.
+ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
+ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('user', 'business', 'admin'));
+
+-- Add account_status column so admins can suspend / restrict accounts
+ALTER TABLE users ADD COLUMN IF NOT EXISTS account_status TEXT DEFAULT 'active'
+  CHECK (account_status IN ('active', 'suspended', 'restricted'));
+
+-- ============================================
+-- VERIFICATION REQUESTS
+-- ============================================
+CREATE TABLE IF NOT EXISTS verification_requests (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  business_info_id UUID REFERENCES business_info(id) ON DELETE CASCADE NOT NULL,
+
+  -- Document URLs (stored in Supabase Storage)
+  identity_document_url TEXT,
+  business_document_url TEXT,
+
+  -- Per-document status
+  identity_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (identity_status IN ('pending', 'verified', 'rejected')),
+  business_status TEXT NOT NULL DEFAULT 'pending'
+    CHECK (business_status IN ('pending', 'verified', 'rejected')),
+
+  -- Review metadata
+  identity_reviewed_by UUID REFERENCES users(id),
+  business_reviewed_by UUID REFERENCES users(id),
+  identity_reviewed_at TIMESTAMPTZ,
+  business_reviewed_at TIMESTAMPTZ,
+  identity_rejection_reason TEXT,
+  business_rejection_reason TEXT,
+
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vr_user_id ON verification_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_vr_business_info_id ON verification_requests(business_info_id);
+CREATE INDEX IF NOT EXISTS idx_vr_identity_status ON verification_requests(identity_status);
+CREATE INDEX IF NOT EXISTS idx_vr_business_status ON verification_requests(business_status);
+
+ALTER TABLE verification_requests ENABLE ROW LEVEL SECURITY;
+
+-- Service role bypasses RLS; owners can read their own row
+CREATE POLICY "Owner can view own verification"
+  ON verification_requests FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow insert verification"
+  ON verification_requests FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Allow update verification"
+  ON verification_requests FOR UPDATE
+  USING (true) WITH CHECK (true);
+
+DROP TRIGGER IF EXISTS update_verification_requests_updated_at ON verification_requests;
+CREATE TRIGGER update_verification_requests_updated_at
+  BEFORE UPDATE ON verification_requests
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- ADMIN ACTIONS LOG (audit trail)
+-- ============================================
+CREATE TABLE IF NOT EXISTS admin_actions_log (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  admin_user_id UUID REFERENCES users(id) NOT NULL,
+  action_type TEXT NOT NULL,                -- e.g. 'approve_identity','reject_business','suspend_user','delete_user'
+  target_user_id UUID REFERENCES users(id),
+  details JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_aal_admin_user_id ON admin_actions_log(admin_user_id);
+CREATE INDEX IF NOT EXISTS idx_aal_target_user_id ON admin_actions_log(target_user_id);
+CREATE INDEX IF NOT EXISTS idx_aal_action_type ON admin_actions_log(action_type);
+
+ALTER TABLE admin_actions_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admin log read all"
+  ON admin_actions_log FOR SELECT USING (true);
+
+CREATE POLICY "Admin log insert"
+  ON admin_actions_log FOR INSERT WITH CHECK (true);

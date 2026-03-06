@@ -263,7 +263,7 @@ export default function BusinessDashboard() {
           {t?.('dashboard.subtitle') || "Here's what's happening with your business today."}
         </p>
       </div>
-      
+
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-[3px] p-6 border border-gray-200">

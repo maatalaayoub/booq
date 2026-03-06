@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   X,
   Clock,
@@ -25,14 +26,15 @@ export default function AppointmentDetailModal({
   onCancel,
 }) {
   const [confirmAction, setConfirmAction] = useState(null);
+  const { t } = useLanguage();
 
   if (!appointment) return null;
 
   const statusColors = {
-    confirmed: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', label: 'Confirmed' },
-    completed: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Completed' },
-    cancelled: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500', label: 'Cancelled' },
-    pending: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Pending' },
+    confirmed: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', label: t('appointmentDetail.confirmed') },
+    completed: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: t('appointmentDetail.completed') },
+    cancelled: { bg: 'bg-red-50', text: 'text-red-700', dot: 'bg-red-500', label: t('appointmentDetail.cancelled') },
+    pending: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: t('appointmentDetail.pending') },
   };
 
   const status = statusColors[appointment.extendedProps?.status] || statusColors.pending;
@@ -124,7 +126,7 @@ export default function AppointmentDetailModal({
                     <User className="w-5 h-5 text-blue-500" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">Client</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">{t('appointmentDetail.client')}</p>
                     <p className="text-sm font-semibold text-gray-900">
                       {appointment.extendedProps.client}
                     </p>
@@ -139,7 +141,7 @@ export default function AppointmentDetailModal({
                     <Scissors className="w-5 h-5 text-purple-500" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">Service</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">{t('appointmentDetail.service')}</p>
                     <p className="text-sm font-semibold text-gray-900">
                       {appointment.extendedProps.service}
                     </p>
@@ -154,7 +156,7 @@ export default function AppointmentDetailModal({
                     <Phone className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">Phone</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">{t('appointmentDetail.phone')}</p>
                     <p className="text-sm font-semibold text-gray-900">
                       {appointment.extendedProps.phone}
                     </p>
@@ -169,7 +171,7 @@ export default function AppointmentDetailModal({
                     <MessageSquare className="w-5 h-5 text-gray-500" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-wide">Notes</p>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">{t('appointmentDetail.notes')}</p>
                     <p className="text-sm text-gray-700">
                       {appointment.extendedProps.notes}
                     </p>
@@ -180,7 +182,7 @@ export default function AppointmentDetailModal({
               {/* Price */}
               {appointment.extendedProps?.price && (
                 <div className="flex items-center justify-between p-3 bg-amber-50 rounded-[5px]">
-                  <span className="text-sm font-medium text-amber-800">Total Price</span>
+                  <span className="text-sm font-medium text-amber-800">{t('appointmentDetail.totalPrice')}</span>
                   <span className="text-lg font-bold text-amber-700">
                     {appointment.extendedProps.price} MAD
                   </span>
@@ -196,8 +198,8 @@ export default function AppointmentDetailModal({
                     <button
                       onClick={() => setConfirmAction({
                         type: 'confirm',
-                        label: 'Confirm Appointment',
-                        message: `Are you sure you want to confirm the appointment for ${appointment.extendedProps?.client || 'this client'}?`,
+                        label: t('appointmentDetail.confirmTitle'),
+                        message: t('appointmentDetail.confirmMessage'),
                         btnClass: 'bg-[#D4AF37] hover:bg-[#b8960c] text-white',
                         icon: <CheckCircle2 className="w-5 h-5" />,
                         action: () => { onConfirm(appointment.id); onClose(); },
@@ -205,15 +207,15 @@ export default function AppointmentDetailModal({
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 bg-[#D4AF37] hover:bg-[#b8960c] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      Confirm
+                      {t('appointmentDetail.confirm')}
                     </button>
                   )}
                   {new Date(appointment.start) <= new Date() && (
                     <button
                       onClick={() => setConfirmAction({
                         type: 'complete',
-                        label: 'Mark as Complete',
-                        message: `Are you sure you want to mark this appointment as completed?`,
+                        label: t('appointmentDetail.markCompleteTitle'),
+                        message: t('appointmentDetail.markCompleteMessage'),
                         btnClass: 'bg-emerald-500 hover:bg-emerald-600 text-white',
                         icon: <CheckCircle2 className="w-5 h-5" />,
                         action: () => { onComplete(appointment.id); onClose(); },
@@ -221,14 +223,14 @@ export default function AppointmentDetailModal({
                       className="flex-1 flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      Mark Complete
+                      {t('appointmentDetail.markComplete')}
                     </button>
                   )}
                   <button
                     onClick={() => setConfirmAction({
                       type: 'cancel',
-                      label: 'Cancel Appointment',
-                      message: `Are you sure you want to cancel this appointment? This action cannot be undone.`,
+                      label: t('appointmentDetail.cancelTitle'),
+                      message: t('appointmentDetail.cancelMessage'),
                       btnClass: 'bg-red-500 hover:bg-red-600 text-white',
                       icon: <XCircle className="w-5 h-5" />,
                       action: () => { onCancel(appointment.id); onClose(); },
@@ -236,7 +238,7 @@ export default function AppointmentDetailModal({
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-3 sm:py-2.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-[5px] font-medium text-sm transition-colors"
                   >
                     <XCircle className="w-4 h-4" />
-                    Cancel
+                    {t('appointmentDetail.cancelBtn')}
                   </button>
                 </div>
               )}
@@ -249,7 +251,7 @@ export default function AppointmentDetailModal({
                   onClick={onClose}
                   className="w-full px-4 py-3 sm:py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-[5px] font-medium text-sm transition-colors"
                 >
-                  Close
+                  {t('appointmentDetail.close')}
                 </button>
               </div>
             )}
@@ -289,7 +291,7 @@ export default function AppointmentDetailModal({
                         onClick={() => setConfirmAction(null)}
                         className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-[5px] font-medium text-sm transition-colors"
                       >
-                        Go Back
+                        {t('appointmentDetail.goBack')}
                       </button>
                       <button
                         onClick={() => {
@@ -298,7 +300,7 @@ export default function AppointmentDetailModal({
                         }}
                         className={`flex-1 px-4 py-2.5 rounded-[5px] font-medium text-sm transition-colors shadow-sm ${confirmAction.btnClass}`}
                       >
-                        {confirmAction.label.split(' ').slice(0, 1)[0] === 'Mark' ? 'Complete' : confirmAction.label.split(' ')[0]}
+                        {confirmAction.type === 'cancel' ? t('appointmentDetail.cancelBtn') : confirmAction.type === 'confirm' ? t('appointmentDetail.confirm') : t('appointmentDetail.complete')}
                       </button>
                     </div>
                   </div>

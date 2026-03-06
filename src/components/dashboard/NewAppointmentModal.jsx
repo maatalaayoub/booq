@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   X,
   Clock,
@@ -55,6 +56,7 @@ function computeEndTime(startTime, durationMinutes) {
 }
 
 export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDate, defaultEndDate, isSaving }) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     client: '',
     phone: '',
@@ -156,10 +158,10 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.client.trim()) newErrors.client = 'Client name is required';
-    if (!formData.service) newErrors.service = 'Please select a service';
-    if (!formData.date) newErrors.date = 'Date is required';
-    if (!formData.time) newErrors.time = 'Time is required';
+    if (!formData.client.trim()) newErrors.client = t('newAppointment.clientRequired');
+    if (!formData.service) newErrors.service = t('newAppointment.serviceRequired');
+    if (!formData.date) newErrors.date = t('newAppointment.dateRequired');
+    if (!formData.time) newErrors.time = t('newAppointment.timeRequired');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -238,8 +240,8 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                     <Plus className="w-5 h-5 text-amber-600" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">New Appointment</h2>
-                    <p className="text-xs text-gray-400">Fill in the details below</p>
+                    <h2 className="text-lg font-bold text-gray-900">{t('newAppointment.title')}</h2>
+                    <p className="text-xs text-gray-400">{t('newAppointment.subtitle')}</p>
                   </div>
                 </div>
                 <button
@@ -257,11 +259,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <User className="w-3.5 h-3.5 text-gray-400" />
-                  Client Name <span className="text-red-400">*</span>
+                  {t('newAppointment.clientName')} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Ahmed Ben Ali"
+                  placeholder={t('newAppointment.clientPlaceholder')}
                   value={formData.client}
                   onChange={(e) => handleChange('client', e.target.value)}
                   className={inputClass('client')}
@@ -273,12 +275,12 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <Phone className="w-3.5 h-3.5 text-gray-400" />
-                  Phone Number
+                  {t('newAppointment.phone')}
                 </label>
                 <input
                   type="tel"
                   inputMode="numeric"
-                  placeholder="e.g. +212 6XX XXX XXX"
+                  placeholder={t('newAppointment.phonePlaceholder')}
                   value={formData.phone}
                   onChange={(e) => {
                     const val = e.target.value.replace(/[^0-9+\s\-()]/g, '');
@@ -292,7 +294,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
               <div ref={serviceDropdownRef} className="relative">
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <Scissors className="w-3.5 h-3.5 text-gray-400" />
-                  Service <span className="text-red-400">*</span>
+                  {t('newAppointment.service')} <span className="text-red-400">*</span>
                 </label>
                 <button
                   type="button"
@@ -308,7 +310,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                   {formData.service ? (
                     <span className="text-gray-900 font-medium">{formData.service}</span>
                   ) : (
-                    <span className="text-gray-400">Select a service</span>
+                    <span className="text-gray-400">{t('newAppointment.selectService')}</span>
                   )}
                   <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${serviceDropdownOpen ? 'rotate-180' : ''}`} />
                 </button>
@@ -325,13 +327,13 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                       {servicesLoading ? (
                         <li className="flex items-center justify-center gap-2 px-3 py-5 text-sm text-gray-400">
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          Loading services…
+                          {t('newAppointment.loadingServices')}
                         </li>
                       ) : services.length === 0 ? (
                         <li className="flex flex-col items-center justify-center gap-1 px-3 py-5 text-center">
                           <Scissors className="w-5 h-5 text-gray-300" />
-                          <p className="text-sm text-gray-400">No services found</p>
-                          <p className="text-xs text-gray-300">Add services in the Services &amp; Prices section</p>
+                          <p className="text-sm text-gray-400">{t('newAppointment.noServices')}</p>
+                          <p className="text-xs text-gray-300">{t('newAppointment.noServicesHint')}</p>
                         </li>
                       ) : (
                         services.map((s) => {
@@ -384,7 +386,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <AlertCircle className="w-3.5 h-3.5 text-gray-400" />
-                  Status
+                  {t('newAppointment.status')}
                 </label>
                 <div className="flex gap-2">
                   <button
@@ -397,7 +399,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                     }`}
                   >
                     <AlertCircle className="w-3.5 h-3.5" />
-                    Pending
+                    {t('newAppointment.pending')}
                   </button>
                   <button
                     type="button"
@@ -409,7 +411,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                     }`}
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" />
-                    Confirmed
+                    {t('newAppointment.confirmed')}
                   </button>
                 </div>
               </div>
@@ -418,7 +420,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <CalendarDays className="w-3.5 h-3.5 text-gray-400" />
-                  Date <span className="text-red-400">*</span>
+                  {t('newAppointment.date')} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="date"
@@ -434,7 +436,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                     <Clock className="w-3.5 h-3.5 text-gray-400" />
-                    Start Time <span className="text-red-400">*</span>
+                    {t('newAppointment.startTime')} <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="time"
@@ -447,7 +449,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                     <Clock className="w-3.5 h-3.5 text-gray-400" />
-                    End Time <span className="text-red-400">*</span>
+                    {t('newAppointment.endTime')} <span className="text-red-400">*</span>
                   </label>
                   <input
                     type="time"
@@ -463,11 +465,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <DollarSign className="w-3.5 h-3.5 text-gray-400" />
-                  Price (MAD)
+                  {t('newAppointment.price')}
                 </label>
                 <input
                   type="number"
-                  placeholder="Auto-filled from service"
+                  placeholder={t('newAppointment.pricePlaceholder')}
                   value={formData.price}
                   onChange={(e) => handleChange('price', e.target.value)}
                   className={inputClass('price')}
@@ -478,11 +480,11 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-                  Notes
+                  {t('newAppointment.notes')}
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Any special instructions..."
+                  placeholder={t('newAppointment.notesPlaceholder')}
                   value={formData.notes}
                   onChange={(e) => handleChange('notes', e.target.value)}
                   className={`${inputClass('notes')} resize-none`}
@@ -496,14 +498,14 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                 onClick={onClose}
                 className="w-full sm:flex-1 px-4 py-3 sm:py-2.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-[5px] font-medium text-sm transition-colors order-2 sm:order-1"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSaving}
                 className="w-full sm:flex-1 px-4 py-3 sm:py-2.5 bg-[#364153] hover:bg-[#2a3444] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm order-1 sm:order-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSaving ? 'Saving...' : 'Add Appointment'}
+                {isSaving ? t('newAppointment.saving') : t('newAppointment.addAppointment')}
               </button>
             </div>
           </motion.div>

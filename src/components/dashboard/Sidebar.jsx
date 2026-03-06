@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   Globe,
+  ShieldCheck,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -77,6 +78,11 @@ export default function Sidebar() {
       icon: BarChart3, 
       label: t('dashboard.sidebar.analytics') || 'Analytics', 
       href: `/${locale}/business/dashboard/analytics` 
+    },
+    { 
+      icon: ShieldCheck, 
+      label: t('dashboard.sidebar.verification') || 'Verification', 
+      href: `/${locale}/business/dashboard/verification` 
     },
   ];
 
@@ -175,7 +181,7 @@ export default function Sidebar() {
 
       {/* Mobile Sidebar */}
       <aside
-        className={`lg:hidden fixed inset-y-0 ${isRTL ? 'right-0' : 'left-0'} w-72 bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out shadow-xl ${
+        className={`lg:hidden fixed inset-y-0 ${isRTL ? 'right-0' : 'left-0'} w-72 bg-white ${isRTL ? 'border-l' : 'border-r'} border-gray-200 z-50 transform transition-transform duration-300 ease-in-out shadow-xl ${
           mobileOpen ? 'translate-x-0' : isRTL ? 'translate-x-full' : '-translate-x-full'
         }`}
       >

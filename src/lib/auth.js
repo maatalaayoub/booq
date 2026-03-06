@@ -63,5 +63,14 @@ export async function isBusinessRole() {
   return role === 'business';
 }
 
+/**
+ * Check if current user is an admin
+ * @returns {Promise<boolean>}
+ */
+export async function isAdminRole() {
+  const { role } = await getServerRole();
+  return role === 'admin';
+}
+
 // Alias for backward compatibility
 export const isBarberRole = isBusinessRole;

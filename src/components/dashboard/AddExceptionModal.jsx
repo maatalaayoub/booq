@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   X,
   Plus,
@@ -18,21 +19,22 @@ import {
 } from 'lucide-react';
 
 const EXCEPTION_TYPES = [
-  { value: 'break', label: 'Break', icon: Coffee, color: 'bg-blue-500' },
-  { value: 'lunch_break', label: 'Lunch Break', icon: Utensils, color: 'bg-orange-500' },
-  { value: 'closure', label: 'Closure', icon: XCircle, color: 'bg-red-500' },
-  { value: 'holiday', label: 'Holiday', icon: Palmtree, color: 'bg-emerald-500' },
-  { value: 'vacation', label: 'Vacation', icon: Plane, color: 'bg-purple-500' },
-  { value: 'other', label: 'Other', icon: HelpCircle, color: 'bg-gray-500' },
+  { value: 'break', labelKey: 'addException.break', icon: Coffee, color: 'bg-blue-500' },
+  { value: 'lunch_break', labelKey: 'addException.lunchBreak', icon: Utensils, color: 'bg-orange-500' },
+  { value: 'closure', labelKey: 'addException.closure', icon: XCircle, color: 'bg-red-500' },
+  { value: 'holiday', labelKey: 'addException.holiday', icon: Palmtree, color: 'bg-emerald-500' },
+  { value: 'vacation', labelKey: 'addException.vacation', icon: Plane, color: 'bg-purple-500' },
+  { value: 'other', labelKey: 'addException.other', icon: HelpCircle, color: 'bg-gray-500' },
 ];
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_KEYS = ['days.sunday', 'days.monday', 'days.tuesday', 'days.wednesday', 'days.thursday', 'days.friday', 'days.saturday'];
 
 export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate }) {
+  const { t } = useLanguage();
   const today = new Date().toISOString().split('T')[0];
 
   const [formData, setFormData] = useState({
-    title: 'Break',
+    title: t('addException.break'),
     type: 'break',
     date: defaultDate || today,
     endDate: '',
@@ -67,9 +69,9 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
       const updated = { ...prev, [field]: value };
       // Auto-set title based on type
       if (field === 'type') {
-        const typeObj = EXCEPTION_TYPES.find((t) => t.value === value);
-        if (!prev.title || EXCEPTION_TYPES.some((t) => t.label === prev.title)) {
-          updated.title = typeObj?.label || '';
+        const typeObj = EXCEPTION_TYPES.find((tp) => tp.value === value);
+        if (!prev.title || EXCEPTION_TYPES.some((tp) => prev.title === t(tp.labelKey))) {
+          updated.title = typeObj ? t(typeObj.labelKey) : '';
         }
       }
       if (field === 'isFullDay' && value) {
@@ -90,44 +92,44 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
 
   const validate = () => {
     const e = {};
-    if (!formData.title.trim()) e.title = 'Title is required';
+    if (!formData.title.trim()) e.title = t('addException.titleRequired');
     if (!formData.date) {
-      e.date = 'Date is required';
+      e.date = t('addException.dateRequired');
     } else if (formData.date < today) {
-      e.date = 'Cannot select a past date';
+      e.date = t('addException.pastDate');
     }
 
     // Full-day: validate endDate if provided
     if (formData.isFullDay && formData.endDate && formData.endDate < formData.date) {
-      e.endDate = 'End date must be after start date';
+      e.endDate = t('addException.endDateError');
     }
 
     if (!formData.isFullDay) {
-      if (!formData.startTime) e.startTime = 'Start time required';
-      if (!formData.endTime) e.endTime = 'End time required';
+      if (!formData.startTime) e.startTime = t('addException.startRequired');
+      if (!formData.endTime) e.endTime = t('addException.endRequired');
 
       if (formData.startTime && formData.endTime) {
         // Check times are not in the past (only for today)
         if (formData.date === today) {
           const nowTime = getNowTime();
           if (formData.startTime < nowTime) {
-            e.startTime = 'Cannot select a past time';
+            e.startTime = t('addException.pastTime');
           }
           if (formData.endTime < nowTime) {
-            e.endTime = 'Cannot select a past time';
+            e.endTime = t('addException.pastTime');
           }
         }
 
         // Check end > start
         if (formData.startTime >= formData.endTime) {
-          e.endTime = 'End must be after start';
+          e.endTime = t('addException.endAfterStart');
         } else {
           // Check minimum 5-minute gap
           const [sh, sm] = formData.startTime.split(':').map(Number);
           const [eh, em] = formData.endTime.split(':').map(Number);
           const diffMinutes = (eh * 60 + em) - (sh * 60 + sm);
           if (diffMinutes < 5) {
-            e.endTime = 'Minimum 5-minute difference required';
+            e.endTime = t('addException.minDifference');
           }
         }
       }
@@ -155,7 +157,7 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
       });
       // Reset
       setFormData({
-        title: 'Break',
+        title: t('addException.break'),
         type: 'break',
         date: new Date().toISOString().split('T')[0],
         endDate: '',
@@ -212,8 +214,8 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                     <Plus className="w-5 h-5 text-red-600" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">Add Schedule Exception</h2>
-                    <p className="text-xs text-gray-400">Break, closure, holiday, etc.</p>
+                    <h2 className="text-lg font-bold text-gray-900">{t('addException.title')}</h2>
+                    <p className="text-xs text-gray-400">{t('addException.subtitle')}</p>
                   </div>
                 </div>
                 <button
@@ -229,21 +231,21 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
             <div className="px-4 sm:px-6 py-4 sm:py-5 space-y-4 overflow-y-auto flex-1">
               {/* Type selector */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Type</label>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">{t('addException.type')}</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {EXCEPTION_TYPES.map((t) => (
+                  {EXCEPTION_TYPES.map((tp) => (
                     <button
-                      key={t.value}
+                      key={tp.value}
                       type="button"
-                      onClick={() => handleChange('type', t.value)}
+                      onClick={() => handleChange('type', tp.value)}
                       className={`flex items-center gap-2 px-3 py-2 rounded-[5px] border text-xs font-medium transition-all ${
-                        formData.type === t.value
+                        formData.type === tp.value
                           ? 'border-amber-400 bg-amber-50 text-amber-800 shadow-sm'
                           : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                       }`}
                     >
-                      <t.icon className="w-3.5 h-3.5" />
-                      {t.label}
+                      <tp.icon className="w-3.5 h-3.5" />
+                      {t(tp.labelKey)}
                     </button>
                   ))}
                 </div>
@@ -252,11 +254,11 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
               {/* Title */}
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
-                  Title <span className="text-red-400">*</span>
+                  {t('addException.titleLabel')} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Lunch Break, Public Holiday..."
+                  placeholder={t('addException.titlePlaceholder')}
                   value={formData.title}
                   onChange={(e) => handleChange('title', e.target.value)}
                   className={inputClass('title')}
@@ -268,7 +270,7 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <CalendarDays className="w-3.5 h-3.5 text-gray-400" />
-                  {formData.isFullDay ? 'Start Date' : 'Date'} <span className="text-red-400">*</span>
+                  {formData.isFullDay ? t('addException.startDate') : t('addException.date')} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="date"
@@ -285,7 +287,7 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                     <CalendarDays className="w-3.5 h-3.5 text-gray-400" />
-                    End Date <span className="text-xs text-gray-400 font-normal">(optional, for multi-day)</span>
+                    {t('addException.endDate')} <span className="text-xs text-gray-400 font-normal">{t('addException.endDateOptional')}</span>
                   </label>
                   <input
                     type="date"
@@ -312,7 +314,7 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                     }`}
                   />
                 </div>
-                <span className="text-sm text-gray-700 font-medium">Full day</span>
+                <span className="text-sm text-gray-700 font-medium">{t('addException.fullDay')}</span>
               </label>
 
               {/* Time range (hidden if full day) */}
@@ -321,7 +323,7 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                   <div>
                     <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                       <Clock className="w-3.5 h-3.5 text-gray-400" />
-                      Start <span className="text-red-400">*</span>
+                      {t('addException.start')} <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="time"
@@ -335,7 +337,7 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                   <div>
                     <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                       <Clock className="w-3.5 h-3.5 text-gray-400" />
-                      End <span className="text-red-400">*</span>
+                      {t('addException.end')} <span className="text-red-400">*</span>
                     </label>
                     <input
                       type="time"
@@ -366,7 +368,7 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                   </div>
                   <div className="flex items-center gap-1.5">
                     <RotateCw className="w-3.5 h-3.5 text-gray-400" />
-                    <span className="text-sm text-gray-700 font-medium">Repeat weekly</span>
+                    <span className="text-sm text-gray-700 font-medium">{t('addException.repeatWeekly')}</span>
                   </div>
                 </label>
 
@@ -376,8 +378,8 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                     onChange={(e) => handleChange('recurringDay', parseInt(e.target.value))}
                     className={inputClass('recurringDay')}
                   >
-                    {DAY_NAMES.map((name, i) => (
-                      <option key={i} value={i}>{name}</option>
+                    {DAY_KEYS.map((key, i) => (
+                      <option key={i} value={i}>{t(key)}</option>
                     ))}
                   </select>
                 )}
@@ -387,11 +389,11 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-medium text-gray-700 mb-1.5">
                   <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
-                  Notes
+                  {t('addException.notes')}
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Optional notes..."
+                  placeholder={t('addException.notesPlaceholder')}
                   value={formData.notes}
                   onChange={(e) => handleChange('notes', e.target.value)}
                   className={`${inputClass('notes')} resize-none`}
@@ -405,14 +407,14 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                 onClick={onClose}
                 className="w-full sm:flex-1 px-4 py-3 sm:py-2.5 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 rounded-[5px] font-medium text-sm transition-colors order-2 sm:order-1"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={saving}
                 className="w-full sm:flex-1 px-4 py-3 sm:py-2.5 bg-[#364153] hover:bg-[#2a3444] disabled:opacity-50 text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm order-1 sm:order-2"
               >
-                {saving ? 'Saving...' : 'Add Exception'}
+                {saving ? t('addException.saving') : t('addException.addException')}
               </button>
             </div>
           </motion.div>

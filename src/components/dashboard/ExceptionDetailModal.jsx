@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '@/contexts/LanguageContext';
 import {
   X,
   Coffee,
@@ -28,18 +29,19 @@ const EXCEPTION_ICONS = {
 };
 
 const EXCEPTION_COLORS = {
-  break: { bg: '#3B82F6', label: 'Break' },
-  lunch_break: { bg: '#F97316', label: 'Lunch Break' },
-  closure: { bg: '#EF4444', label: 'Closure' },
-  holiday: { bg: '#10B981', label: 'Holiday' },
-  vacation: { bg: '#8B5CF6', label: 'Vacation' },
-  other: { bg: '#6B7280', label: 'Other' },
+  break: { bg: '#3B82F6', labelKey: 'exceptionDetail.break' },
+  lunch_break: { bg: '#F97316', labelKey: 'exceptionDetail.lunchBreak' },
+  closure: { bg: '#EF4444', labelKey: 'exceptionDetail.closure' },
+  holiday: { bg: '#10B981', labelKey: 'exceptionDetail.holiday' },
+  vacation: { bg: '#8B5CF6', labelKey: 'exceptionDetail.vacation' },
+  other: { bg: '#6B7280', labelKey: 'exceptionDetail.other' },
 };
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_KEYS = ['days.sunday', 'days.monday', 'days.tuesday', 'days.wednesday', 'days.thursday', 'days.friday', 'days.saturday'];
 
 export default function ExceptionDetailModal({ isOpen, onClose, exception, onDelete }) {
   const [deleting, setDeleting] = useState(false);
+  const { t } = useLanguage();
 
   if (!exception) return null;
 
@@ -129,7 +131,7 @@ export default function ExceptionDetailModal({ isOpen, onClose, exception, onDel
                   className="inline-block text-xs font-medium px-2 py-0.5 rounded-full text-white mt-0.5"
                   style={{ backgroundColor: colorInfo.bg }}
                 >
-                  {colorInfo.label}
+                  {t(colorInfo.labelKey)}
                 </span>
               </div>
               <button
@@ -152,7 +154,7 @@ export default function ExceptionDetailModal({ isOpen, onClose, exception, onDel
                   </p>
                   <p className="text-xs text-gray-500">
                     {exception.is_full_day
-                      ? (formattedEndDate ? 'Multiple days' : 'Full day')
+                      ? (formattedEndDate ? t('exceptionDetail.multipleDays') : t('exceptionDetail.fullDay'))
                       : `${formatTime(exception.start_time)} — ${formatTime(exception.end_time)}`}
                   </p>
                 </div>
@@ -166,7 +168,7 @@ export default function ExceptionDetailModal({ isOpen, onClose, exception, onDel
                     <p className="text-sm font-medium text-gray-900">
                       {formatTime(exception.start_time)} — {formatTime(exception.end_time)}
                     </p>
-                    <p className="text-xs text-gray-500">Time range</p>
+                    <p className="text-xs text-gray-500">{t('exceptionDetail.timeRange')}</p>
                   </div>
                 </div>
               )}
@@ -176,9 +178,9 @@ export default function ExceptionDetailModal({ isOpen, onClose, exception, onDel
                 <div className="flex items-start gap-3">
                   <RotateCw className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Repeats weekly</p>
+                    <p className="text-sm font-medium text-gray-900">{t('exceptionDetail.repeatsWeekly')}</p>
                     <p className="text-xs text-gray-500">
-                      Every {DAY_NAMES[exception.recurring_day]}
+                      {t('exceptionDetail.every')} {t(DAY_KEYS[exception.recurring_day])}
                     </p>
                   </div>
                 </div>
@@ -189,7 +191,7 @@ export default function ExceptionDetailModal({ isOpen, onClose, exception, onDel
                 <div className="flex items-start gap-3">
                   <MessageSquare className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Notes</p>
+                    <p className="text-sm font-medium text-gray-900">{t('exceptionDetail.notes')}</p>
                     <p className="text-xs text-gray-500 whitespace-pre-wrap">{exception.notes}</p>
                   </div>
                 </div>
@@ -202,7 +204,7 @@ export default function ExceptionDetailModal({ isOpen, onClose, exception, onDel
                 onClick={handleClose}
                 className="w-full sm:flex-1 px-4 py-3 sm:py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-[5px] font-medium text-sm transition-colors order-2 sm:order-1"
               >
-                Close
+                {t('exceptionDetail.close')}
               </button>
               <button
                 onClick={handleDelete}
@@ -214,7 +216,7 @@ export default function ExceptionDetailModal({ isOpen, onClose, exception, onDel
                 ) : (
                   <Trash2 className="w-4 h-4" />
                 )}
-                {deleting ? 'Deleting...' : 'Delete Exception'}
+                {deleting ? t('exceptionDetail.deleting') : t('exceptionDetail.deleteException')}
               </button>
             </div>
           </motion.div>

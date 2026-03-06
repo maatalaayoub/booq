@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import AddExceptionModal from '@/components/dashboard/AddExceptionModal';
 import ExceptionDetailModal from '@/components/dashboard/ExceptionDetailModal';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Dynamic import FullCalendar wrapper
 const FullCalendarWrapper = dynamic(
@@ -80,6 +81,7 @@ const DEFAULT_HOURS = DAY_NAMES.map((_, i) => ({
 
 // ─── Main Component ─────────────────────────────────────────
 export default function SchedulePage() {
+  const { t, isRTL } = useLanguage();
   const calendarRef = useRef(null);
   const [businessHours, setBusinessHours] = useState(DEFAULT_HOURS);
   const [exceptions, setExceptions] = useState([]);
@@ -349,13 +351,13 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isRTL ? 'rtl' : 'ltr'}`}>
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Schedule</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('schedule.title')}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Manage your working hours, breaks, and closures
+            {t('schedule.subtitle')}
           </p>
         </div>
         <button
@@ -366,7 +368,7 @@ export default function SchedulePage() {
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#364153] hover:bg-[#2a3444] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
-          Add Exception
+          {t('schedule.addException')}
         </button>
       </div>
 
@@ -381,7 +383,7 @@ export default function SchedulePage() {
           }`}
         >
           <Clock className="w-4 h-4" />
-          Working Hours
+          {t('schedule.workingHours')}
         </button>
         <button
           onClick={() => setActiveTab('calendar')}
@@ -392,7 +394,7 @@ export default function SchedulePage() {
           }`}
         >
           <CalendarDays className="w-4 h-4" />
-          Calendar View
+          {t('schedule.calendarView')}
         </button>
       </div>
 
@@ -408,7 +410,7 @@ export default function SchedulePage() {
           {/* Working Hours Card */}
           <div className="bg-white rounded-[5px] border border-gray-200 overflow-hidden">
             <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900">Weekly Working Hours</h2>
+              <h2 className="text-base font-semibold text-gray-900">{t('schedule.weeklyHours')}</h2>
               <button
                 onClick={saveHours}
                 disabled={!hasChanges || saving}
@@ -419,7 +421,7 @@ export default function SchedulePage() {
                 }`}
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {saving ? 'Saving...' : 'Save Changes'}
+                {saving ? t('common.saving') : t('common.saveChanges')}
               </button>
             </div>
 
@@ -446,7 +448,7 @@ export default function SchedulePage() {
                       />
                     </div>
                     <span className={`text-sm font-semibold ${day.isOpen ? 'text-gray-900' : 'text-gray-400'}`}>
-                      {DAY_NAMES[day.dayOfWeek]}
+                      {t(`days.${['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][day.dayOfWeek]}`)}
                     </span>
                   </div>
 
@@ -459,7 +461,7 @@ export default function SchedulePage() {
                         onChange={(e) => updateDay(day.dayOfWeek, 'openTime', e.target.value)}
                         className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-[5px] text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 w-32"
                       />
-                      <span className="text-gray-400 text-sm">to</span>
+                      <span className="text-gray-400 text-sm">{t('common.to')}</span>
                       <input
                         type="time"
                         value={day.closeTime || '19:00'}
@@ -468,7 +470,7 @@ export default function SchedulePage() {
                       />
                     </div>
                   ) : (
-                    <span className="text-sm text-gray-400 italic">Closed</span>
+                    <span className="text-sm text-gray-400 italic">{t('schedule.closed')}</span>
                   )}
                 </div>
               ))}
@@ -478,15 +480,15 @@ export default function SchedulePage() {
           {/* Exceptions List */}
           <div className="bg-white rounded-[5px] border border-gray-200 overflow-hidden">
             <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
-              <h2 className="text-base font-semibold text-gray-900">Schedule Exceptions</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Breaks, closures, holidays, and other non-working times</p>
+              <h2 className="text-base font-semibold text-gray-900">{t('schedule.exceptions')}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{t('schedule.exceptionsDesc')}</p>
             </div>
 
             {exceptions.length === 0 ? (
               <div className="px-4 sm:px-6 py-12 text-center">
                 <Coffee className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500">No exceptions added yet</p>
-                <p className="text-xs text-gray-400 mt-1">Add breaks, closures, or holidays to your schedule</p>
+                <p className="text-sm text-gray-500">{t('schedule.noExceptions')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('schedule.noExceptionsHint')}</p>
               </div>
             ) : (
               <div className="divide-y divide-gray-50">
@@ -517,12 +519,12 @@ export default function SchedulePage() {
                             })}</>
                           )}
                           {ex.is_full_day
-                            ? (!ex.end_date || ex.end_date === ex.date ? ' — Full day' : '')
-                            : ` — ${ex.start_time} to ${ex.end_time}`}
+                            ? (!ex.end_date || ex.end_date === ex.date ? ` — ${t('schedule.fullDay')}` : '')
+                            : ` — ${ex.start_time} ${t('common.to')} ${ex.end_time}`}
                           {ex.recurring && (
                             <span className="ml-1 text-amber-600">
                               <RotateCw className="w-3 h-3 inline -mt-0.5 mr-0.5" />
-                              Weekly
+                              {t('schedule.weekly')}
                             </span>
                           )}
                         </p>
@@ -565,7 +567,7 @@ export default function SchedulePage() {
                   onClick={goToday}
                   className="px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-[5px] transition-colors"
                 >
-                  Today
+                  {t('common.today')}
                 </button>
                 <button
                   onClick={goPrev}
@@ -584,10 +586,10 @@ export default function SchedulePage() {
               {/* View switcher */}
               <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-[5px]">
                 {[
-                  { key: 'dayGridMonth', label: 'Month' },
-                  { key: 'timeGridWeek', label: 'Week' },
-                  { key: 'timeGridDay', label: 'Day' },
-                  { key: 'listMonth', label: 'List' },
+                  { key: 'dayGridMonth', label: t('common.month') },
+                  { key: 'timeGridWeek', label: t('common.week') },
+                  { key: 'timeGridDay', label: t('common.day') },
+                  { key: 'listMonth', label: t('common.list') },
                 ].map(({ key, label }) => (
                   <button
                     key={key}
@@ -607,12 +609,12 @@ export default function SchedulePage() {
               <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 h-3 rounded-sm bg-amber-200 border border-amber-300" />
-                  <span className="text-xs text-gray-500">Working</span>
+                  <span className="text-xs text-gray-500">{t('schedule.working')}</span>
                 </div>
                 {Object.entries(EXCEPTION_COLORS).slice(0, 4).map(([type, color]) => (
                   <div key={type} className="flex items-center gap-1.5">
                     <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: color.bg }} />
-                    <span className="text-xs text-gray-500 capitalize">{type.replace('_', ' ')}</span>
+                    <span className="text-xs text-gray-500">{t(`exception.${type === 'lunch_break' ? 'lunchBreak' : type}`)}</span>
                   </div>
                 ))}
               </div>

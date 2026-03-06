@@ -63,6 +63,7 @@ export function useRole({ requiredRole = null, redirectTo = '/' } = {}) {
 
   const isUser = role === 'user';
   const isBusiness = role === 'business';
+  const isAdmin = role === 'admin';
   const isBarber = role === 'business';
   const hasRole = role !== null;
   const isLoaded = isClerkLoaded && !isLoading;
@@ -128,6 +129,7 @@ export function useRole({ requiredRole = null, redirectTo = '/' } = {}) {
     role,
     isUser,
     isBusiness,
+    isAdmin,
     isBarber,
     hasRole,
     onboardingCompleted,

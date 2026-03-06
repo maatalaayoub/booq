@@ -100,21 +100,22 @@ function ServicesSkeleton() {
 
 // ─── EMPTY STATE ─────────────────────────────────────────────
 function EmptyState({ onAdd }) {
+  const { t } = useLanguage();
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="w-20 h-20 bg-[#364153]/10 rounded-full flex items-center justify-center mb-4">
         <Tag className="w-10 h-10 text-[#364153]/40" />
       </div>
-      <h3 className="text-lg font-semibold text-gray-700 mb-1">No services yet</h3>
+      <h3 className="text-lg font-semibold text-gray-700 mb-1">{t('services.noServices')}</h3>
       <p className="text-sm text-gray-400 mb-6 max-w-xs">
-        Add your first service so clients can see what you offer and at what price.
+        {t('services.noServicesDesc')}
       </p>
       <button
         onClick={onAdd}
         className="flex items-center gap-2 px-5 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-colors"
       >
         <Plus className="w-4 h-4" />
-        Add First Service
+        {t('services.addFirst')}
       </button>
     </div>
   );
@@ -122,6 +123,7 @@ function EmptyState({ onAdd }) {
 
 // ─── SERVICE MODAL (Add / Edit) ───────────────────────────────
 function ServiceModal({ service, specialty, onClose, onSave }) {
+  const { t } = useLanguage();
   const presets = SERVICE_PRESETS[specialty] || SERVICE_PRESETS.default;
 
   const [form, setForm] = useState({
@@ -141,13 +143,13 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim()) return setError('Service name is required.');
+    if (!form.name.trim()) return setError(t('services.nameRequired'));
     const dur = parseInt(form.duration_minutes);
     if (!form.duration_minutes || isNaN(dur) || dur < 1) {
-      return setError('Please enter a valid duration.');
+      return setError(t('services.invalidDuration'));
     }
     if (form.price === '' || isNaN(Number(form.price)) || Number(form.price) < 0) {
-      return setError('Please enter a valid price.');
+      return setError(t('services.invalidPrice'));
     }
     setSaving(true);
     setError('');
@@ -183,7 +185,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 pt-4 sm:pt-6 pb-4 border-b border-gray-100">
           <h2 className="text-lg font-semibold text-[#364153]">
-            {isEdit ? 'Edit Service' : 'New Service'}
+            {isEdit ? t('services.editService') : t('services.newService')}
           </h2>
           <button onClick={onClose} className="p-1.5 rounded-[5px] hover:bg-gray-100 transition-colors text-gray-500">
             <X className="w-5 h-5" />
@@ -196,7 +198,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
           {/* Service Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Service Name <span className="text-red-500">*</span>
+              {t('services.serviceName')} <span className="text-red-500">*</span>
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {presets.map(p => (
@@ -218,18 +220,18 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
               type="text"
               value={form.name}
               onChange={e => set('name', e.target.value)}
-              placeholder="Or type a custom service name"
+              placeholder={t('services.serviceNamePlaceholder')}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153]"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('services.description')}</label>
             <textarea
               value={form.description}
               onChange={e => set('description', e.target.value)}
-              placeholder="Short description (optional)"
+              placeholder={t('services.descriptionPlaceholder')}
               rows={2}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153] resize-none"
             />
@@ -238,7 +240,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
           {/* Duration + Price */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Duration (min)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('services.duration')}</label>
               <div className="relative">
                 <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -254,7 +256,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Price <span className="text-red-500">*</span>
+                {t('services.price')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -273,7 +275,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
 
           {/* Currency */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Currency</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('services.currency')}</label>
             <div className="flex flex-wrap gap-2">
               {CURRENCIES.map(c => (
                 <button
@@ -295,8 +297,8 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
           {/* Active toggle */}
           <div className="flex items-center justify-between py-2">
             <div>
-              <p className="text-sm font-medium text-gray-700">Active</p>
-              <p className="text-xs text-gray-400">Visible to clients when booking</p>
+              <p className="text-sm font-medium text-gray-700">{t('services.activeToggle')}</p>
+              <p className="text-xs text-gray-400">{t('services.activeDesc')}</p>
             </div>
             <button
               type="button"
@@ -324,7 +326,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
               onClick={onClose}
               className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-[5px] text-sm font-medium hover:bg-gray-50 transition-colors"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -332,7 +334,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
               className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-colors disabled:opacity-60"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              {isEdit ? 'Save Changes' : 'Add Service'}
+              {isEdit ? t('common.saveChanges') : t('services.addService')}
             </button>
           </div>
         </form>
@@ -344,6 +346,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
 
 // ─── DELETE CONFIRM MODAL ─────────────────────────────────────
 function DeleteConfirmModal({ service, onClose, onConfirm }) {
+  const { t } = useLanguage();
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
@@ -363,17 +366,17 @@ function DeleteConfirmModal({ service, onClose, onConfirm }) {
           <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
             <Trash2 className="w-5 h-5 text-red-500" />
           </div>
-          <h3 className="text-base font-semibold text-gray-800">Delete Service</h3>
+          <h3 className="text-base font-semibold text-gray-800">{t('services.deleteService')}</h3>
         </div>
         <p className="text-sm text-gray-500 mb-6">
-          Are you sure you want to delete <span className="font-semibold text-gray-700">&quot;{service.name}&quot;</span>? This action cannot be undone.
+          {t('services.deleteConfirm')} <span className="font-semibold text-gray-700">&quot;{service.name}&quot;</span>? {t('services.deleteWarning')}
         </p>
         <div className="flex gap-3">
           <button
             onClick={onClose}
             className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleDelete}
@@ -381,7 +384,7 @@ function DeleteConfirmModal({ service, onClose, onConfirm }) {
             className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-60"
           >
             {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            Delete
+            {t('common.delete')}
           </button>
         </div>
       </div>
@@ -414,7 +417,7 @@ async function safeJson(res) {
 }
 
 export default function ServicesPage() {
-  const { isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
   const [services, setServices] = useState([]);
   const [specialty, setSpecialty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -510,9 +513,9 @@ export default function ServicesPage() {
         <div>
           <h1 className="text-2xl font-bold text-[#364153] flex items-center gap-2">
             <Tag className="w-6 h-6" />
-            Services &amp; Prices
+            {t('services.title')}
           </h1>
-          <p className="text-sm text-gray-400 mt-1">Manage the services you offer and their prices</p>
+          <p className="text-sm text-gray-400 mt-1">{t('services.subtitle')}</p>
         </div>
         {(loading || services.length > 0) && (
           <button
@@ -520,7 +523,7 @@ export default function ServicesPage() {
             className="flex items-center gap-2 px-4 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-colors shrink-0"
           >
             <Plus className="w-4 h-4" />
-            Add Service
+            {t('services.addService')}
           </button>
         )}
       </div>
@@ -529,17 +532,17 @@ export default function ServicesPage() {
       {!loading && services.length > 0 && (
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="bg-white border border-gray-200 rounded-[5px] p-4">
-            <p className="text-xs text-gray-400 mb-1">Total</p>
+            <p className="text-xs text-gray-400 mb-1">{t('common.total')}</p>
             <p className="text-2xl font-bold text-[#364153]">{services.length}</p>
-            <p className="text-xs text-gray-400">services</p>
+            <p className="text-xs text-gray-400">{t('services.services')}</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-[5px] p-4">
-            <p className="text-xs text-gray-400 mb-1">Active</p>
+            <p className="text-xs text-gray-400 mb-1">{t('common.active')}</p>
             <p className="text-2xl font-bold text-green-600">{activeCount}</p>
-            <p className="text-xs text-gray-400">visible</p>
+            <p className="text-xs text-gray-400">{t('common.visible')}</p>
           </div>
           <div className="bg-white border border-gray-200 rounded-[5px] p-4">
-            <p className="text-xs text-gray-400 mb-1">Price Range</p>
+            <p className="text-xs text-gray-400 mb-1">{t('services.priceRange')}</p>
             <p className="text-lg font-bold text-[#364153] leading-tight">
               {minPrice}
               <span className="text-gray-300 font-normal mx-1">–</span>
@@ -559,7 +562,7 @@ export default function ServicesPage() {
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name…"
+              placeholder={t('services.searchPlaceholder')}
               className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153]"
             />
           </div>
@@ -589,16 +592,16 @@ export default function ServicesPage() {
       ) : services.length === 0 ? (
         <EmptyState onAdd={() => setShowAddModal(true)} />
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16 text-gray-400 text-sm">No services match your search.</div>
+        <div className="text-center py-16 text-gray-400 text-sm">{t('services.noMatch')}</div>
       ) : (
         <>
           {/* Table header — desktop */}
           <div className="hidden sm:grid grid-cols-12 gap-3 px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wide bg-gray-50 rounded-xl mb-2">
-            <span className="col-span-5">Service</span>
-            <span className="col-span-1 text-center">Duration</span>
-            <span className="col-span-2 text-right">Price</span>
-            <span className="col-span-1 text-center">Status</span>
-            <span className="col-span-2 text-right">Actions</span>
+            <span className="col-span-5">{t('services.tableService')}</span>
+            <span className="col-span-1 text-center">{t('services.tableDuration')}</span>
+            <span className="col-span-2 text-right">{t('services.tablePrice')}</span>
+            <span className="col-span-1 text-center">{t('services.tableStatus')}</span>
+            <span className="col-span-2 text-right">{t('services.tableActions')}</span>
           </div>
 
           {/* Rows */}
@@ -641,7 +644,7 @@ export default function ServicesPage() {
                     <button
                       onClick={() => handleToggleActive(service)}
                       className={`transition-colors ${service.is_active ? 'text-[#364153]' : 'text-gray-300'}`}
-                      title={service.is_active ? 'Deactivate' : 'Activate'}
+                      title={service.is_active ? t('services.deactivate') : t('services.activate')}
                     >
                       {service.is_active
                         ? <ToggleRight className="w-6 h-6" />
@@ -683,7 +686,7 @@ export default function ServicesPage() {
                           {formatDuration(service.duration_minutes)}
                         </span>
                         <Badge
-                          label={service.is_active ? 'Active' : 'Inactive'}
+                          label={service.is_active ? t('common.active') : t('common.inactive')}
                           color={service.is_active ? 'green' : 'red'}
                         />
                       </div>
@@ -704,21 +707,21 @@ export default function ServicesPage() {
                           : 'border-green-200 text-green-600 hover:bg-green-50'
                       }`}
                     >
-                      {service.is_active ? 'Deactivate' : 'Activate'}
+                      {service.is_active ? t('services.deactivate') : t('services.activate')}
                     </button>
                     <button
                       onClick={() => setEditingService(service)}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-[#364153]/20 text-[#364153] hover:bg-[#364153]/5 transition-colors flex-1 justify-center"
                     >
                       <Pencil className="w-3.5 h-3.5" />
-                      Edit
+                      {t('common.edit')}
                     </button>
                     <button
                       onClick={() => setDeletingService(service)}
                       className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium border border-red-100 text-red-500 hover:bg-red-50 transition-colors flex-1 justify-center"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
-                      Delete
+                      {t('common.delete')}
                     </button>
                   </div>
                 </div>

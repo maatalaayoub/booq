@@ -70,6 +70,22 @@ function SectionToggle({ icon: Icon, label, description, value, onChange, accent
 
 // ─── LIVE PREVIEW CARD ────────────────────────────────────────
 function PreviewCard({ settings, user, businessData }) {
+  const { t } = useLanguage();
+  const gallery = settings.coverGallery || [];
+  const [slideIndex, setSlideIndex] = useState(0);
+
+  useEffect(() => {
+    if (gallery.length <= 1) return;
+    const timer = setInterval(() => {
+      setSlideIndex(prev => (prev + 1) % gallery.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [gallery.length]);
+
+  useEffect(() => {
+    if (slideIndex >= gallery.length) setSlideIndex(0);
+  }, [gallery.length, slideIndex]);
+
   const accentColors = {
     slate:  { bg: '#364153', light: '#e8ecf0' },
     amber:  { bg: '#D4AF37', light: '#fef9e7' },
@@ -85,9 +101,17 @@ function PreviewCard({ settings, user, businessData }) {
       {/* Cover + Avatar wrapper */}
       <div className="relative">
         {/* Cover */}
-        <div className="h-32 overflow-hidden rounded-t-[5px]" style={{ backgroundColor: accent.light }}>
-          {settings.showCoverPhoto && settings.activeCoverUrl ? (
-            <img src={settings.activeCoverUrl} alt="cover" className="w-full h-full object-cover" />
+        <div className="h-32 overflow-hidden rounded-t-[5px] relative" style={{ backgroundColor: accent.light }}>
+          {settings.showCoverPhoto && gallery.length > 0 ? (
+            gallery.map((url, i) => (
+              <img
+                key={url}
+                src={url}
+                alt={`cover ${i + 1}`}
+                className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ease-in-out"
+                style={{ opacity: i === slideIndex ? 1 : 0 }}
+              />
+            ))
           ) : (
             <div className="w-full h-full" style={{ background: `linear-gradient(135deg, ${accent.light} 0%, ${accent.bg}22 100%)` }} />
           )}
@@ -113,16 +137,16 @@ function PreviewCard({ settings, user, businessData }) {
       {/* Name — top padding accounts for avatar bleed */}
       <div className={`px-4 pb-3 ${settings.showProfile ? 'pt-10' : 'pt-3'}`}>
         <p className="text-sm font-bold text-[#364153] truncate">
-          {settings.businessName || 'Your Business Name'}
+          {settings.businessName || t('businessCard.previewName')}
         </p>
         <p className="text-xs text-gray-400 truncate capitalize mb-3">
-          {businessData?.professionalType?.replace(/_/g, ' ') || 'Professional Type'}
+          {businessData?.professionalType?.replace(/_/g, ' ') || t('businessCard.previewType')}
         </p>
 
         {/* Bio */}
         {settings.showBio && (
           <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-            {businessData?.bio || 'A short description about your services and expertise...'}
+            {businessData?.bio || t('businessCard.previewBio')}
           </p>
         )}
 
@@ -143,7 +167,7 @@ function PreviewCard({ settings, user, businessData }) {
           {settings.showResponseTime && (
             <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 border border-gray-100 rounded-full px-2 py-0.5">
               <Clock className="w-3 h-3" />
-              Fast reply
+              {t('businessCard.fastReply')}
             </span>
           )}
         </div>
@@ -151,7 +175,7 @@ function PreviewCard({ settings, user, businessData }) {
         {/* Services preview */}
         {settings.showServices && (
           <div className="mb-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Services</p>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('businessCard.servicesHeading')}</p>
             <div className="space-y-1">
               {['Classic Haircut', 'Beard Trim'].map(s => (
                 <div key={s} className="flex justify-between items-center text-xs">
@@ -170,17 +194,17 @@ function PreviewCard({ settings, user, businessData }) {
           className="w-full py-2 text-xs font-semibold text-white rounded-[5px] transition-opacity hover:opacity-90"
           style={{ backgroundColor: accent.bg }}
         >
-          Book Now
+          {t('businessCard.bookNow')}
         </button>
 
         {/* Contact */}
         {settings.showContact && (
           <div className="mt-2.5 flex gap-2">
             <button className="flex-1 py-1.5 text-xs border border-gray-200 rounded-[5px] text-gray-600 hover:bg-gray-50 transition-colors">
-              <Phone className="w-3 h-3 inline mr-1" />Call
+              <Phone className="w-3 h-3 inline mr-1" />{t('businessCard.call')}
             </button>
             <button className="flex-1 py-1.5 text-xs border border-gray-200 rounded-[5px] text-gray-600 hover:bg-gray-50 transition-colors">
-              Message
+              {t('businessCard.message')}
             </button>
           </div>
         )}
@@ -213,7 +237,6 @@ const DEFAULT_SETTINGS = {
   showRating:        true,
   showResponseTime:  true,
   accentColor:       'slate',
-  activeCoverUrl:    null,
   coverGallery:      [],
   avatarUrl:         null,
 };
@@ -223,7 +246,7 @@ export default function PublicPageManager() {
   const { user, isLoaded } = useUser();
   const params = useParams();
   const locale = params.locale || 'en';
-  const { isRTL } = useLanguage();
+  const { t, isRTL } = useLanguage();
 
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [businessData, setBusinessData] = useState(null);
@@ -298,7 +321,6 @@ export default function PublicPageManager() {
       setSettings(s => ({
         ...s,
         coverGallery: [...(s.coverGallery || []), ...urls],
-        activeCoverUrl: s.activeCoverUrl || urls[0],
       }));
       setSaved(false);
     } catch {}
@@ -306,16 +328,10 @@ export default function PublicPageManager() {
   };
 
   const removeGalleryCover = (url) => {
-    setSettings(s => {
-      const newGallery = s.coverGallery.filter(u => u !== url);
-      return {
-        ...s,
-        coverGallery: newGallery,
-        activeCoverUrl: s.activeCoverUrl === url
-          ? newGallery[0] || null
-          : s.activeCoverUrl,
-      };
-    });
+    setSettings(s => ({
+      ...s,
+      coverGallery: s.coverGallery.filter(u => u !== url),
+    }));
     setSaved(false);
   };
 
@@ -344,7 +360,7 @@ export default function PublicPageManager() {
             <Globe className="w-6 h-6" />
             Business Card
           </h1>
-          <p className="text-sm text-gray-400 mt-1">Customize how your business appears in search and homepage</p>
+          <p className="text-sm text-gray-400 mt-1">{t('businessCard.subtitle')}</p>
         </div>
         <button
           onClick={handleSave}
@@ -357,7 +373,7 @@ export default function PublicPageManager() {
               ? <Check className="w-4 h-4" />
               : <Save className="w-4 h-4" />
           }
-          {saved ? 'Saved!' : 'Save Changes'}
+          {saved ? t('common.saved') : t('common.saveChanges')}
         </button>
       </div>
 
@@ -370,15 +386,15 @@ export default function PublicPageManager() {
           <div className="bg-white border border-gray-200 rounded-[5px] overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
               <Briefcase className="w-4 h-4 text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-700">Business Identity</h2>
+              <h2 className="text-sm font-semibold text-gray-700">{t('businessCard.businessIdentity')}</h2>
             </div>
             <div className="p-4 space-y-4">
 
               {/* Show / hide profile photo */}
               <div className="flex items-center justify-between py-2">
                 <div>
-                  <p className="text-sm font-medium text-gray-800">Show Profile Photo</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Display your avatar photo on the card</p>
+                  <p className="text-sm font-medium text-gray-800">{t('businessCard.showProfile')}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{t('businessCard.showProfileDesc')}</p>
                 </div>
                 <button
                   type="button"
@@ -391,7 +407,7 @@ export default function PublicPageManager() {
 
               {/* Business name input — always visible */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Business Name</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('businessCard.businessName')}</label>
                 <input
                   type="text"
                   value={settings.businessName}
@@ -410,13 +426,13 @@ export default function PublicPageManager() {
           <div className="bg-white border border-gray-200 rounded-[5px] overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
               <Camera className="w-4 h-4 text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-700">Photos</h2>
+              <h2 className="text-sm font-semibold text-gray-700">{t('businessCard.photos')}</h2>
             </div>
             <div className="p-4 space-y-5">
 
               {/* Profile photo */}
               <div>
-                <p className="text-xs font-medium text-gray-600 mb-2">Business Profile Photo</p>
+                <p className="text-xs font-medium text-gray-600 mb-2">{t('businessCard.profilePhoto')}</p>
                 <div className="flex items-center gap-4">
                   <div className="relative flex-shrink-0 group">
                     {(settings.avatarUrl) ? (
@@ -454,9 +470,9 @@ export default function PublicPageManager() {
                       className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-[5px] hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      {uploadingAvatar ? 'Uploading...' : (settings.avatarUrl ? 'Change Photo' : 'Upload Photo')}
+                      {uploadingAvatar ? t('businessCard.uploading') : (settings.avatarUrl ? t('businessCard.changePhoto') : t('businessCard.uploadPhoto'))}
                     </button>
-                    <p className="text-xs text-gray-400">JPG, PNG or WebP · max 5 MB</p>
+                    <p className="text-xs text-gray-400">{t('businessCard.photoHint')}</p>
                   </div>
                   <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
                 </div>
@@ -467,7 +483,7 @@ export default function PublicPageManager() {
               {/* Cover gallery */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-medium text-gray-600">Cover Gallery</p>
+                  <p className="text-xs font-medium text-gray-600">{t('businessCard.coverGallery')}</p>
                   <button
                     type="button"
                     onClick={() => galleryInputRef.current?.click()}
@@ -478,26 +494,18 @@ export default function PublicPageManager() {
                       ? <Loader2 className="w-3 h-3 animate-spin" />
                       : <Plus className="w-3 h-3" />
                     }
-                    Add photos
+                    {t('businessCard.addPhotos')}
                   </button>
                   <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryCoverUpload} />
                 </div>
-                <p className="text-xs text-gray-400 mb-3">Upload multiple covers. Click one to set as active.</p>
+                <p className="text-xs text-gray-400 mb-3">{t('businessCard.coverGalleryHint')}</p>
                 <div className="grid grid-cols-4 gap-2">
                   {(settings.coverGallery || []).map((url, i) => (
-                    <div key={i} className="relative group aspect-video rounded-[5px] overflow-hidden border-2 cursor-pointer transition-all"
-                      style={{ borderColor: settings.activeCoverUrl === url ? '#364153' : 'transparent' }}
-                      onClick={() => { setSettings(s => ({ ...s, activeCoverUrl: url })); setSaved(false); }}
-                    >
+                    <div key={i} className="relative group aspect-video rounded-[5px] overflow-hidden border border-gray-200">
                       <img src={url} alt={`cover ${i+1}`} className="w-full h-full object-cover" />
-                      {settings.activeCoverUrl === url && (
-                        <div className="absolute top-1 right-1 w-4 h-4 bg-[#364153] rounded-full flex items-center justify-center">
-                          <Check className="w-2.5 h-2.5 text-white" />
-                        </div>
-                      )}
                       <button
                         type="button"
-                        onClick={e => { e.stopPropagation(); removeGalleryCover(url); }}
+                        onClick={() => removeGalleryCover(url)}
                         className="absolute bottom-1 right-1 w-5 h-5 bg-red-500 rounded-full items-center justify-center hidden group-hover:flex"
                       >
                         <Trash2 className="w-3 h-3 text-white" />
@@ -520,70 +528,70 @@ export default function PublicPageManager() {
           {/* Content Sections */}
           <div className="bg-white border border-gray-200 rounded-[5px] overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-700">Content Sections</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Choose what appears on your business card</p>
+              <h2 className="text-sm font-semibold text-gray-700">{t('businessCard.contentSections')}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{t('businessCard.contentSectionsDesc')}</p>
             </div>
             <div className="p-4 space-y-2">
               <SectionToggle
                 icon={Image}
-                label="Cover Photo"
-                description="Header image displayed on your card"
+                label={t('businessCard.coverPhoto')}
+                description={t('businessCard.coverPhotoDesc')}
                 value={settings.showCoverPhoto}
                 onChange={v => set('showCoverPhoto', v)}
                 accent="blue"
               />
               <SectionToggle
                 icon={FileText}
-                label="Bio / About"
-                description="Short description about you and your work"
+                label={t('businessCard.bio')}
+                description={t('businessCard.bioDesc')}
                 value={settings.showBio}
                 onChange={v => set('showBio', v)}
                 accent="purple"
               />
               <SectionToggle
                 icon={Tag}
-                label="Services List"
-                description="Show the services you offer"
+                label={t('businessCard.servicesList')}
+                description={t('businessCard.servicesListDesc')}
                 value={settings.showServices}
                 onChange={v => set('showServices', v)}
                 accent="amber"
               />
               <SectionToggle
                 icon={DollarSign}
-                label="Prices"
-                description="Display pricing alongside services"
+                label={t('businessCard.prices')}
+                description={t('businessCard.pricesDesc')}
                 value={settings.showPrices}
                 onChange={v => set('showPrices', v)}
                 accent="green"
               />
               <SectionToggle
                 icon={Star}
-                label="Rating & Reviews"
-                description="Display client reviews and star rating"
+                label={t('businessCard.rating')}
+                description={t('businessCard.ratingDesc')}
                 value={settings.showRating}
                 onChange={v => set('showRating', v)}
                 accent="amber"
               />
               <SectionToggle
                 icon={MapPin}
-                label="Location"
-                description="Show your city or address"
+                label={t('businessCard.location')}
+                description={t('businessCard.locationDesc')}
                 value={settings.showLocation}
                 onChange={v => set('showLocation', v)}
                 accent="rose"
               />
               <SectionToggle
                 icon={Phone}
-                label="Contact Buttons"
-                description="Call and message buttons for clients"
+                label={t('businessCard.contactButtons')}
+                description={t('businessCard.contactButtonsDesc')}
                 value={settings.showContact}
                 onChange={v => set('showContact', v)}
                 accent="blue"
               />
               <SectionToggle
                 icon={Clock}
-                label="Response Time"
-                description="Show how quickly you typically reply"
+                label={t('businessCard.responseTime')}
+                description={t('businessCard.responseTimeDesc')}
                 value={settings.showResponseTime}
                 onChange={v => set('showResponseTime', v)}
                 accent="teal"
@@ -595,10 +603,10 @@ export default function PublicPageManager() {
           <div className="bg-white border border-gray-200 rounded-[5px] overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
               <Palette className="w-4 h-4 text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-700">Accent Color</h2>
+              <h2 className="text-sm font-semibold text-gray-700">{t('businessCard.accentColor')}</h2>
             </div>
             <div className="p-4">
-              <p className="text-xs text-gray-400 mb-3">Applied to highlights and accents on your card</p>
+              <p className="text-xs text-gray-400 mb-3">{t('businessCard.accentColorDesc')}</p>
               <div className="flex flex-wrap gap-2.5">
                 {ACCENT_COLORS.map(c => (
                   <button
@@ -625,9 +633,7 @@ export default function PublicPageManager() {
           {/* Info notice */}
           <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-100 rounded-[5px]">
             <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-blue-700 leading-relaxed">
-              Changes are previewed live. Click <strong>Save Changes</strong> to apply them to your business card.
-            </p>
+            <p className="text-xs text-blue-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: t('businessCard.infoNotice') }} />
           </div>
         </div>
 
@@ -636,14 +642,14 @@ export default function PublicPageManager() {
           <div className="sticky top-24 w-full flex flex-col items-center lg:items-stretch">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 flex items-center gap-1.5 self-start">
               <Eye className="w-3.5 h-3.5" />
-              Live Preview
+              {t('businessCard.livePreview')}
             </p>
 
             {!settings.pageEnabled ? (
               <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-200 rounded-[5px] text-center w-full max-w-xs lg:max-w-none">
                 <EyeOff className="w-8 h-8 text-gray-300 mb-2" />
-                <p className="text-sm font-medium text-gray-400">Card is hidden</p>
-                <p className="text-xs text-gray-300 mt-1">Enable visibility to see the preview</p>
+                <p className="text-sm font-medium text-gray-400">{t('businessCard.cardHidden')}</p>
+                <p className="text-xs text-gray-300 mt-1">{t('businessCard.enableVisibility')}</p>
               </div>
             ) : (
               <PreviewCard
@@ -691,7 +697,7 @@ export default function PublicPageManager() {
             <div className="bg-white rounded-t-[5px] px-4 py-3 border-b border-gray-200">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
                 <Eye className="w-3.5 h-3.5" />
-                Live Preview
+                {t('businessCard.livePreview')}
               </p>
             </div>
 
@@ -700,8 +706,8 @@ export default function PublicPageManager() {
               {!settings.pageEnabled ? (
                 <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed border-gray-200 rounded-[5px] text-center bg-white">
                   <EyeOff className="w-8 h-8 text-gray-300 mb-2" />
-                  <p className="text-sm font-medium text-gray-400">Card is hidden</p>
-                  <p className="text-xs text-gray-300 mt-1">Enable visibility to see the preview</p>
+                  <p className="text-sm font-medium text-gray-400">{t('businessCard.cardHidden')}</p>
+                  <p className="text-xs text-gray-300 mt-1">{t('businessCard.enableVisibility')}</p>
                 </div>
               ) : (
                 <div className="flex justify-center">

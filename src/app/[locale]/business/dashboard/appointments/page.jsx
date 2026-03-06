@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import AppointmentDetailModal from '@/components/dashboard/AppointmentDetailModal';
 import NewAppointmentModal from '@/components/dashboard/NewAppointmentModal';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Dynamic import of the FullCalendar wrapper to avoid SSR issues
 const FullCalendarWrapper = dynamic(
@@ -113,6 +114,7 @@ function timesOverlap(startA, endA, startB, endB) {
 
 // ─── Main Component ─────────────────────────────────────────
 export default function AppointmentsPage() {
+  const { t, isRTL } = useLanguage();
   const calendarRef = useRef(null);
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -236,12 +238,12 @@ export default function AppointmentsPage() {
     if (info.allDay) {
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       if (clickedDate < todayStart) {
-        showToast('Cannot create an appointment for a past date.');
+        showToast(t('appointments.toast.pastDate'));
         return;
       }
     } else {
       if (clickedDate < now) {
-        showToast('Cannot create an appointment for a past date or time.');
+        showToast(t('appointments.toast.pastDateTime'));
         return;
       }
     }
@@ -260,7 +262,7 @@ export default function AppointmentsPage() {
       // Month view: block past dates, allow today
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       if (selectedStart < todayStart) {
-        showToast('Cannot create an appointment for a past date.');
+        showToast(t('appointments.toast.pastDate'));
         const api = calendarRef.current?.getApi();
         if (api) api.unselect();
         return;
@@ -268,7 +270,7 @@ export default function AppointmentsPage() {
     } else {
       // Time grid: block past times
       if (selectedStart < now) {
-        showToast('Cannot create an appointment for a past date or time.');
+        showToast(t('appointments.toast.pastDateTime'));
         const api = calendarRef.current?.getApi();
         if (api) api.unselect();
         return;
@@ -287,13 +289,13 @@ export default function AppointmentsPage() {
   const handleEventDrop = useCallback(async (info) => {
     // Block dropping onto a past date/time
     if (info.event.start < new Date()) {
-      showToast('Cannot move an appointment to a past date or time.');
+      showToast(t('appointments.toast.movePast'));
       info.revert();
       return;
     }
     const status = info.event.extendedProps?.status;
     if (status === 'confirmed') {
-      showToast('Confirmed appointments cannot be moved.');
+      showToast(t('appointments.toast.confirmedNoMove'));
       info.revert();
       return;
     }
@@ -310,7 +312,7 @@ export default function AppointmentsPage() {
       return timesOverlap(dropStart, dropEnd, new Date(e.start), new Date(e.end));
     });
     if (hasOverlap) {
-      showToast('This time slot overlaps with an existing appointment.');
+      showToast(t('appointments.toast.overlap'));
       info.revert();
       return;
     }
@@ -341,13 +343,13 @@ export default function AppointmentsPage() {
   const handleEventResize = useCallback(async (info) => {
     // Block resizing into a past date/time
     if (info.event.start < new Date()) {
-      showToast('Cannot resize an appointment to a past date or time.');
+      showToast(t('appointments.toast.resizePast'));
       info.revert();
       return;
     }
     const status = info.event.extendedProps?.status;
     if (status === 'confirmed') {
-      showToast('Confirmed appointments cannot be resized.');
+      showToast(t('appointments.toast.confirmedNoResize'));
       info.revert();
       return;
     }
@@ -364,7 +366,7 @@ export default function AppointmentsPage() {
       return timesOverlap(resizeStart, resizeEnd, new Date(e.start), new Date(e.end));
     });
     if (hasOverlap) {
-      showToast('This time slot overlaps with an existing appointment.');
+      showToast(t('appointments.toast.overlap'));
       info.revert();
       return;
     }
@@ -385,13 +387,13 @@ export default function AppointmentsPage() {
       console.error('[Appointments] Resize update failed:', err);
       info.revert();
     }
-  }, [showToast, events]);
+  }, [showToast, events, t]);
 
   // ── Add new event (save to DB) ──
   const handleAddEvent = useCallback(async (eventData) => {
     // Safety check: prevent saving past appointments
     if (new Date(eventData.start) < new Date()) {
-      showToast('Cannot create an appointment for a past date or time.');
+      showToast(t('appointments.toast.pastDateTime'));
       return;
     }
     // Block overlapping with existing appointments
@@ -402,7 +404,7 @@ export default function AppointmentsPage() {
       return timesOverlap(newStart, newEnd, new Date(e.start), new Date(e.end));
     });
     if (hasOverlap) {
-      showToast('This time slot overlaps with an existing appointment.');
+      showToast(t('appointments.toast.overlap'));
       return;
     }
     setIsSaving(true);
@@ -430,11 +432,11 @@ export default function AppointmentsPage() {
       } else {
         const err = await res.json().catch(() => ({}));
         console.error('[Appointments] Save failed:', res.status, err);
-        showToast(err.error || 'Failed to save appointment. Please try again.');
+        showToast(err.error || t('appointments.toast.saveFailed'));
       }
     } catch (err) {
       console.error('[Appointments] Save error:', err);
-      showToast('Failed to save appointment. Please try again.');
+      showToast(t('appointments.toast.saveFailed'));
     } finally {
       setIsSaving(false);
     }
@@ -518,20 +520,20 @@ export default function AppointmentsPage() {
 
   // ── View buttons config ──
   const views = [
-    { key: 'timeGridDay', icon: Clock, label: 'Day' },
-    { key: 'timeGridWeek', icon: CalendarDays, label: 'Week' },
-    { key: 'dayGridMonth', icon: CalendarDays, label: 'Month' },
-    { key: 'listWeek', icon: List, label: 'List' },
+    { key: 'timeGridDay', icon: Clock, label: t('common.day') },
+    { key: 'timeGridWeek', icon: CalendarDays, label: t('common.week') },
+    { key: 'dayGridMonth', icon: CalendarDays, label: t('common.month') },
+    { key: 'listWeek', icon: List, label: t('common.list') },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${isRTL ? 'rtl' : 'ltr'}`}>
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Appointments</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('appointments.title')}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Manage and track all your bookings
+            {t('appointments.subtitle')}
           </p>
         </div>
         <button
@@ -543,7 +545,7 @@ export default function AppointmentsPage() {
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#364153] hover:bg-[#2a3444] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
         >
           <Plus className="w-4 h-4" />
-          New Appointment
+          {t('appointments.new')}
         </button>
       </div>
 
@@ -561,10 +563,10 @@ export default function AppointmentsPage() {
           ))
         ) : (
           <>
-            <StatCard icon={CalendarCheck} label="Today" value={stats.today} color="bg-blue-500" />
-            <StatCard icon={CheckCircle2} label="Confirmed" value={stats.confirmed} color="bg-amber-500" />
-            <StatCard icon={AlertCircle} label="Pending" value={stats.pending} color="bg-orange-500" />
-            <StatCard icon={CheckCircle2} label="Completed" value={stats.completed} color="bg-emerald-500" />
+            <StatCard icon={CalendarCheck} label={t('appointments.stats.today')} value={stats.today} color="bg-blue-500" />
+            <StatCard icon={CheckCircle2} label={t('appointments.stats.confirmed')} value={stats.confirmed} color="bg-amber-500" />
+            <StatCard icon={AlertCircle} label={t('appointments.stats.pending')} value={stats.pending} color="bg-orange-500" />
+            <StatCard icon={CheckCircle2} label={t('appointments.stats.completed')} value={stats.completed} color="bg-emerald-500" />
           </>
         )}
       </div>
@@ -603,7 +605,7 @@ export default function AppointmentsPage() {
                 onClick={goToday}
                 className="px-3 py-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors"
               >
-                Today
+                {t('common.today')}
               </button>
               <button
                 onClick={goPrev}
@@ -644,11 +646,11 @@ export default function AppointmentsPage() {
             {/* Filter */}
             <div className="flex items-center gap-2 flex-wrap">
               <Filter className="w-3.5 h-3.5 text-gray-400" />
-              <FilterPill label="All" active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} color="bg-gray-700" />
-              <FilterPill label="Confirmed" active={statusFilter === 'confirmed'} onClick={() => setStatusFilter('confirmed')} color="bg-amber-500" />
-              <FilterPill label="Pending" active={statusFilter === 'pending'} onClick={() => setStatusFilter('pending')} color="bg-orange-500" />
-              <FilterPill label="Completed" active={statusFilter === 'completed'} onClick={() => setStatusFilter('completed')} color="bg-emerald-500" />
-              <FilterPill label="Cancelled" active={statusFilter === 'cancelled'} onClick={() => setStatusFilter('cancelled')} color="bg-red-500" />
+              <FilterPill label={t('common.all')} active={statusFilter === 'all'} onClick={() => setStatusFilter('all')} color="bg-gray-700" />
+              <FilterPill label={t('appointments.stats.confirmed')} active={statusFilter === 'confirmed'} onClick={() => setStatusFilter('confirmed')} color="bg-amber-500" />
+              <FilterPill label={t('appointments.stats.pending')} active={statusFilter === 'pending'} onClick={() => setStatusFilter('pending')} color="bg-orange-500" />
+              <FilterPill label={t('appointments.stats.completed')} active={statusFilter === 'completed'} onClick={() => setStatusFilter('completed')} color="bg-emerald-500" />
+              <FilterPill label={t('appointments.stats.cancelled')} active={statusFilter === 'cancelled'} onClick={() => setStatusFilter('cancelled')} color="bg-red-500" />
             </div>
           </div>
           )}
