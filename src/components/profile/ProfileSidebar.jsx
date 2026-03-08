@@ -82,7 +82,7 @@ export default function ProfileSidebar({ isOpen, onClose }) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: isRTL ? '100%' : '-100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-screen w-[320px] max-w-[85vw] bg-white shadow-2xl z-[60] flex flex-col`}
+            className={`fixed top-0 ${isRTL ? 'right-0' : 'left-0'} h-screen w-full md:w-[320px] md:max-w-[85vw] bg-white shadow-2xl z-[60] flex flex-col`}
           >
             {/* Header with Close Button */}
             <div className="flex items-center justify-end p-4 shrink-0">
@@ -248,8 +248,13 @@ export default function ProfileSidebar({ isOpen, onClose }) {
                 ))}
               </div>
 
+              {/* Copyright */}
+              <div className="px-4 py-4 border-t border-gray-200">
+                <p className="text-xs text-gray-400 text-center">© 2026 booq. All rights reserved.</p>
+              </div>
+
               {/* Bottom padding for mobile navigation */}
-              <div className="h-24 shrink-0" />
+              <div className="h-20 shrink-0" />
             </div>
           </motion.div>
         </>

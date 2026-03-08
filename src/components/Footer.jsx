@@ -43,7 +43,7 @@ export default function Footer() {
   ];
   
   return (
-    <footer className="relative overflow-hidden bg-gradient-to-b from-gray-900 to-[#0a0f1a]">
+    <footer className="relative overflow-hidden bg-gradient-to-b from-gray-900 to-[#0a0f1a] hidden md:block">
       {/* Decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl" />

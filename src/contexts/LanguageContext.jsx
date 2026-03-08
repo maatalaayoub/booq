@@ -866,8 +866,8 @@ const translations = {
     // Bottom Navigation
     navHome: 'Home',
     navFavorite: 'Favorite',
-    navBooking: 'Booking',
-    navCommunity: 'Community',
+    navBooking: 'Book',
+    navPosts: 'Posts',
     navProfile: 'Profile',
     navMenu: 'Menu',
 
@@ -1745,8 +1745,8 @@ const translations = {
     // Bottom Navigation
     navHome: 'Accueil',
     navFavorite: 'Favoris',
-    navBooking: 'Réservation',
-    navCommunity: 'Communauté',
+    navBooking: 'Réserver',
+    navPosts: 'Posts',
     navProfile: 'Profil',
     navMenu: 'Menu',
 
@@ -2622,8 +2622,8 @@ const translations = {
     // Bottom Navigation
     navHome: 'الرئيسية',
     navFavorite: 'المفضلة',
-    navBooking: 'الحجوزات',
-    navCommunity: 'المجتمع',
+    navBooking: 'أحجز',
+    navPosts: 'منشورات',
     navProfile: 'الملف الشخصي',
     navMenu: 'القائمة',
 

@@ -516,36 +516,6 @@ export default function Hero() {
                       <Settings className="h-5 w-5 text-[#244C70]" strokeWidth={1.5} />
                       <span className="font-medium text-base">{t('settings') || 'Settings'}</span>
                     </a>
-
-                    {/* About */}
-                    <a
-                      href={`/${locale}/about`}
-                      onClick={() => setIsDesktopSideMenuOpen(false)}
-                      className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-[#244C70] transition-all hover:bg-gray-50"
-                    >
-                      <Info className="h-5 w-5 text-[#244C70]" strokeWidth={1.5} />
-                      <span className="font-medium text-base">{t('about') || 'About'}</span>
-                    </a>
-
-                    {/* Contact */}
-                    <a
-                      href={`/${locale}/contact`}
-                      onClick={() => setIsDesktopSideMenuOpen(false)}
-                      className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-[#244C70] transition-all hover:bg-gray-50"
-                    >
-                      <Mail className="h-5 w-5 text-[#244C70]" strokeWidth={1.5} />
-                      <span className="font-medium text-base">{t('contact') || 'Contact'}</span>
-                    </a>
-
-                    {/* Privacy Policy */}
-                    <a
-                      href={`/${locale}/privacy`}
-                      onClick={() => setIsDesktopSideMenuOpen(false)}
-                      className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-[#244C70] transition-all hover:bg-gray-50"
-                    >
-                      <Shield className="h-5 w-5 text-[#244C70]" strokeWidth={1.5} />
-                      <span className="font-medium text-base">{t('privacyPolicy') || 'Privacy Policy'}</span>
-                    </a>
                   </div>
 
                   {/* Divider */}
@@ -602,7 +572,7 @@ export default function Hero() {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: locale === 'ar' ? '100%' : '-100%', opacity: 0 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className={`fixed top-0 ${locale === 'ar' ? 'right-0' : 'left-0'} h-screen w-[320px] max-w-[85vw] bg-white shadow-2xl z-[60] md:hidden flex flex-col`}
+                className={`fixed top-0 ${locale === 'ar' ? 'right-0' : 'left-0'} h-screen w-full bg-white shadow-2xl z-[60] md:hidden flex flex-col`}
                 dir={locale === 'ar' ? 'rtl' : 'ltr'}
               >
                 {/* Header with Close Button */}
@@ -812,8 +782,13 @@ export default function Hero() {
                   ))}
                 </div>
 
+                {/* Copyright */}
+                <div className="px-4 py-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-400 text-center">© 2026 booq. All rights reserved.</p>
+                </div>
+
                 {/* Bottom padding for mobile navigation */}
-                <div className="h-24 shrink-0" />
+                <div className="h-20 shrink-0" />
                 </div>
               </motion.div>
             </>
