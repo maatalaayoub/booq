@@ -33,9 +33,22 @@ export default function DashboardHeader() {
       }
     }
     fetchAvatar();
+    
+    // Re-fetch when window regains focus (e.g., after changing profile photo)
+    const handleFocus = () => fetchAvatar();
+    window.addEventListener('focus', handleFocus);
+    
+    // Listen for custom event from profile photo change
+    const handleProfileUpdate = () => fetchAvatar();
+    window.addEventListener('profile-photo-updated', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('profile-photo-updated', handleProfileUpdate);
+    };
   }, []);
 
-  // Use business card avatar if available, otherwise fall back to Clerk
+  // Use profile avatar if available, otherwise fall back to Clerk
   const profileImage = avatarUrl || user?.imageUrl;
 
   const handleOpenSidebar = () => {

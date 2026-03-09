@@ -182,6 +182,8 @@ export default function ProfileHeader({
       const data = await res.json();
       if (data.url) {
         setLocalProfileImage(data.url);
+        // Notify header to refresh avatar
+        window.dispatchEvent(new CustomEvent('profile-photo-updated'));
       }
       onAvatarChange?.();
     } catch (err) {

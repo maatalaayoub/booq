@@ -749,6 +749,21 @@ ALTER TABLE business_services DROP COLUMN IF EXISTS category;
 
 DROP TABLE IF EXISTS business_card_settings CASCADE;
 
+-- Expected settings JSONB structure:
+-- {
+--   "pageEnabled": boolean,
+--   "showProfile": boolean,
+--   "businessName": string,
+--   "showCoverPhoto": boolean,
+--   "showServices": boolean,
+--   "showPrices": boolean,
+--   "showLocation": boolean,
+--   "showRating": boolean,
+--   "showResponseTime": boolean,
+--   "accentColor": string (slate|amber|rose|teal|violet|blue),
+--   "coverGallery": array of image URLs,
+--   "avatarUrl": string or null
+-- }
 CREATE TABLE business_card_settings (
   id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   business_info_id  UUID        NOT NULL
@@ -914,9 +929,9 @@ CREATE TRIGGER update_verification_requests_updated_at
 -- ============================================
 CREATE TABLE IF NOT EXISTS admin_actions_log (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  admin_user_id UUID REFERENCES users(id) NOT NULL,
+  admin_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   action_type TEXT NOT NULL,                -- e.g. 'approve_identity','reject_business','suspend_user','delete_user'
-  target_user_id UUID REFERENCES users(id),
+  target_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
   details JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

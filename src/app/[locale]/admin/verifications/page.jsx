@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   ShieldCheck, Loader2, CheckCircle2, XCircle, Clock,
-  FileText, User, Eye, X, Search, RefreshCw,
+  FileText, User, Eye, X, Search, RefreshCw, Info, MapPin, Phone, Mail, Building2, Briefcase,
 } from 'lucide-react';
 
 const STATUS_BADGE = {
@@ -20,6 +20,7 @@ export default function AdminVerificationsPage() {
   const [statusFilter, setStatusFilter] = useState('pending');
   const [actionLoading, setActionLoading] = useState(null);
   const [viewDoc, setViewDoc] = useState(null); // { url, title }
+  const [viewUserDetails, setViewUserDetails] = useState(null); // verification object
   const [rejectModal, setRejectModal] = useState(null); // { verificationId, field }
   const [rejectReason, setRejectReason] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -65,6 +66,24 @@ export default function AdminVerificationsPage() {
     const p = v.users?.user_profile;
     if (p?.first_name || p?.last_name) return `${p.first_name || ''} ${p.last_name || ''}`.trim();
     return v.users?.username || v.users?.email || '—';
+  };
+
+  // Helper to extract business details from shop_salon_info, mobile_service_info, or business_card_settings
+  const getBusinessDetails = (v) => {
+    const bi = v.business_info;
+    if (!bi) return {};
+    // These are one-to-one relations, so access directly (not as arrays)
+    const shop = bi.shop_salon_info;
+    const mobile = bi.mobile_service_info;
+    const cardSettings = bi.business_card_settings?.settings;
+    return {
+      businessName: cardSettings?.businessName || shop?.business_name || mobile?.business_name || null,
+      avatarUrl: cardSettings?.avatarUrl || null,
+      address: shop?.address || null,
+      city: shop?.city || null,
+      phone: shop?.phone || mobile?.phone || null,
+      serviceArea: mobile?.service_area || null,
+    };
   };
 
   const renderStatusBadge = (status) => {
@@ -196,9 +215,19 @@ export default function AdminVerificationsPage() {
                     <p className="text-xs text-gray-400">{v.users?.email} &bull; {v.business_info?.professional_type}</p>
                   </div>
                 </div>
-                <span className="text-xs text-gray-400">
-                  {new Date(v.created_at).toLocaleDateString()}
-                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setViewUserDetails(v)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-medium"
+                    title={t('admin.verifications.viewDetails') || 'View Details'}
+                  >
+                    <Info className="w-4 h-4" />
+                    <span className="hidden sm:inline">{t('admin.verifications.viewDetails') || 'Details'}</span>
+                  </button>
+                  <span className="text-xs text-gray-400">
+                    {new Date(v.created_at).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
 
               {/* Documents */}
@@ -301,6 +330,185 @@ export default function AdminVerificationsPage() {
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-[5px] hover:bg-red-700"
               >
                 {t('admin.verifications.reject')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Details Modal */}
+      {viewUserDetails && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[5px] border border-gray-200 shadow-xl max-w-lg w-full max-h-[90vh] overflow-auto">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 sticky top-0 bg-white">
+              <h3 className="font-semibold text-gray-900">{t('admin.verifications.userDetails') || 'User Details'}</h3>
+              <button onClick={() => setViewUserDetails(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-5 space-y-6">
+              {/* User Info Section */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  {t('admin.verifications.userInfo') || 'User Information'}
+                </h4>
+                <div className="flex items-start gap-4">
+                  {viewUserDetails.users?.user_profile?.profile_image_url ? (
+                    <img 
+                      src={viewUserDetails.users.user_profile.profile_image_url} 
+                      alt="" 
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-100" 
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-200">
+                      <User className="w-8 h-8 text-gray-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 space-y-2">
+                    <div>
+                      <p className="text-lg font-medium text-gray-900">{getName(viewUserDetails)}</p>
+                      <p className="text-sm text-gray-500">@{viewUserDetails.users?.username || '-'}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      {viewUserDetails.users?.email || '-'}
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                      {viewUserDetails.users?.account_status || 'active'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Business Info Section */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Building2 className="w-4 h-4" />
+                  {t('admin.verifications.businessInfo') || 'Business Information'}
+                </h4>
+                {(() => {
+                  const details = getBusinessDetails(viewUserDetails);
+                  return (
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                      {/* Business Avatar and Category/Type */}
+                      <div className="flex items-start gap-4">
+                        {details.avatarUrl ? (
+                          <img 
+                            src={details.avatarUrl} 
+                            alt="" 
+                            className="w-14 h-14 rounded-lg object-cover border-2 border-gray-200" 
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-gray-200 flex items-center justify-center border-2 border-gray-200">
+                            <Building2 className="w-6 h-6 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.businessCategory') || 'Category'}</p>
+                              <p className="text-sm font-medium text-gray-900 capitalize">
+                                {viewUserDetails.business_info?.business_category?.replace('_', ' ') || '-'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.professionalType') || 'Professional Type'}</p>
+                              <p className="text-sm font-medium text-gray-900">
+                                {viewUserDetails.business_info?.professional_type || '-'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {details.businessName ? (
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.businessName') || 'Business Name'}</p>
+                          <p className="text-sm font-medium text-gray-900">{details.businessName}</p>
+                        </div>
+                      ) : null}
+                      {details.address ? (
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.address') || 'Address'}</p>
+                            <p className="text-sm text-gray-900">
+                              {details.address}
+                              {details.city && `, ${details.city}`}
+                            </p>
+                          </div>
+                        </div>
+                      ) : null}
+                      {details.serviceArea ? (
+                        <div className="flex items-start gap-2">
+                          <MapPin className="w-4 h-4 text-gray-400 mt-0.5" />
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.serviceArea') || 'Service Area'}</p>
+                            <p className="text-sm text-gray-900">{details.serviceArea}</p>
+                          </div>
+                        </div>
+                      ) : null}
+                      {details.phone ? (
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.phone') || 'Phone'}</p>
+                            <p className="text-sm text-gray-900">{details.phone}</p>
+                          </div>
+                        </div>
+                      ) : null}
+                      {!details.businessName && !details.address && !details.phone && !details.serviceArea && !details.avatarUrl && (
+                        <p className="text-sm text-gray-400 italic">{t('admin.verifications.noBusinessDetails') || 'No additional business details provided yet.'}</p>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Verification Status Section */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  {t('admin.verifications.verificationStatus') || 'Verification Status'}
+                </h4>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.identityDoc') || 'Identity Document'}</p>
+                      {renderStatusBadge(viewUserDetails.identity_status)}
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.businessDoc') || 'Business Document'}</p>
+                      {renderStatusBadge(viewUserDetails.business_status)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.submittedAt') || 'Submitted At'}</p>
+                    <p className="text-sm text-gray-900">
+                      {new Date(viewUserDetails.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  {viewUserDetails.updated_at && viewUserDetails.updated_at !== viewUserDetails.created_at && (
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">{t('admin.verifications.lastUpdated') || 'Last Updated'}</p>
+                      <p className="text-sm text-gray-900">
+                        {new Date(viewUserDetails.updated_at).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+              <button
+                onClick={() => setViewUserDetails(null)}
+                className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-[5px] hover:bg-gray-50"
+              >
+                {t('admin.close') || 'Close'}
               </button>
             </div>
           </div>

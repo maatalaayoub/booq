@@ -2,18 +2,27 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useEffect, useState, useRef } from 'react';
+import { useParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useRole } from '@/hooks/useRole';
 import { DashboardHeader, Sidebar } from '@/components/dashboard';
 
-// Read cached onboarding status synchronously to avoid flicker
-function getCachedOnboardingStatus() {
-  if (typeof window === 'undefined') return null;
+// Read cached onboarding status synchronously to avoid flicker (user-specific)
+function getCachedOnboardingStatus(userId) {
+  if (typeof window === 'undefined' || !userId) return null;
   try {
-    const cached = localStorage.getItem('onboarding-completed');
+    const cached = localStorage.getItem(`onboarding-completed-${userId}`);
     if (cached === 'true') return true;
     if (cached === 'false') return false;
   } catch {}
   return null;
+}
+
+function setCachedOnboardingStatus(userId, value) {
+  if (typeof window === 'undefined' || !userId) return;
+  try {
+    localStorage.setItem(`onboarding-completed-${userId}`, String(value));
+  } catch {}
 }
 
 function DashboardSkeleton({ isRTL }) {
@@ -56,10 +65,41 @@ function DashboardSkeleton({ isRTL }) {
 }
 
 export default function DashboardLayout({ children }) {
-  const { isLoaded } = useUser();
+  const { isLoaded, user } = useUser();
   const { isRTL } = useLanguage();
-  const cachedStatus = useRef(getCachedOnboardingStatus());
-  const [onboardingCompleted, setOnboardingCompleted] = useState(cachedStatus.current);
+  const { isBusiness, isLoaded: isRoleLoaded, hasRole } = useRole();
+  const router = useRouter();
+  const params = useParams();
+  const locale = params.locale || 'en';
+  const userId = user?.id;
+  const cachedStatus = useRef(null);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(null);
+
+  // Redirect non-business users away from dashboard
+  // BUT allow users with NO role yet (new signups) to stay for onboarding
+  useEffect(() => {
+    if (isLoaded && isRoleLoaded) {
+      if (!user) {
+        // Not signed in - redirect to sign in
+        router.replace(`/${locale}/auth/business/sign-in`);
+      } else if (hasRole && !isBusiness) {
+        // Has a role but it's NOT business (e.g., user role) - redirect to profile
+        router.replace(`/${locale}/profile`);
+      }
+      // If hasRole is false (no role yet), allow them to stay for onboarding
+    }
+  }, [isLoaded, isRoleLoaded, user, isBusiness, hasRole, router, locale]);
+
+  // Initialize cache once we have userId
+  useEffect(() => {
+    if (userId && cachedStatus.current === null) {
+      const cached = getCachedOnboardingStatus(userId);
+      cachedStatus.current = cached;
+      if (cached !== null) {
+        setOnboardingCompleted(cached);
+      }
+    }
+  }, [userId]);
 
   // Check onboarding status directly from the API
   useEffect(() => {
@@ -70,9 +110,7 @@ export default function DashboardLayout({ children }) {
         if (contentType && contentType.includes('application/json') && response.ok) {
           const data = await response.json();
           setOnboardingCompleted(data.onboardingCompleted);
-          try {
-            localStorage.setItem('onboarding-completed', String(data.onboardingCompleted));
-          } catch {}
+          setCachedOnboardingStatus(userId, data.onboardingCompleted);
         } else {
           // If API fails, default to showing the full layout
           setOnboardingCompleted(true);
@@ -83,32 +121,37 @@ export default function DashboardLayout({ children }) {
       }
     }
 
-    if (isLoaded) {
+    if (isLoaded && userId) {
       checkOnboarding();
     }
-  }, [isLoaded]);
+  }, [isLoaded, userId]);
 
   // Also listen for onboarding status updates from child pages (e.g. after completing onboarding)
   useEffect(() => {
     const handleOnboardingStatus = (event) => {
       setOnboardingCompleted(event.detail.completed);
-      try {
-        localStorage.setItem('onboarding-completed', String(event.detail.completed));
-      } catch {}
+      if (userId) {
+        setCachedOnboardingStatus(userId, event.detail.completed);
+      }
     };
     
     window.addEventListener('onboarding-status', handleOnboardingStatus);
     return () => window.removeEventListener('onboarding-status', handleOnboardingStatus);
-  }, []);
+  }, [userId]);
 
-  // Show skeleton while auth is loading — preserves layout structure to prevent flicker
-  if (!isLoaded && onboardingCompleted !== false) {
-    // If we have a cached status of true, show skeleton with sidebar+header shape
-    // If no cache, also show the full skeleton (most returning users have onboarded)
+  // Show skeleton while auth/role is loading AND we have a cached true status
+  // Don't show skeleton with sidebar if we don't know the status yet (could be new user)
+  if ((!isLoaded || !isRoleLoaded) && onboardingCompleted === true) {
     return <DashboardSkeleton isRTL={isRTL} />;
   }
 
-  // Show minimal layout during onboarding (no sidebar) or while waiting for status with no cache
+  // Show skeleton while redirecting non-business users (has role but not business)
+  // But allow users with NO role (new signups going through onboarding)
+  if (isLoaded && isRoleLoaded && (!user || (hasRole && !isBusiness))) {
+    return <DashboardSkeleton isRTL={isRTL} />;
+  }
+
+  // Show minimal layout during onboarding (no sidebar) or while waiting for status
   if (onboardingCompleted === null || !onboardingCompleted) {
     return (
       <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 ${isRTL ? 'rtl' : 'ltr'}`}>

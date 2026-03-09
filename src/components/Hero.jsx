@@ -20,7 +20,7 @@ const languages = [
 export default function Hero() {
   const { t, locale, changeLanguage } = useLanguage();
   const { isSignedIn, user, isLoaded: isClerkLoaded } = useUser();
-  const { role: userRole, isBarber, isLoaded: isRoleLoaded } = useRole();
+  const { role: userRole, isBusiness, isLoaded: isRoleLoaded } = useRole();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopSideMenuOpen, setIsDesktopSideMenuOpen] = useState(false);
@@ -39,8 +39,8 @@ export default function Hero() {
   
   // Debug logging
   useEffect(() => {
-    console.log('[Hero] Auth state:', { isLoaded, isSignedIn, isBarber, userRole, isRoleLoaded });
-  }, [isLoaded, isSignedIn, isBarber, userRole, isRoleLoaded]);
+    console.log('[Hero] Auth state:', { isLoaded, isSignedIn, isBusiness, userRole, isRoleLoaded });
+  }, [isLoaded, isSignedIn, isBusiness, userRole, isRoleLoaded]);
   
   // Mobile service rotating text state
   const [mobileServiceIndex, setMobileServiceIndex] = useState(0);
@@ -240,7 +240,7 @@ export default function Hero() {
           {/* Mobile Menu Button & Icons */}
           <div className="flex items-center gap-2 md:hidden">
             {/* Show Dashboard button only for barbers */}
-            {isLoaded && isSignedIn && isBarber && (
+            {isLoaded && isSignedIn && isBusiness && (
               <a
                 href={dashboardUrl}
                 className="flex items-center gap-1.5 px-4 py-1.5 rounded-[90px] border border-white bg-transparent text-white transition-all hover:bg-white/10 hover:scale-105"
@@ -282,7 +282,7 @@ export default function Hero() {
                 // Signed in state
                 <>
                   {/* Dashboard button - Show only for barbers */}
-                  {isBarber && (
+                  {isBusiness && (
                     <a 
                       href={dashboardUrl}
                       className="flex items-center gap-2 px-5 py-2 rounded-[90px] border border-white bg-transparent text-white transition-all hover:bg-white/10 hover:scale-105"
@@ -295,7 +295,7 @@ export default function Hero() {
 
                   {/* Profile Button - Direct Link */}
                   <Link
-                    href={isBarber ? `/${locale}/business/profile` : `/${locale}/profile`}
+                    href={isBusiness ? `/${locale}/business/profile` : `/${locale}/profile`}
                     className="relative flex items-center justify-center p-0.5 rounded-full border-2 border-white/20 transition-all hover:border-[#D4AF37] hover:shadow-[0_0_15px_rgba(212,175,55,0.3)] focus:outline-none"
                   >
                     <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-800">
@@ -437,7 +437,7 @@ export default function Hero() {
                       <div className="rounded-[5px] bg-white border border-gray-300 overflow-hidden">
                         {/* Profile Link */}
                         <a
-                          href={isBarber ? `/${locale}/business/profile` : `/${locale}/profile`}
+                          href={isBusiness ? `/${locale}/business/profile` : `/${locale}/profile`}
                           onClick={() => setIsDesktopSideMenuOpen(false)}
                           className="block p-4 hover:bg-gray-50 transition-all group"
                         >
@@ -495,7 +495,7 @@ export default function Hero() {
 
                   <div className="space-y-1">
                     {/* Dashboard - Only for business users */}
-                    {isBarber && (
+                    {isBusiness && (
                       <a
                         href={`/${locale}/business/dashboard`}
                         onClick={() => setIsDesktopSideMenuOpen(false)}
@@ -509,7 +509,7 @@ export default function Hero() {
 
                     {/* Settings */}
                     <a
-                      href={isBarber ? `/${locale}/business/dashboard/settings` : `/${locale}/settings`}
+                      href={isBusiness ? `/${locale}/business/dashboard/settings` : `/${locale}/settings`}
                       onClick={() => setIsDesktopSideMenuOpen(false)}
                       className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-[#244C70] transition-all hover:bg-gray-50"
                     >
@@ -593,7 +593,7 @@ export default function Hero() {
                       <div className="rounded-[5px] bg-white border border-gray-300 overflow-hidden">
                         {/* Profile Link */}
                         <a
-                          href={isBarber ? `/${locale}/business/profile` : `/${locale}/profile`}
+                          href={isBusiness ? `/${locale}/business/profile` : `/${locale}/profile`}
                           onClick={() => setIsMobileMenuOpen(false)}
                           className="block p-4 hover:bg-gray-50 transition-all group"
                         >
@@ -651,7 +651,7 @@ export default function Hero() {
 
                   <div className="space-y-1">
                     {/* Dashboard - Only for business users */}
-                    {isLoaded && isSignedIn && isBarber && (
+                    {isLoaded && isSignedIn && isBusiness && (
                       <a
                         href={`/${locale}/business/dashboard`}
                         onClick={() => setIsMobileMenuOpen(false)}
@@ -665,7 +665,7 @@ export default function Hero() {
 
                     {/* Settings */}
                     <a
-                      href={isBarber ? `/${locale}/business/dashboard/settings` : `/${locale}/settings`}
+                      href={isBusiness ? `/${locale}/business/dashboard/settings` : `/${locale}/settings`}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-[#244C70] transition-all hover:bg-gray-50"
                     >

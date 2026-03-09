@@ -19,7 +19,12 @@ export async function GET(request) {
     .select(`
       *,
       users!verification_requests_user_id_fkey ( id, email, username, account_status, user_profile ( first_name, last_name, profile_image_url ) ),
-      business_info!verification_requests_business_info_id_fkey ( id, business_category, professional_type )
+      business_info!verification_requests_business_info_id_fkey ( 
+        id, business_category, professional_type,
+        shop_salon_info ( business_name, address, city, phone ),
+        mobile_service_info ( business_name, service_area, phone ),
+        business_card_settings ( settings )
+      )
     `)
     .order('created_at', { ascending: false });
 

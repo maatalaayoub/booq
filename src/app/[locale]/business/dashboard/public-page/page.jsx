@@ -10,8 +10,6 @@ import {
   Tag,
   CalendarCheck,
   Image,
-  FileText,
-  Phone,
   MapPin,
   Star,
   Check,
@@ -143,13 +141,6 @@ function PreviewCard({ settings, user, businessData }) {
           {businessData?.professionalType?.replace(/_/g, ' ') || t('businessCard.previewType')}
         </p>
 
-        {/* Bio */}
-        {settings.showBio && (
-          <p className="text-xs text-gray-500 mb-3 line-clamp-2">
-            {businessData?.bio || t('businessCard.previewBio')}
-          </p>
-        )}
-
         {/* Info chips */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {settings.showLocation && (
@@ -197,17 +188,6 @@ function PreviewCard({ settings, user, businessData }) {
           {t('businessCard.bookNow')}
         </button>
 
-        {/* Contact */}
-        {settings.showContact && (
-          <div className="mt-2.5 flex gap-2">
-            <button className="flex-1 py-1.5 text-xs border border-gray-200 rounded-[5px] text-gray-600 hover:bg-gray-50 transition-colors">
-              <Phone className="w-3 h-3 inline mr-1" />{t('businessCard.call')}
-            </button>
-            <button className="flex-1 py-1.5 text-xs border border-gray-200 rounded-[5px] text-gray-600 hover:bg-gray-50 transition-colors">
-              {t('businessCard.message')}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -229,10 +209,8 @@ const DEFAULT_SETTINGS = {
   showProfile:       true,
   businessName:      '',
   showCoverPhoto:    true,
-  showBio:           true,
   showServices:      true,
   showPrices:        true,
-  showContact:       true,
   showLocation:      true,
   showRating:        true,
   showResponseTime:  true,
@@ -252,23 +230,35 @@ export default function PublicPageManager() {
   const [businessData, setBusinessData] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
   const avatarInputRef = useRef(null);
   const galleryInputRef = useRef(null);
+  const hasFetchedRef = useRef(false);
 
-  // Fetch business data & saved settings
+  // Fetch business data & saved settings (only once)
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    if (!isLoaded || !user || hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     Promise.all([
       fetch('/api/user-profile').then(r => r.ok ? r.json() : {}),
       fetch('/api/business/public-page-settings').then(r => r.ok ? r.json() : null),
-    ]).then(([profile, savedSettings]) => {
+    ]).then(([profile, savedData]) => {
       setBusinessData(profile);
-      if (savedSettings?.settings) {
-        setSettings(s => ({ ...s, ...savedSettings.settings }));
+      if (savedData?.settings) {
+        // Always use fallbackBusinessName as canonical source (from category table)
+        const mergedSettings = { ...savedData.settings };
+        if (savedData.fallbackBusinessName) {
+          mergedSettings.businessName = savedData.fallbackBusinessName;
+        }
+        setSettings(s => ({ ...s, ...mergedSettings }));
+      } else if (savedData?.fallbackBusinessName) {
+        // No settings saved yet, but we have a name from onboarding
+        setSettings(s => ({ ...s, businessName: savedData.fallbackBusinessName }));
       }
     }).catch(() => {}).finally(() => setLoading(false));
   }, [isLoaded, user]);
@@ -280,15 +270,24 @@ export default function PublicPageManager() {
 
   const handleSave = async () => {
     setSaving(true);
+    setSaveError(null);
     try {
-      await fetch('/api/business/public-page-settings', {
+      const res = await fetch('/api/business/public-page-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ settings }),
       });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to save');
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch {}
+    } catch (err) {
+      console.error('[Business Card] Save error:', err);
+      setSaveError(err.message || 'Failed to save settings');
+      setTimeout(() => setSaveError(null), 5000);
+    }
     finally { setSaving(false); }
   };
 
@@ -305,10 +304,15 @@ export default function PublicPageManager() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingAvatar(true);
+    setUploadError(null);
     try {
-      const url = await uploadImage(file, 'avatar');
+      const url = await uploadImage(file, 'business_avatar');
       set('avatarUrl', url);
-    } catch {}
+    } catch (err) {
+      console.error('[Business Card] Avatar upload error:', err);
+      setUploadError('Failed to upload avatar');
+      setTimeout(() => setUploadError(null), 5000);
+    }
     finally { setUploadingAvatar(false); e.target.value = ''; }
   };
 
@@ -316,6 +320,7 @@ export default function PublicPageManager() {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setUploadingGallery(true);
+    setUploadError(null);
     try {
       const urls = await Promise.all(files.map(f => uploadImage(f, 'gallery_cover')));
       setSettings(s => ({
@@ -323,7 +328,11 @@ export default function PublicPageManager() {
         coverGallery: [...(s.coverGallery || []), ...urls],
       }));
       setSaved(false);
-    } catch {}
+    } catch (err) {
+      console.error('[Business Card] Gallery upload error:', err);
+      setUploadError('Failed to upload cover photos');
+      setTimeout(() => setUploadError(null), 5000);
+    }
     finally { setUploadingGallery(false); e.target.value = ''; }
   };
 
@@ -362,19 +371,24 @@ export default function PublicPageManager() {
           </h1>
           <p className="text-sm text-gray-400 mt-1">{t('businessCard.subtitle')}</p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-colors disabled:opacity-60 shrink-0"
-        >
-          {saving
-            ? <Loader2 className="w-4 h-4 animate-spin" />
-            : saved
-              ? <Check className="w-4 h-4" />
-              : <Save className="w-4 h-4" />
-          }
-          {saved ? t('common.saved') : t('common.saveChanges')}
-        </button>
+        <div className="flex items-center gap-3">
+          {saveError && (
+            <span className="text-sm text-red-500">{saveError}</span>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-colors disabled:opacity-60 shrink-0"
+          >
+            {saving
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : saved
+                ? <Check className="w-4 h-4" />
+                : <Save className="w-4 h-4" />
+            }
+            {saved ? t('common.saved') : t('common.saveChanges')}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -424,9 +438,14 @@ export default function PublicPageManager() {
 
           {/* Photos Management */}
           <div className="bg-white border border-gray-200 rounded-[5px] overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-              <Camera className="w-4 h-4 text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-700">{t('businessCard.photos')}</h2>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-gray-500" />
+                <h2 className="text-sm font-semibold text-gray-700">{t('businessCard.photos')}</h2>
+              </div>
+              {uploadError && (
+                <span className="text-xs text-red-500">{uploadError}</span>
+              )}
             </div>
             <div className="p-4 space-y-5">
 
@@ -541,14 +560,6 @@ export default function PublicPageManager() {
                 accent="blue"
               />
               <SectionToggle
-                icon={FileText}
-                label={t('businessCard.bio')}
-                description={t('businessCard.bioDesc')}
-                value={settings.showBio}
-                onChange={v => set('showBio', v)}
-                accent="purple"
-              />
-              <SectionToggle
                 icon={Tag}
                 label={t('businessCard.servicesList')}
                 description={t('businessCard.servicesListDesc')}
@@ -579,14 +590,6 @@ export default function PublicPageManager() {
                 value={settings.showLocation}
                 onChange={v => set('showLocation', v)}
                 accent="rose"
-              />
-              <SectionToggle
-                icon={Phone}
-                label={t('businessCard.contactButtons')}
-                description={t('businessCard.contactButtonsDesc')}
-                value={settings.showContact}
-                onChange={v => set('showContact', v)}
-                accent="blue"
               />
               <SectionToggle
                 icon={Clock}

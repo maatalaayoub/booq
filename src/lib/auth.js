@@ -71,6 +71,3 @@ export async function isAdminRole() {
   const { role } = await getServerRole();
   return role === 'admin';
 }
-
-// Alias for backward compatibility
-export const isBarberRole = isBusinessRole;

@@ -32,6 +32,7 @@ export default function AdminUsersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [actionLoading, setActionLoading] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null); // { userId, action, userName }
+  const [modalLoading, setModalLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [viewUserInfo, setViewUserInfo] = useState(null); // user object to show in modal
 
@@ -59,6 +60,7 @@ export default function AdminUsersPage() {
 
   const handleStatusChange = async (userId, newStatus) => {
     setActionLoading(userId);
+    setModalLoading(true);
     try {
       const res = await fetch('/api/admin/users', {
         method: 'PUT',
@@ -70,12 +72,14 @@ export default function AdminUsersPage() {
       }
     } finally {
       setActionLoading(null);
+      setModalLoading(false);
       setConfirmAction(null);
     }
   };
 
   const handleDelete = async (userId) => {
     setActionLoading(userId);
+    setModalLoading(true);
     try {
       const res = await fetch('/api/admin/users', {
         method: 'DELETE',
@@ -87,6 +91,7 @@ export default function AdminUsersPage() {
       }
     } finally {
       setActionLoading(null);
+      setModalLoading(false);
       setConfirmAction(null);
     }
   };
@@ -315,7 +320,8 @@ export default function AdminUsersPage() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setConfirmAction(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-[5px] hover:bg-gray-50"
+                disabled={modalLoading}
+                className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-[5px] hover:bg-gray-50 disabled:opacity-50"
               >
                 {t('admin.cancel')}
               </button>
@@ -327,10 +333,14 @@ export default function AdminUsersPage() {
                     handleStatusChange(confirmAction.userId, 'suspended');
                   }
                 }}
-                className={`px-4 py-2 text-sm font-medium text-white rounded-[5px] ${
+                disabled={modalLoading}
+                className={`px-4 py-2 text-sm font-medium text-white rounded-[5px] flex items-center gap-2 disabled:opacity-70 ${
                   confirmAction.action === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-amber-600 hover:bg-amber-700'
                 }`}
               >
+                {modalLoading && (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                )}
                 {confirmAction.action === 'delete' ? t('admin.users.delete') : t('admin.users.suspend')}
               </button>
             </div>

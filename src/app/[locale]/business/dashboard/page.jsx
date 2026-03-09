@@ -9,7 +9,7 @@ import BusinessOnboarding from '@/components/BusinessOnboarding';
 export default function BusinessDashboard() {
   const { 
     role, 
-    isBarber, 
+    isBusiness, 
     hasRole, 
     isLoaded, 
     isSignedIn,
@@ -33,12 +33,12 @@ export default function BusinessDashboard() {
   // Debug logging
   useEffect(() => {
     console.log('[Dashboard] State:', { 
-      isLoaded, isSignedIn, role, isBarber, hasRole, 
+      isLoaded, isSignedIn, role, isBusiness, hasRole, 
       isSettingUp, setupComplete, isCheckingOnboarding,
       onboardingStatus,
       setupParam: searchParams.get('setup')
     });
-  }, [isLoaded, isSignedIn, role, isBarber, hasRole, isSettingUp, setupComplete, isCheckingOnboarding, onboardingStatus, searchParams]);
+  }, [isLoaded, isSignedIn, role, isBusiness, hasRole, isSettingUp, setupComplete, isCheckingOnboarding, onboardingStatus, searchParams]);
 
   // Notify layout about onboarding status
   const notifyLayout = (completed) => {
@@ -75,7 +75,7 @@ export default function BusinessDashboard() {
   useEffect(() => {
     async function setupRole() {
       const setupParam = searchParams.get('setup');
-      console.log('[Dashboard] setupRole running:', { setupParam, isLoaded, isSignedIn, isBarber, hasRole, setupComplete, setupHandled: setupHandledRef.current });
+      console.log('[Dashboard] setupRole running:', { setupParam, isLoaded, isSignedIn, isBusiness, hasRole, setupComplete, setupHandled: setupHandledRef.current });
       
       // Wait for auth and role data to load
       if (!isLoaded || !isSignedIn) {
@@ -83,9 +83,9 @@ export default function BusinessDashboard() {
         return;
       }
       
-      // If user already has barber role, check onboarding and clean URL
-      if (isBarber) {
-        console.log('[Dashboard] User is barber, checking onboarding...');
+      // If user already has business role, check onboarding and clean URL
+      if (isBusiness) {
+        console.log('[Dashboard] User is business, checking onboarding...');
         if (setupParam) {
           window.history.replaceState({}, '', `/${locale}/business/dashboard`);
         }
@@ -96,7 +96,7 @@ export default function BusinessDashboard() {
       }
 
       // If user has a different role (user role), redirect home
-      if (hasRole && !isBarber) {
+      if (hasRole && !isBusiness) {
         console.log('[Dashboard] User has different role, redirecting...');
         router.push(`/${locale}`);
         return;
@@ -139,7 +139,7 @@ export default function BusinessDashboard() {
     setupRole();
     // Note: setupComplete is NOT in dependencies to prevent re-triggering after we set it
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoaded, isSignedIn, isBarber, hasRole, searchParams, locale, router]);
+  }, [isLoaded, isSignedIn, isBusiness, hasRole, searchParams, locale, router]);
 
   const handleOnboardingComplete = async () => {
     // Refetch role since it was assigned during onboarding completion
@@ -220,7 +220,7 @@ export default function BusinessDashboard() {
 
   // Redirect if not a business user (extra client-side protection)
   // Only redirect if user has a different role, not if they have no role (new user)
-  if (isLoaded && isSignedIn && hasRole && !isBarber) {
+  if (isLoaded && isSignedIn && hasRole && !isBusiness) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -231,13 +231,13 @@ export default function BusinessDashboard() {
   }
 
   // Show onboarding if:
-  // 1. User is barber but hasn't completed onboarding
+  // 1. User is business but hasn't completed onboarding
   // 2. User has no role yet but came from signup (setupComplete is true)
-  const shouldShowOnboarding = (isBarber && onboardingStatus && !onboardingStatus.onboardingCompleted) ||
+  const shouldShowOnboarding = (isBusiness && onboardingStatus && !onboardingStatus.onboardingCompleted) ||
     (!hasRole && setupComplete && onboardingStatus && !onboardingStatus.onboardingCompleted);
   
   console.log('[Dashboard] Render check:', { 
-    isBarber, hasRole, setupComplete, 
+    isBusiness, hasRole, setupComplete, 
     onboardingStatus, 
     shouldShowOnboarding,
     isLoaded, isSignedIn

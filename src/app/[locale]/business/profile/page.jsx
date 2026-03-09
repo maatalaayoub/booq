@@ -14,7 +14,7 @@ export default function BusinessProfilePage() {
   const locale = params.locale || 'en';
   const viewingUser = searchParams.get('user'); // Username or ID of user to view
   const { user, isLoaded: isUserLoaded, isSignedIn } = useUser();
-  const { isBarber, isLoaded: isRoleLoaded } = useRole();
+  const { isBusiness, isLoaded: isRoleLoaded } = useRole();
   const { t, isRTL } = useLanguage();
   
   const isLoaded = isUserLoaded && isRoleLoaded;
@@ -69,15 +69,15 @@ export default function BusinessProfilePage() {
     if (isLoaded) {
       if (!isSignedIn) {
         router.push(`/${locale}/auth/business/sign-in`);
-      } else if (!isBarber) {
+      } else if (!isBusiness) {
         router.push(`/${locale}/profile`);
       }
     }
-  }, [isLoaded, isSignedIn, isBarber, router, locale, isViewingOther]);
+  }, [isLoaded, isSignedIn, isBusiness, router, locale, isViewingOther]);
 
   // Fetch own profile data (cover image, etc.)
   useEffect(() => {
-    if (isViewingOther || !isLoaded || !isSignedIn || !isBarber) return;
+    if (isViewingOther || !isLoaded || !isSignedIn || !isBusiness) return;
     fetch('/api/user-profile')
       .then(r => r.json())
       .then(data => {
@@ -90,7 +90,7 @@ export default function BusinessProfilePage() {
         }));
       })
       .catch(() => {});
-  }, [isLoaded, isSignedIn, isBarber, isViewingOther]);
+  }, [isLoaded, isSignedIn, isBusiness, isViewingOther]);
 
   // Refresh profile data after editing
   const refreshProfile = () => {
@@ -179,7 +179,7 @@ export default function BusinessProfilePage() {
   }
 
   // When viewing own profile - check auth
-  if (!isViewingOther && (!isSignedIn || !isBarber)) {
+  if (!isViewingOther && (!isSignedIn || !isBusiness)) {
     return null;
   }
 

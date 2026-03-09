@@ -322,22 +322,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
   const handleLocationSelect = async (lat, lng) => {
     setLocationLat(lat);
     setLocationLng(lng);
-
-    // Reverse geocode to fill address automatically
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
-        { headers: { 'Accept-Language': 'en' } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data.display_name) {
-          setBusinessAddress(data.display_name);
-        }
-      }
-    } catch (err) {
-      console.warn('[LocationPicker] Reverse geocode failed:', err);
-    }
+    // Only save coordinates, address is entered manually
   };
 
   const handleNext = () => {
@@ -773,7 +758,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                     />
                   </div>
 
-                  {/* Address (auto-filled from map) */}
+                  {/* Address (entered manually) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Address
@@ -781,9 +766,9 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                     <input
                       type="text"
                       value={businessAddress}
-                      readOnly
-                      placeholder="Click the map above to set the address"
-                      className="w-full px-4 py-3 border border-gray-200 rounded-[5px] text-gray-900 bg-gray-50 text-sm placeholder:text-gray-400 cursor-default"
+                      onChange={(e) => setBusinessAddress(e.target.value)}
+                      placeholder="Enter your salon address"
+                      className="w-full px-4 py-3 border border-gray-200 rounded-[5px] text-gray-900 bg-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]"
                     />
                   </div>
                 </>

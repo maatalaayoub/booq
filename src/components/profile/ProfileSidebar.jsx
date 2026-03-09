@@ -24,7 +24,7 @@ export default function ProfileSidebar({ isOpen, onClose }) {
   const locale = params.locale || 'en';
   const { t, changeLanguage, isRTL } = useLanguage();
   const { user, isSignedIn, isLoaded: isClerkLoaded } = useUser();
-  const { isBarber, isLoaded: isRoleLoaded } = useRole();
+  const { isBusiness, isLoaded: isRoleLoaded } = useRole();
   const sideMenuRef = useRef(null);
   
   const [currentLang, setCurrentLang] = useState(
@@ -102,7 +102,7 @@ export default function ProfileSidebar({ isOpen, onClose }) {
                   <div className="rounded-[5px] bg-white border border-gray-300 overflow-hidden">
                     {/* Profile Link */}
                     <Link
-                      href={isBarber ? `/${locale}/business/profile` : `/${locale}/profile`}
+                      href={isBusiness ? `/${locale}/business/profile` : `/${locale}/profile`}
                       onClick={onClose}
                       className="block p-4 hover:bg-gray-50 transition-all group"
                     >
@@ -164,7 +164,7 @@ export default function ProfileSidebar({ isOpen, onClose }) {
 
               <div className="space-y-1">
                 {/* Dashboard - Only for business users */}
-                {isLoaded && isBarber && (
+                {isLoaded && isBusiness && (
                   <Link
                     href={`/${locale}/business/dashboard`}
                     onClick={onClose}
@@ -178,7 +178,7 @@ export default function ProfileSidebar({ isOpen, onClose }) {
 
                 {/* Settings */}
                 <Link
-                  href={isBarber ? `/${locale}/business/dashboard/settings` : `/${locale}/settings`}
+                  href={isBusiness ? `/${locale}/business/dashboard/settings` : `/${locale}/settings`}
                   onClick={onClose}
                   className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-[#244C70] transition-all hover:bg-gray-50"
                 >

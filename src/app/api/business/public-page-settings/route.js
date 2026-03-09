@@ -13,12 +13,35 @@ async function getBusinessContext(supabase, clerkId) {
 
   const { data: businessInfo } = await supabase
     .from('business_info')
-    .select('id')
+    .select('id, business_category')
     .eq('user_id', user.id)
     .single();
 
   if (!businessInfo) return null;
-  return { businessInfoId: businessInfo.id };
+  
+  // Get business name from category-specific table
+  let businessName = null;
+  const tableName = businessInfo.business_category === 'salon_owner' 
+    ? 'shop_salon_info' 
+    : businessInfo.business_category === 'mobile_service' 
+      ? 'mobile_service_info' 
+      : null;
+  
+  if (tableName) {
+    const { data } = await supabase
+      .from(tableName)
+      .select('business_name')
+      .eq('business_info_id', businessInfo.id)
+      .single();
+    businessName = data?.business_name;
+  }
+  
+  return { 
+    businessInfoId: businessInfo.id, 
+    businessName, 
+    businessCategory: businessInfo.business_category,
+    tableName 
+  };
 }
 
 // ─── GET: fetch saved settings ─────────────────────────────
@@ -29,7 +52,7 @@ export async function GET() {
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, userId);
-    if (!ctx) return NextResponse.json({ settings: null });
+    if (!ctx) return NextResponse.json({ settings: null, fallbackBusinessName: null });
 
     const { data, error } = await supabase
       .from('business_card_settings')
@@ -38,14 +61,17 @@ export async function GET() {
       .single();
 
     if (error) {
-      // Table missing or no row — return null gracefully
+      // Table missing or no row — return null gracefully with fallback
       if (error.code === '42P01' || error.code === 'PGRST116') {
-        return NextResponse.json({ settings: null });
+        return NextResponse.json({ settings: null, fallbackBusinessName: ctx.businessName || null });
       }
       throw error;
     }
 
-    return NextResponse.json({ settings: data?.settings || null });
+    return NextResponse.json({ 
+      settings: data?.settings || null,
+      fallbackBusinessName: ctx.businessName || null 
+    });
   } catch (err) {
     console.error('[card-settings GET]', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -64,6 +90,14 @@ export async function POST(request) {
 
     const body = await request.json();
     const { settings } = body;
+
+    // Also update business_name in the canonical location (category-specific table)
+    if (settings?.businessName && ctx.tableName) {
+      await supabase
+        .from(ctx.tableName)
+        .update({ business_name: settings.businessName })
+        .eq('business_info_id', ctx.businessInfoId);
+    }
 
     const { error } = await supabase
       .from('business_card_settings')

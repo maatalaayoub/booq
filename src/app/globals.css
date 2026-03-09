@@ -64,6 +64,11 @@ body {
   background: #b8982f;
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* ─── FullCalendar Custom Theme ─── */
 .fc-custom .fc {
   --fc-border-color: #f1f5f9;

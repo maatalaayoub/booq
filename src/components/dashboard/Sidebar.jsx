@@ -21,6 +21,7 @@ import {
   X,
   Globe,
   ShieldCheck,
+  Building2,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -63,6 +64,11 @@ export default function Sidebar() {
       icon: Tag, 
       label: t('dashboard.sidebar.services') || 'Services & Prices', 
       href: `/${locale}/business/dashboard/services` 
+    },
+    { 
+      icon: Building2, 
+      label: t('dashboard.sidebar.businessDetails') || 'Business Details', 
+      href: `/${locale}/business/dashboard/business-details` 
     },
     { 
       icon: Globe, 
@@ -112,8 +118,8 @@ export default function Sidebar() {
 
   const SidebarContent = ({ forMobile = false }) => (
     <div className={`flex flex-col h-full overflow-hidden ${isRTL ? 'rtl' : 'ltr'}`}>
-      {/* Main Navigation */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-1">
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
         {menuItems.map((item) => (
           <Link
             key={item.href}
@@ -134,10 +140,8 @@ export default function Sidebar() {
             </span>
           </Link>
         ))}
-      </nav>
-
-      {/* Bottom Navigation */}
-      <div className="px-3 py-4 border-t border-gray-100 space-y-1">
+        
+        {/* Notifications & Settings */}
         {bottomItems.map((item) => (
           <Link
             key={item.href}
@@ -165,7 +169,7 @@ export default function Sidebar() {
             </span>
           </Link>
         ))}
-      </div>
+      </nav>
     </div>
   );
 
