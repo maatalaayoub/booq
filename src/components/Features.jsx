@@ -48,7 +48,7 @@ export default function Features() {
   ];
   
   return (
-    <section id="features" className="relative bg-gray-50 py-20 lg:py-28">
+    <section id="features" className="relative bg-white py-20 lg:py-28">
       {/* Top Separator Line */}
       <div className="absolute left-0 right-0 top-0 flex items-center justify-center">
         <div className="flex w-full max-w-7xl items-center px-6 sm:px-8 lg:px-8">

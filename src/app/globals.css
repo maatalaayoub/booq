@@ -6,6 +6,73 @@
   z-index: 0 !important;
 }
 
+/* Ubuntu font faces */
+@font-face {
+  font-family: 'Ubuntu';
+  src: url('/font/Ubuntu-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ubuntu';
+  src: url('/font/Ubuntu-LightItalic.ttf') format('truetype');
+  font-weight: 300;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ubuntu';
+  src: url('/font/Ubuntu-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ubuntu';
+  src: url('/font/Ubuntu-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ubuntu';
+  src: url('/font/Ubuntu-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ubuntu';
+  src: url('/font/Ubuntu-MediumItalic.ttf') format('truetype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ubuntu';
+  src: url('/font/Ubuntu-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Ubuntu';
+  src: url('/font/Ubuntu-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Cairo font for Arabic */
+@font-face {
+  font-family: 'Cairo';
+  src: url('/font/Cairo-Variable.ttf') format('truetype');
+  font-weight: 200 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #0F172A;
@@ -29,6 +96,19 @@ body {
   color: var(--foreground);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   scroll-behavior: smooth;
+}
+
+/* Apply Ubuntu font for English and French locales */
+html.locale-latin body,
+html:lang(en) body,
+html:lang(fr) body {
+  font-family: 'Ubuntu', 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+
+/* Apply Cairo font for Arabic locale */
+html.locale-arabic body,
+html:lang(ar) body {
+  font-family: 'Cairo', 'Inter', system-ui, -apple-system, sans-serif !important;
 }
 
 /*
@@ -78,6 +158,17 @@ body {
   --fc-neutral-bg-color: #fafafa;
   --fc-list-event-hover-bg-color: #fffbeb;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+html.locale-latin .fc-custom .fc,
+html:lang(en) .fc-custom .fc,
+html:lang(fr) .fc-custom .fc {
+  font-family: 'Ubuntu', 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+html.locale-arabic .fc-custom .fc,
+html:lang(ar) .fc-custom .fc {
+  font-family: 'Cairo', 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 /* Day header */

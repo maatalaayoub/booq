@@ -33,7 +33,7 @@ export default function HowItWorks() {
   ];
   
   return (
-    <section id="how-it-works" className="relative overflow-hidden bg-gray-50 py-24">
+    <section id="how-it-works" className="relative overflow-hidden bg-white py-24">
       {/* Background elements */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-[#D4AF37]/10 blur-3xl" />

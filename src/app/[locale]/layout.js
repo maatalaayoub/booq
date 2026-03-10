@@ -20,14 +20,18 @@ export default function LocaleLayout({ children }) {
   useEffect(() => {
     const urlLocale = params?.locale;
     if (urlLocale && ['en', 'fr', 'ar'].includes(urlLocale)) {
-      // Set document direction for Arabic
+      // Set document direction and font class based on locale
       if (typeof document !== 'undefined') {
         if (urlLocale === 'ar') {
           document.documentElement.dir = 'rtl';
           document.documentElement.lang = 'ar';
+          document.documentElement.classList.remove('locale-latin');
+          document.documentElement.classList.add('locale-arabic');
         } else {
           document.documentElement.dir = 'ltr';
           document.documentElement.lang = urlLocale;
+          document.documentElement.classList.add('locale-latin');
+          document.documentElement.classList.remove('locale-arabic');
         }
       }
     }

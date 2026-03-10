@@ -25,7 +25,7 @@ export default function AppShowcase() {
   ];
 
   return (
-    <section id="app" className="relative overflow-hidden bg-gradient-to-b from-gray-50 to-white py-24">
+    <section id="app" className="relative overflow-hidden bg-white py-24">
       {/* Background decorations */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -left-40 -top-40 h-80 w-80 rounded-full bg-[#D4AF37]/10 blur-[100px]" />
