@@ -279,6 +279,137 @@ export default function BusinessDashboard() {
     );
   }
 
+  // Job Seeker dashboard
+  if (businessCategory === 'job_seeker') {
+    return (
+      <div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t?.('dashboard.welcome') || 'Welcome back'}, {user?.firstName}!
+          </h1>
+          <p className="text-gray-500 mt-1">
+            {t?.('dashboard.jobSeeker.subtitle') || "Here's an overview of your job search progress."}
+          </p>
+        </div>
+
+        {/* Job Seeker Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-[3px] p-6 border border-gray-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-gray-500">{t?.('dashboard.jobSeeker.stats.applications') || 'Applications Sent'}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {statsLoading ? <span className="inline-block w-8 h-7 bg-gray-200 rounded animate-pulse" /> : (stats?.applicationsSent ?? 0)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[3px] p-6 border border-gray-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-gray-500">{t?.('dashboard.jobSeeker.stats.interviews') || 'Upcoming Interviews'}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {statsLoading ? <span className="inline-block w-8 h-7 bg-gray-200 rounded animate-pulse" /> : (stats?.upcomingInterviews ?? 0)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[3px] p-6 border border-gray-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-gray-500">{t?.('dashboard.jobSeeker.stats.savedJobs') || 'Saved Jobs'}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {statsLoading ? <span className="inline-block w-8 h-7 bg-gray-200 rounded animate-pulse" /> : (stats?.savedJobs ?? 0)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[3px] p-6 border border-gray-200">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-sm text-gray-500">{t?.('dashboard.jobSeeker.stats.messages') || 'Unread Messages'}</p>
+                <p className="text-2xl font-bold text-gray-900 mt-1">
+                  {statsLoading ? <span className="inline-block w-8 h-7 bg-gray-200 rounded animate-pulse" /> : (stats?.unreadMessages ?? 0)}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Applications */}
+        <div className="bg-white rounded-[3px] border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900">{t?.('dashboard.jobSeeker.recentApplications') || 'Recent Applications'}</h2>
+          </div>
+          {statsLoading ? (
+            <div className="p-6 space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 animate-pulse">
+                  <div className="w-10 h-10 bg-gray-100 rounded-full" />
+                  <div className="flex-1">
+                    <div className="h-4 w-36 bg-gray-200 rounded mb-2" />
+                    <div className="h-3 w-24 bg-gray-100 rounded" />
+                  </div>
+                  <div className="h-4 w-16 bg-gray-100 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : stats?.recentApplications?.length > 0 ? (
+            <div className="divide-y divide-gray-100">
+              {stats.recentApplications.map((app) => (
+                <div key={app.id} className="flex items-center gap-4 px-6 py-4">
+                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 font-semibold text-sm">
+                    {(app.business_name || '?')[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{app.business_name}</p>
+                    <p className="text-xs text-gray-500">{app.position}</p>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${
+                    app.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                    app.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                    app.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {app.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              <p>{t?.('dashboard.jobSeeker.noApplications') || 'No applications yet. Start applying to jobs!'}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Service provider dashboard (salon_owner / mobile_service)
   return (
     <div>
       {/* Dashboard content */}

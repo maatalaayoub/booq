@@ -24,11 +24,16 @@ import {
   ShieldCheck,
   Building2,
   Navigation,
+  UserCircle,
+  FileText,
+  Bookmark,
+  MessageSquare,
+  Video,
 } from 'lucide-react';
 
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { businessCategory } = useBusinessCategory();
+  const { businessCategory, isLoading: isCategoryLoading } = useBusinessCategory();
 
   // Listen for toggle event from header
   useEffect(() => {
@@ -77,7 +82,37 @@ export default function Sidebar() {
       icon: Building2, 
       label: t('dashboard.sidebar.businessDetails') || 'Business Details', 
       href: `/${locale}/business/dashboard/business-details`,
-      categories: ['salon_owner', 'mobile_service', 'job_seeker'],
+      categories: ['salon_owner', 'mobile_service'],
+    },
+    { 
+      icon: UserCircle, 
+      label: t('dashboard.sidebar.myProfile') || 'My Profile', 
+      href: `/${locale}/business/dashboard/my-profile`,
+      categories: ['job_seeker'],
+    },
+    { 
+      icon: FileText, 
+      label: t('dashboard.sidebar.myApplications') || 'My Applications', 
+      href: `/${locale}/business/dashboard/my-applications`,
+      categories: ['job_seeker'],
+    },
+    { 
+      icon: Bookmark, 
+      label: t('dashboard.sidebar.savedJobs') || 'Saved Jobs', 
+      href: `/${locale}/business/dashboard/saved-jobs`,
+      categories: ['job_seeker'],
+    },
+    { 
+      icon: MessageSquare, 
+      label: t('dashboard.sidebar.messages') || 'Messages', 
+      href: `/${locale}/business/dashboard/messages`,
+      categories: ['job_seeker'],
+    },
+    { 
+      icon: Video, 
+      label: t('dashboard.sidebar.interviews') || 'Interviews', 
+      href: `/${locale}/business/dashboard/interviews`,
+      categories: ['job_seeker'],
     },
     { 
       icon: Globe, 
@@ -111,9 +146,11 @@ export default function Sidebar() {
     },
   ];
 
-  const menuItems = allMenuItems.filter(
-    (item) => !businessCategory || item.categories.includes(businessCategory)
-  );
+  const menuItems = isCategoryLoading
+    ? []
+    : allMenuItems.filter(
+        (item) => !businessCategory || item.categories.includes(businessCategory)
+      );
 
   const bottomItems = [
     { 

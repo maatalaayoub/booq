@@ -225,9 +225,11 @@ CREATE TABLE IF NOT EXISTS job_seeker_info (
   business_info_id UUID REFERENCES business_info(id) ON DELETE CASCADE UNIQUE,
   years_of_experience TEXT CHECK (years_of_experience IN ('less_than_1', '1_to_3', '3_to_5', '5_to_10', 'more_than_10')),
   has_certificate BOOLEAN DEFAULT false,
-  preferred_city TEXT,
+  preferred_city TEXT[] DEFAULT '{}',
   resume_url TEXT,
   bio TEXT,
+  education TEXT,
+  skills JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -493,7 +495,7 @@ CREATE TABLE IF NOT EXISTS job_seeker_info (
   business_info_id UUID REFERENCES business_info(id) ON DELETE CASCADE UNIQUE,
   years_of_experience TEXT CHECK (years_of_experience IN ('less_than_1', '1_to_3', '3_to_5', '5_to_10', 'more_than_10')),
   has_certificate BOOLEAN DEFAULT false,
-  preferred_city TEXT,
+  preferred_city TEXT[] DEFAULT '{}',
   resume_url TEXT,
   bio TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -618,6 +620,10 @@ ALTER TABLE mobile_service_info ADD COLUMN IF NOT EXISTS city TEXT;
 ALTER TABLE mobile_service_info ADD COLUMN IF NOT EXISTS phone TEXT;
 ALTER TABLE mobile_service_info ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
 ALTER TABLE mobile_service_info ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+
+-- Migrate preferred_city from TEXT to TEXT[] (array)
+ALTER TABLE job_seeker_info ALTER COLUMN preferred_city TYPE TEXT[] USING CASE WHEN preferred_city IS NULL THEN '{}' ELSE ARRAY[preferred_city] END;
+ALTER TABLE job_seeker_info ALTER COLUMN preferred_city SET DEFAULT '{}';
 
 -- ============================================
 -- SCHEDULE EXCEPTIONS (breaks, closures, holidays, etc.)
@@ -956,3 +962,46 @@ CREATE POLICY "Admin log read all"
 
 CREATE POLICY "Admin log insert"
   ON admin_actions_log FOR INSERT WITH CHECK (true);
+
+-- ============================================
+-- JOB APPLICATIONS (job seekers applying to businesses)
+-- ============================================
+CREATE TABLE IF NOT EXISTS job_applications (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  applicant_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  business_info_id UUID REFERENCES business_info(id) ON DELETE CASCADE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'reviewed', 'interview', 'accepted', 'rejected', 'withdrawn')),
+  cover_letter TEXT,
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(applicant_id, business_info_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_job_applications_applicant ON job_applications(applicant_id);
+CREATE INDEX IF NOT EXISTS idx_job_applications_business ON job_applications(business_info_id);
+CREATE INDEX IF NOT EXISTS idx_job_applications_status ON job_applications(status);
+
+ALTER TABLE job_applications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Job applications viewable by all" ON job_applications;
+CREATE POLICY "Job applications viewable by all"
+  ON job_applications FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Job applications insert" ON job_applications;
+CREATE POLICY "Job applications insert"
+  ON job_applications FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Job applications update" ON job_applications;
+CREATE POLICY "Job applications update"
+  ON job_applications FOR UPDATE USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Job applications delete" ON job_applications;
+CREATE POLICY "Job applications delete"
+  ON job_applications FOR DELETE USING (true);
+
+DROP TRIGGER IF EXISTS update_job_applications_updated_at ON job_applications;
+CREATE TRIGGER update_job_applications_updated_at
+  BEFORE UPDATE ON job_applications
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();

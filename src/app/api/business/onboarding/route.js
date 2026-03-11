@@ -278,7 +278,7 @@ export async function POST(request) {
         business_info_id: businessInfoId,
         years_of_experience: yearsOfExperience || null,
         has_certificate: hasCertificate || false,
-        preferred_city: preferredCity || null,
+        preferred_city: preferredCity || [],
         bio: bio || null,
       };
 

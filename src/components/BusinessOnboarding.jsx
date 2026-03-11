@@ -196,13 +196,20 @@ export default function BusinessOnboarding({ userName, onComplete }) {
   
   // Create user in database immediately when component mounts
   // With retry mechanism for cases where Clerk session isn't immediately available
+  const userCreatedRef = useRef(false);
+  useEffect(() => {
+    userCreatedRef.current = userCreated;
+  }, [userCreated]);
+
   useEffect(() => {
     let retryCount = 0;
     const maxRetries = 5;
     const retryDelay = 1000; // 1 second
+    let cancelled = false;
+    let pendingTimeout = null;
     
     async function createUserImmediately() {
-      if (userCreated) return;
+      if (cancelled || userCreatedRef.current) return;
       
       console.log('[BusinessOnboarding] Creating user in database (attempt', retryCount + 1, ')...');
       try {
@@ -219,25 +226,27 @@ export default function BusinessOnboarding({ userName, onComplete }) {
           body: JSON.stringify({ role: 'business' }),
         });
         
+        if (cancelled) return;
+
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
-          console.error('[BusinessOnboarding] API returned non-JSON response');
+          console.error('[BusinessOnboarding] API returned non-JSON response, status:', response.status);
           if (retryCount < maxRetries) {
             retryCount++;
-            setTimeout(createUserImmediately, retryDelay);
+            pendingTimeout = setTimeout(createUserImmediately, retryDelay);
             return;
           }
           setSubmitError('Server returned unexpected response');
           return;
         }
         const data = await response.json();
-        console.log('[BusinessOnboarding] User creation response:', JSON.stringify(data, null, 2));
+        console.log('[BusinessOnboarding] User creation response (status ' + response.status + '):', JSON.stringify(data, null, 2));
         
         // Check for auth error (userId is null) - this means session not ready yet
         if (response.status === 401 && retryCount < maxRetries) {
           retryCount++;
           console.log('[BusinessOnboarding] Auth not ready, retrying in', retryDelay, 'ms...');
-          setTimeout(createUserImmediately, retryDelay);
+          pendingTimeout = setTimeout(createUserImmediately, retryDelay);
           return;
         }
         
@@ -250,7 +259,14 @@ export default function BusinessOnboarding({ userName, onComplete }) {
           setSubmitError(null);
           console.log('[BusinessOnboarding] User already exists in database');
         } else {
-          console.error('[BusinessOnboarding] Failed to create user:', data);
+          // Retry on unexpected/empty responses before giving up
+          if ((!data.error) && retryCount < maxRetries) {
+            retryCount++;
+            console.log('[BusinessOnboarding] Unexpected response (status ' + response.status + '), retrying...', data);
+            pendingTimeout = setTimeout(createUserImmediately, retryDelay);
+            return;
+          }
+          console.error('[BusinessOnboarding] Failed to create user (status ' + response.status + '):', data);
           // Show ALL error details
           const errorParts = [];
           if (data.error) errorParts.push(data.error);
@@ -264,7 +280,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
         if (retryCount < maxRetries) {
           retryCount++;
           console.log('[BusinessOnboarding] Network error, retrying in', retryDelay, 'ms...');
-          setTimeout(createUserImmediately, retryDelay);
+          pendingTimeout = setTimeout(createUserImmediately, retryDelay);
           return;
         }
         setSubmitError(`Network error: ${error.message}`);
@@ -272,10 +288,13 @@ export default function BusinessOnboarding({ userName, onComplete }) {
     }
     
     // Initial delay to allow Clerk session to establish
-    const initialDelay = setTimeout(createUserImmediately, 500);
+    pendingTimeout = setTimeout(createUserImmediately, 500);
     
-    return () => clearTimeout(initialDelay);
-  }, [userCreated]);
+    return () => {
+      cancelled = true;
+      if (pendingTimeout) clearTimeout(pendingTimeout);
+    };
+  }, []);
   
   // Determine total steps and step content based on business category
   const getTotalSteps = () => {
