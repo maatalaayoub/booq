@@ -253,8 +253,8 @@ const DEFAULT_SETTINGS = {
   showRating:        true,
   showResponseTime:  true,
   showBookingButton: true,
-  showCallButton:    true,
-  showMessageButton: true,
+  showCallButton:    false,
+  showMessageButton: false,
   accentColor:       'slate',
   coverGallery:      [],
   avatarUrl:         null,
@@ -498,13 +498,14 @@ export default function PublicPageManager() {
                     setSettings(s => ({ ...s, showBookingButton: false, showCallButton: true, showMessageButton: true }));
                     setSaved(false);
                   } else {
-                    set('showBookingButton', true);
+                    // Enabling booking → disable call & message
+                    setSettings(s => ({ ...s, showBookingButton: true, showCallButton: false, showMessageButton: false }));
+                    setSaved(false);
                   }
                 }}
                 accent="blue"
               />
 
-              {/* Warning when booking is disabled */}
               {settings.showBookingButton === false && (
                 <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-[5px]">
                   <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -518,9 +519,19 @@ export default function PublicPageManager() {
                 description={t('businessCard.callButtonDesc')}
                 value={settings.showCallButton}
                 onChange={v => {
-                  // If booking is disabled, prevent disabling both call & message
-                  if (!v && settings.showBookingButton === false && !settings.showMessageButton) return;
-                  set('showCallButton', v);
+                  if (v) {
+                    // Enabling call → disable booking
+                    setSettings(s => ({ ...s, showCallButton: true, showBookingButton: false }));
+                    setSaved(false);
+                  } else {
+                    // Disabling call → if message also off, auto-enable booking
+                    if (!settings.showMessageButton) {
+                      setSettings(s => ({ ...s, showCallButton: false, showBookingButton: true }));
+                    } else {
+                      setSettings(s => ({ ...s, showCallButton: false }));
+                    }
+                    setSaved(false);
+                  }
                 }}
                 accent="green"
               />
@@ -530,9 +541,19 @@ export default function PublicPageManager() {
                 description={t('businessCard.messageButtonDesc')}
                 value={settings.showMessageButton}
                 onChange={v => {
-                  // If booking is disabled, prevent disabling both call & message
-                  if (!v && settings.showBookingButton === false && !settings.showCallButton) return;
-                  set('showMessageButton', v);
+                  if (v) {
+                    // Enabling message → disable booking
+                    setSettings(s => ({ ...s, showMessageButton: true, showBookingButton: false }));
+                    setSaved(false);
+                  } else {
+                    // Disabling message → if call also off, auto-enable booking
+                    if (!settings.showCallButton) {
+                      setSettings(s => ({ ...s, showMessageButton: false, showBookingButton: true }));
+                    } else {
+                      setSettings(s => ({ ...s, showMessageButton: false }));
+                    }
+                    setSaved(false);
+                  }
                 }}
                 accent="purple"
               />

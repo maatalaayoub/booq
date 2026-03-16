@@ -204,10 +204,12 @@ export async function POST(request) {
       user_id: user.id,
       business_category: businessCategory,
       professional_type: professionalType,
-      service_category_id: serviceCategoryId || null,
-      specialty_id: specialtyId || null,
       onboarding_completed: completeOnboarding || false,
     };
+
+    // Only include service_category_id/specialty_id if provided (columns may not exist in older DBs)
+    if (serviceCategoryId) businessInfoData.service_category_id = serviceCategoryId;
+    if (specialtyId) businessInfoData.specialty_id = specialtyId;
 
     console.log('[onboarding POST] Upserting business_info:', businessInfoData);
     
