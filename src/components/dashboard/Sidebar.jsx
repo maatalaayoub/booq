@@ -33,7 +33,7 @@ import {
 
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { businessCategory, isLoading: isCategoryLoading } = useBusinessCategory();
+  const { businessCategory, serviceMode, isLoading: isCategoryLoading } = useBusinessCategory();
 
   // Listen for toggle event from header
   useEffect(() => {
@@ -59,12 +59,14 @@ export default function Sidebar() {
       label: t('dashboard.sidebar.appointments') || 'Bookings', 
       href: `/${locale}/business/dashboard/appointments`,
       categories: ['salon_owner', 'mobile_service'],
+      excludeServiceModes: ['walkin'],
     },
     { 
       icon: Clock, 
       label: t('dashboard.sidebar.schedule') || 'Schedule', 
       href: `/${locale}/business/dashboard/schedule`,
       categories: ['salon_owner', 'mobile_service'],
+      excludeServiceModes: ['walkin'],
     },
     { 
       icon: Users, 
@@ -149,7 +151,9 @@ export default function Sidebar() {
   const menuItems = isCategoryLoading
     ? []
     : allMenuItems.filter(
-        (item) => !businessCategory || item.categories.includes(businessCategory)
+        (item) =>
+          (!businessCategory || item.categories.includes(businessCategory)) &&
+          (!item.excludeServiceModes || !item.excludeServiceModes.includes(serviceMode))
       );
 
   const bottomItems = [

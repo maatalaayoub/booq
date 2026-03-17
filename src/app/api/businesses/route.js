@@ -17,7 +17,7 @@ export async function GET(request) {
     let query = supabase
       .from('business_info')
       .select(`
-        id, business_category, professional_type,
+        id, business_category, professional_type, service_mode,
         shop_salon_info ( business_name, address, city, phone, latitude, longitude ),
         mobile_service_info ( business_name, address, city, phone, latitude, longitude ),
         business_card_settings ( settings ),
@@ -56,6 +56,7 @@ export async function GET(request) {
         id: biz.id,
         businessCategory: biz.business_category,
         professionalType: type,
+        serviceMode: biz.service_mode || null,
         businessName: settings.businessName || details?.business_name || '',
         city: details?.city || '',
         avatarUrl: settings.avatarUrl || null,
@@ -70,8 +71,11 @@ export async function GET(request) {
         showCoverPhoto: settings.showCoverPhoto !== false,
         showCallButton: settings.showCallButton || false,
         showMessageButton: settings.showMessageButton || false,
-        showBookingButton: settings.showBookingButton !== false,
+        showBookingButton: biz.service_mode === 'walkin' ? false : settings.showBookingButton !== false,
+        showGetDirections: biz.service_mode === 'walkin' ? true : (settings.showGetDirections || false),
         phone: details?.phone || null,
+        latitude: details?.latitude || null,
+        longitude: details?.longitude || null,
         totalServices: services.length,
         services: services.slice(0, 3).map(s => ({
           name: s.name,

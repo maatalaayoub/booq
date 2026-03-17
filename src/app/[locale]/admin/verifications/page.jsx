@@ -471,6 +471,14 @@ export default function AdminVerificationsPage() {
                               )}
                             </div>
                           )}
+                          {viewUserDetails.business_info?.service_mode && (
+                            <div className="mt-3">
+                              <p className="text-xs text-gray-500 mb-1">Service Mode</p>
+                              <p className="text-sm font-medium text-gray-900 capitalize">
+                                {viewUserDetails.business_info.service_mode === 'walkin' ? 'Walk-in' : viewUserDetails.business_info.service_mode === 'both' ? 'Booking & Walk-in' : 'Online Booking'}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       </div>
                       {details.businessName ? (

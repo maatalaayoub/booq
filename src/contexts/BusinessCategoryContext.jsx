@@ -5,12 +5,14 @@ import { useUser } from '@clerk/nextjs';
 
 const BusinessCategoryContext = createContext({
   businessCategory: null,
+  serviceMode: null,
   isLoading: true,
 });
 
 export function BusinessCategoryProvider({ children }) {
   const { user, isLoaded } = useUser();
   const [businessCategory, setBusinessCategory] = useState(null);
+  const [serviceMode, setServiceMode] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +23,7 @@ export function BusinessCategoryProvider({ children }) {
           const text = await res.text();
           const data = text ? JSON.parse(text) : {};
           setBusinessCategory(data.businessCategory || null);
+          setServiceMode(data.businessInfo?.service_mode || null);
         }
       } catch (err) {
         console.error('Error fetching business category:', err);
@@ -37,7 +40,7 @@ export function BusinessCategoryProvider({ children }) {
   }, [isLoaded, user]);
 
   return (
-    <BusinessCategoryContext.Provider value={{ businessCategory, isLoading }}>
+    <BusinessCategoryContext.Provider value={{ businessCategory, serviceMode, isLoading }}>
       {children}
     </BusinessCategoryContext.Provider>
   );

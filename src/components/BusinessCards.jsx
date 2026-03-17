@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { MapPin, Star, Clock, Briefcase, ChevronLeft, ChevronRight, Scissors, Sparkles, Hand, Palette, Phone, MessageCircle } from 'lucide-react';
+import { MapPin, Star, Clock, Briefcase, ChevronLeft, ChevronRight, Scissors, Sparkles, Hand, Palette, Phone, MessageCircle, Navigation } from 'lucide-react';
 import Link from 'next/link';
 
 const ACCENT_COLORS = {
@@ -129,51 +129,84 @@ function BusinessCard({ business, t }) {
         {/* Spacer pushes button to bottom */}
         <div className="flex-1" />
 
-        {/* Book button */}
-        {business.showBookingButton !== false && (
-          <button
-            className={`w-full py-1.5 text-xs font-semibold text-white rounded-[5px] transition-opacity hover:opacity-90 ${(business.showCallButton || business.showMessageButton) ? 'mb-2' : ''}`}
-            style={{ backgroundColor: accent.bg }}
-          >
-            {t('businessCard.bookNow')}
-          </button>
-        )}
-
-        {/* Contact buttons */}
-        {(business.showCallButton || business.showMessageButton) && (
-          <div className="flex gap-1.5">
-            {business.showCallButton && business.phone && (
-              <a
-                href={`tel:${business.phone}`}
-                className={`flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
-                  business.showBookingButton === false
-                    ? 'text-white hover:opacity-90'
-                    : 'text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                }`}
-                style={business.showBookingButton === false ? { backgroundColor: accent.bg } : undefined}
-              >
-                <Phone className="w-3 h-3" />
-                {t('businessCard.call')}
-              </a>
-            )}
-            {business.showMessageButton && business.phone && (
-              <a
-                href={`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
-                  business.showBookingButton === false
-                    ? 'text-white hover:opacity-90'
-                    : 'text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                }`}
-                style={business.showBookingButton === false ? { backgroundColor: accent.bg } : undefined}
-              >
-                <MessageCircle className="w-3 h-3" />
-                {t('businessCard.message')}
-              </a>
-            )}
-          </div>
-        )}
+        {/* Action buttons row */}
+        {(() => {
+          const hasBooking = business.showBookingButton !== false;
+          const hasDirections = business.showGetDirections;
+          const hasCall = business.showCallButton && business.phone;
+          const hasMsg = business.showMessageButton && business.phone;
+          const hasMain = hasBooking || hasDirections;
+          const contactOnly = !hasMain && (hasCall || hasMsg);
+          const directionsUrl = business.latitude && business.longitude
+            ? `https://www.google.com/maps/dir/?api=1&destination=${business.latitude},${business.longitude}`
+            : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(business.city || business.businessName)}`;
+          return (
+            <div className="flex gap-1.5">
+              {/* Booking button */}
+              {hasBooking && (
+                <button
+                  className="flex-1 py-2 text-xs font-semibold text-white rounded-[5px] transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: accent.bg }}
+                >
+                  {t('businessCard.bookNow')}
+                </button>
+              )}
+              {/* Get Directions button */}
+              {hasDirections && (
+                <a
+                  href={directionsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex-1 py-2 text-xs font-semibold rounded-[5px] transition-opacity hover:opacity-90 flex items-center justify-center gap-1 ${
+                    hasBooking ? 'border border-gray-400 text-gray-600' : 'text-white'
+                  }`}
+                  style={!hasBooking ? { backgroundColor: accent.bg } : undefined}
+                >
+                  <Navigation className="w-3 h-3" />
+                  {t('businessCard.getDirections')}
+                </a>
+              )}
+              {/* Call */}
+              {hasCall && (
+                <a
+                  href={`tel:${business.phone}`}
+                  className={`flex items-center justify-center rounded-[5px] transition-colors ${
+                    contactOnly
+                      ? 'flex-1 gap-1 py-2 text-xs font-semibold text-white hover:opacity-90'
+                      : 'w-10 border border-gray-400 text-gray-600 hover:bg-gray-50'
+                  }`}
+                  style={contactOnly
+                    ? { backgroundColor: accent.bg }
+                    : undefined
+                  }
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  {contactOnly && t('businessCard.call')}
+                </a>
+              )}
+              {/* Message */}
+              {hasMsg && (
+                <a
+                  href={`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center justify-center rounded-[5px] transition-colors ${
+                    contactOnly
+                      ? 'flex-1 gap-1 py-2 text-xs font-semibold text-white hover:opacity-90'
+                      : 'w-10 border border-gray-400 text-gray-600 hover:bg-gray-50'
+                  }`}
+                  style={contactOnly
+                    ? { backgroundColor: accent.bg }
+                    : undefined
+                  }
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  {contactOnly && t('businessCard.message')}
+                </a>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

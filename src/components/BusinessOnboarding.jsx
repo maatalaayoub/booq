@@ -27,6 +27,9 @@ import {
   MapPinned,
   Heart,
   Loader2,
+  CalendarCheck,
+  Users,
+  ArrowLeftRight,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -141,6 +144,33 @@ const WORK_LOCATIONS = [
   },
 ];
 
+const SERVICE_MODES = [
+  {
+    id: 'booking',
+    name: 'Online Booking',
+    description: 'Customers book appointments online through your page',
+    icon: CalendarCheck,
+    gradient: 'from-blue-500 to-cyan-600',
+    bgLight: 'bg-blue-50',
+  },
+  {
+    id: 'walkin',
+    name: 'Walk-in Only',
+    description: 'Customers come directly without booking — first come, first served',
+    icon: Users,
+    gradient: 'from-emerald-500 to-teal-600',
+    bgLight: 'bg-emerald-50',
+  },
+  {
+    id: 'both',
+    name: 'Both',
+    description: 'Accept both online bookings and walk-in customers',
+    icon: ArrowLeftRight,
+    gradient: 'from-violet-500 to-purple-600',
+    bgLight: 'bg-violet-50',
+  },
+];
+
 const DEFAULT_HOURS = DAYS_OF_WEEK.map(day => ({
   dayOfWeek: day.id,
   isOpen: day.id >= 1 && day.id <= 5, // Monday to Friday open by default
@@ -182,6 +212,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
   // Job seeker specific fields
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [hasCertificate, setHasCertificate] = useState(null);
+  const [serviceMode, setServiceMode] = useState('');
 
   const displayName = userName || user?.firstName || 'there';
 
@@ -338,13 +369,13 @@ export default function BusinessOnboarding({ userName, onComplete }) {
   // Determine total steps and step content based on business category
   const getTotalSteps = () => {
     if (businessCategory === 'job_seeker') return 5;
-    return 5; // salon_owner and mobile_service now have 5 steps
+    return 6; // salon_owner and mobile_service now have 6 steps
   };
   const totalSteps = getTotalSteps();
 
   // Map logical steps to actual step content
-  // For salon_owner: 1=Category, 2=ServiceCategory, 3=ProfessionalType, 4=BusinessDetails, 5=BusinessHours
-  // For mobile_service: 1=Category, 2=ServiceCategory, 3=ProfessionalType, 4=BusinessDetails, 5=BusinessHours
+  // For salon_owner: 1=Category, 2=ServiceCategory, 3=ProfessionalType, 4=ServiceMode, 5=BusinessDetails, 6=BusinessHours
+  // For mobile_service: 1=Category, 2=ServiceCategory, 3=ProfessionalType, 4=ServiceMode, 5=BusinessDetails, 6=BusinessHours
   // For job_seeker: 1=Category, 2=ServiceCategory, 3=ProfessionalType, 4=YearsOfExperience, 5=Certificate
   const getStepContent = () => {
     if (businessCategory === 'salon_owner' || businessCategory === 'mobile_service') {
@@ -352,8 +383,9 @@ export default function BusinessOnboarding({ userName, onComplete }) {
         1: 'category',
         2: 'service_category',
         3: 'professional_type',
-        4: 'business_details',
-        5: 'business_hours'
+        4: 'service_mode',
+        5: 'business_details',
+        6: 'business_hours'
       };
     }
     // job_seeker flow
@@ -387,6 +419,8 @@ export default function BusinessOnboarding({ userName, onComplete }) {
         return hasCertificate !== null;
       case 'business_hours':
         return businessHours.some(h => h.isOpen);
+      case 'service_mode':
+        return !!serviceMode;
       default:
         return false;
     }
@@ -475,6 +509,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
         requestBody.address = businessAddress;
         requestBody.latitude = locationLat;
         requestBody.longitude = locationLng;
+        requestBody.serviceMode = serviceMode;
       } else if (businessCategory === 'mobile_service') {
         requestBody.workLocation = 'client_location';
         requestBody.businessHours = businessHours;
@@ -484,6 +519,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
         requestBody.address = businessAddress;
         requestBody.latitude = locationLat;
         requestBody.longitude = locationLng;
+        requestBody.serviceMode = serviceMode;
       } else if (businessCategory === 'job_seeker') {
         // Job seekers don't have work location or business hours
         requestBody.yearsOfExperience = yearsOfExperience;
@@ -557,31 +593,57 @@ export default function BusinessOnboarding({ userName, onComplete }) {
         {/* Progress indicator */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-center">
-            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
-              <div key={step} className="flex items-center">
-                <div 
-                  className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                    step === currentStep 
-                      ? 'bg-amber-400 text-white ring-4 ring-amber-100' 
-                      : step < currentStep 
-                        ? 'bg-green-500 text-white' 
-                        : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
-                  }`}
-                >
-                  {step < currentStep ? (
-                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : step}
+            {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => {
+              // On small screens, only show previous, current, and next step
+              const isVisible = Math.abs(step - currentStep) <= 1;
+              // Show dots indicator when steps are hidden
+              const showLeadingDots = step === currentStep - 1 && currentStep > 2;
+              const showTrailingDots = step === currentStep + 1 && currentStep < totalSteps - 1;
+
+              return (
+                <div key={step} className={`flex items-center transition-all duration-500 ${
+                  isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-0 w-0 overflow-hidden sm:opacity-100 sm:scale-100 sm:w-auto sm:overflow-visible'
+                }`}>
+                  {showLeadingDots && (
+                    <div className="flex items-center gap-0.5 mr-2 sm:hidden">
+                      <span className="w-1 h-1 rounded-full bg-gray-300" />
+                      <span className="w-1 h-1 rounded-full bg-gray-300" />
+                    </div>
+                  )}
+                  <div 
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                      step === currentStep 
+                        ? 'bg-amber-400 text-white ring-4 ring-amber-100' 
+                        : step < currentStep 
+                          ? 'bg-green-500 text-white' 
+                          : 'bg-gray-100 text-gray-400 border-2 border-gray-200'
+                    }`}
+                  >
+                    {step < currentStep ? (
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                      </svg>
+                    ) : step}
+                  </div>
+                  {step < totalSteps && (
+                    <div className={`w-10 sm:w-14 h-0.5 transition-all duration-300 ${
+                      step < currentStep ? 'bg-green-500' : 'bg-gray-200'
+                    } ${!isVisible || (step + 1 > currentStep + 1 && step + 1 <= totalSteps) ? 'hidden sm:block' : ''}`} />
+                  )}
+                  {showTrailingDots && (
+                    <div className="flex items-center gap-0.5 ml-2 sm:hidden">
+                      <span className="w-1 h-1 rounded-full bg-gray-300" />
+                      <span className="w-1 h-1 rounded-full bg-gray-300" />
+                    </div>
+                  )}
                 </div>
-                {step < totalSteps && (
-                  <div className={`w-10 sm:w-14 h-0.5 transition-all duration-300 ${
-                    step < currentStep ? 'bg-green-500' : 'bg-gray-200'
-                  }`} />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
+          {/* Step counter text for mobile */}
+          <p className="text-center text-xs text-gray-400 mt-2 sm:hidden">
+            Step {currentStep} of {totalSteps}
+          </p>
         </div>
 
         {/* Step: Business Category */}
@@ -1242,6 +1304,79 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                     Creating...
                   </span>
                 ) : 'Complete Setup'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step: Service Mode (for salon_owner & mobile_service) */}
+        {currentStepContent === 'service_mode' && (
+          <div className="bg-white rounded-[5px] shadow-2xl shadow-gray-200/50 p-8 border border-gray-100">
+            <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">
+              How do you receive customers?
+            </h2>
+            <p className="text-gray-500 text-center mb-8">
+              Choose how customers can get your services
+            </p>
+
+            <div className="space-y-4">
+              {SERVICE_MODES.map((mode) => {
+                const IconComponent = mode.icon;
+                const isSelected = serviceMode === mode.id;
+                return (
+                  <button
+                    key={mode.id}
+                    onClick={() => setServiceMode(mode.id)}
+                    className={`group w-full flex items-center gap-4 p-5 rounded-[5px] border transition-all duration-300 text-left ${
+                      isSelected 
+                        ? 'border-amber-400 bg-white' 
+                        : 'border-gray-100 hover:border-gray-200 bg-white hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 bg-gray-100 group-hover:bg-gray-200 transition-all duration-300">
+                      <IconComponent className="w-7 h-7 text-gray-500 group-hover:text-gray-700" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className={`font-semibold text-lg transition-colors ${
+                        isSelected ? 'text-gray-900' : 'text-gray-700 group-hover:text-gray-900'
+                      }`}>{mode.name}</h3>
+                      <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{mode.description}</p>
+                    </div>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${
+                      isSelected 
+                        ? 'bg-amber-400' 
+                        : 'bg-gray-100 group-hover:bg-gray-200'
+                    }`}>
+                      {isSelected && <Check className="w-4 h-4 text-white" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {submitError && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-red-700 text-sm">{submitError}</p>
+              </div>
+            )}
+
+            <div className="flex gap-3 mt-6 sm:mt-8">
+              <button
+                onClick={handleBack}
+                className="px-4 sm:px-6 py-3 sm:py-4 rounded-[5px] font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-all text-sm sm:text-base"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={!canContinue()}
+                className={`flex-1 py-3 sm:py-4 rounded-[5px] font-semibold text-white transition-all text-sm sm:text-base ${
+                  canContinue()
+                    ? 'bg-amber-400 hover:bg-amber-500' 
+                    : 'bg-gray-300 cursor-not-allowed'
+                }`}
+              >
+                Continue
               </button>
             </div>
           </div>

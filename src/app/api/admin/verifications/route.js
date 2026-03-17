@@ -20,7 +20,7 @@ export async function GET(request) {
       *,
       users!verification_requests_user_id_fkey ( id, email, username, account_status, user_profile ( first_name, last_name, profile_image_url ) ),
       business_info!verification_requests_business_info_id_fkey ( 
-        id, business_category, professional_type, service_category_id, specialty_id,
+        id, business_category, professional_type, service_category_id, specialty_id, service_mode,
         service_categories ( name, slug, icon ),
         specialties ( name, slug, custom_icon ),
         shop_salon_info ( business_name, address, city, phone ),

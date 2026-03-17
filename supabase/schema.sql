@@ -167,6 +167,7 @@ CREATE TABLE IF NOT EXISTS business_info (
   professional_type TEXT NOT NULL CHECK (professional_type IN ('barber', 'hairdresser', 'makeup', 'nails', 'massage')),
   service_category_id UUID REFERENCES service_categories(id),
   specialty_id UUID REFERENCES specialties(id),
+  service_mode TEXT CHECK (service_mode IN ('booking', 'walkin', 'both')),
   onboarding_completed BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -452,6 +453,7 @@ CREATE TABLE IF NOT EXISTS business_info (
   professional_type TEXT NOT NULL CHECK (professional_type IN ('barber', 'hairdresser', 'makeup', 'nails', 'massage')),
   service_category_id UUID REFERENCES service_categories(id),
   specialty_id UUID REFERENCES specialties(id),
+  service_mode TEXT CHECK (service_mode IN ('booking', 'walkin', 'both')),
   onboarding_completed BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -1146,3 +1148,11 @@ CROSS JOIN (VALUES
 ) AS s(name, slug, description, icon, custom_icon, display_order)
 WHERE sc.slug = 'beauty_personal_care'
 ON CONFLICT (slug) DO NOTHING;
+
+
+-- ============================================
+-- MIGRATION: Add service_mode to business_info
+-- ============================================
+-- Run this if updating an existing database:
+ALTER TABLE business_info
+  ADD COLUMN IF NOT EXISTS service_mode TEXT CHECK (service_mode IN ('booking', 'walkin', 'both'));

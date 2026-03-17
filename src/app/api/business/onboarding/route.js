@@ -123,6 +123,7 @@ export async function POST(request) {
       professionalType,
       serviceCategoryId,
       specialtyId,
+      serviceMode,
       workLocation, 
       businessHours, 
       yearsOfExperience,
@@ -178,6 +179,18 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
+    // Validate service mode (required for salon_owner and mobile_service)
+    if (businessCategory !== 'job_seeker') {
+      const validServiceModes = ['booking', 'walkin', 'both'];
+      if (serviceMode && !validServiceModes.includes(serviceMode)) {
+        console.error('[onboarding POST] Invalid serviceMode:', serviceMode);
+        return NextResponse.json({ 
+          error: 'Invalid service mode',
+          validModes: validServiceModes 
+        }, { status: 400 });
+      }
+    }
+
     const supabase = createServerSupabaseClient();
 
     // Get user from Supabase
@@ -210,6 +223,7 @@ export async function POST(request) {
     // Only include service_category_id/specialty_id if provided (columns may not exist in older DBs)
     if (serviceCategoryId) businessInfoData.service_category_id = serviceCategoryId;
     if (specialtyId) businessInfoData.specialty_id = specialtyId;
+    if (serviceMode) businessInfoData.service_mode = serviceMode;
 
     console.log('[onboarding POST] Upserting business_info:', businessInfoData);
     

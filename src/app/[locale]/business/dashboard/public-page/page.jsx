@@ -31,6 +31,7 @@ import {
   Phone,
   MessageCircle,
   AlertTriangle,
+  Navigation,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBusinessCategory } from '@/contexts/BusinessCategoryContext';
@@ -71,7 +72,7 @@ function SectionToggle({ icon: Icon, label, description, value, onChange, accent
 }
 
 // ─── LIVE PREVIEW CARD ────────────────────────────────────────
-function PreviewCard({ settings, user, businessData }) {
+function PreviewCard({ settings, user, businessData, serviceMode }) {
   const { t } = useLanguage();
   const gallery = settings.coverGallery || [];
   const [slideIndex, setSlideIndex] = useState(0);
@@ -184,47 +185,74 @@ function PreviewCard({ settings, user, businessData }) {
           </div>
         )}
 
-        {/* Booking button */}
-        {settings.showBookingButton !== false && (
-          <button
-            className={`w-full py-2 text-xs font-semibold text-white rounded-[5px] transition-opacity hover:opacity-90 ${(settings.showCallButton || settings.showMessageButton) ? 'mb-2' : ''}`}
-            style={{ backgroundColor: accent.bg }}
-          >
-            {t('businessCard.bookNow')}
-          </button>
-        )}
-
-        {/* Contact buttons */}
-        {(settings.showCallButton || settings.showMessageButton) && (
-          <div className="flex gap-1.5">
-            {settings.showCallButton && (
-              <button
-                className={`flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
-                  settings.showBookingButton === false
-                    ? 'text-white hover:opacity-90'
-                    : 'text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                }`}
-                style={settings.showBookingButton === false ? { backgroundColor: accent.bg } : undefined}
-              >
-                <Phone className="w-3 h-3" />
-                {t('businessCard.call')}
-              </button>
-            )}
-            {settings.showMessageButton && (
-              <button
-                className={`flex items-center justify-center gap-1 flex-1 py-1.5 text-xs font-medium rounded-[5px] transition-colors ${
-                  settings.showBookingButton === false
-                    ? 'text-white hover:opacity-90'
-                    : 'text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100'
-                }`}
-                style={settings.showBookingButton === false ? { backgroundColor: accent.bg } : undefined}
-              >
-                <MessageCircle className="w-3 h-3" />
-                {t('businessCard.message')}
-              </button>
-            )}
-          </div>
-        )}
+        {/* Action buttons row */}
+        {(() => {
+          const hasBooking = settings.showBookingButton !== false;
+          const hasDirections = serviceMode === 'walkin' || settings.showGetDirections;
+          const hasCall = settings.showCallButton;
+          const hasMsg = settings.showMessageButton;
+          const hasMain = hasBooking || hasDirections;
+          const contactOnly = !hasMain && (hasCall || hasMsg);
+          return (
+            <div className="flex gap-1.5">
+              {/* Booking button */}
+              {hasBooking && (
+                <button
+                  className="flex-1 py-2 text-xs font-semibold text-white rounded-[5px] transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: accent.bg }}
+                >
+                  {t('businessCard.bookNow')}
+                </button>
+              )}
+              {/* Get Directions button */}
+              {hasDirections && (
+                <button
+                  className={`flex-1 py-2 text-xs font-semibold rounded-[5px] transition-opacity hover:opacity-90 flex items-center justify-center gap-1 ${
+                    hasBooking ? 'border border-gray-400 text-gray-600' : 'text-white'
+                  }`}
+                  style={!hasBooking ? { backgroundColor: accent.bg } : undefined}
+                >
+                  <Navigation className="w-3 h-3" />
+                  {t('businessCard.getDirections')}
+                </button>
+              )}
+              {/* Call */}
+              {hasCall && (
+                <button
+                  className={`flex items-center justify-center rounded-[5px] transition-colors ${
+                    contactOnly
+                      ? 'flex-1 gap-1 py-2 text-xs font-semibold text-white hover:opacity-90'
+                      : 'w-11 border border-gray-400 text-gray-600 hover:bg-gray-50'
+                  }`}
+                  style={contactOnly
+                    ? { backgroundColor: accent.bg }
+                    : undefined
+                  }
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  {contactOnly && t('businessCard.call')}
+                </button>
+              )}
+              {/* Message */}
+              {hasMsg && (
+                <button
+                  className={`flex items-center justify-center rounded-[5px] transition-colors ${
+                    contactOnly
+                      ? 'flex-1 gap-1 py-2 text-xs font-semibold text-white hover:opacity-90'
+                      : 'w-11 border border-gray-400 text-gray-600 hover:bg-gray-50'
+                  }`}
+                  style={contactOnly
+                    ? { backgroundColor: accent.bg }
+                    : undefined
+                  }
+                >
+                  <MessageCircle className="w-3.5 h-3.5" />
+                  {contactOnly && t('businessCard.message')}
+                </button>
+              )}
+            </div>
+          );
+        })()}
 
       </div>
     </div>
@@ -253,6 +281,7 @@ const DEFAULT_SETTINGS = {
   showRating:        true,
   showResponseTime:  true,
   showBookingButton: true,
+  showGetDirections: false,
   showCallButton:    false,
   showMessageButton: false,
   accentColor:       'slate',
@@ -266,7 +295,7 @@ export default function PublicPageManager() {
   const params = useParams();
   const locale = params.locale || 'en';
   const { t, isRTL } = useLanguage();
-  const { businessCategory } = useBusinessCategory();
+  const { businessCategory, serviceMode } = useBusinessCategory();
 
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [businessData, setBusinessData] = useState(null);
@@ -484,79 +513,173 @@ export default function PublicPageManager() {
           <div className="bg-white border border-gray-200 rounded-[5px] overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
               <Phone className="w-4 h-4 text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-700">{t('businessCard.contactBookingSection')}</h2>
+              <h2 className="text-sm font-semibold text-gray-700">
+                {(serviceMode === 'both' || serviceMode === 'walkin')
+                  ? t('businessCard.contactBookingDirectionsSection')
+                  : t('businessCard.contactBookingSection')}
+              </h2>
             </div>
             <div className="p-4 space-y-2">
-              <SectionToggle
-                icon={CalendarCheck}
-                label={t('businessCard.bookingButton')}
-                description={t('businessCard.bookingButtonDesc')}
-                value={settings.showBookingButton !== false}
-                onChange={v => {
-                  if (!v) {
-                    // Disabling booking → auto-enable both call & message
-                    setSettings(s => ({ ...s, showBookingButton: false, showCallButton: true, showMessageButton: true }));
-                    setSaved(false);
-                  } else {
-                    // Enabling booking → disable call & message
-                    setSettings(s => ({ ...s, showBookingButton: true, showCallButton: false, showMessageButton: false }));
-                    setSaved(false);
-                  }
-                }}
-                accent="blue"
-              />
 
-              {settings.showBookingButton === false && (
-                <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-[5px]">
-                  <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700 leading-relaxed">{t('businessCard.bookingDisabledWarning')}</p>
+              {/* ── service_mode = both → preset radio options ── */}
+              {serviceMode === 'both' && (() => {
+                // Determine which preset is active
+                const preset =
+                  settings.showBookingButton && settings.showGetDirections && !settings.showCallButton && !settings.showMessageButton
+                    ? 'booking+directions'
+                    : settings.showBookingButton && !settings.showGetDirections && settings.showCallButton && settings.showMessageButton
+                      ? 'booking+contact'
+                      : !settings.showBookingButton && settings.showGetDirections && settings.showCallButton && settings.showMessageButton
+                        ? 'directions+contact'
+                        : !settings.showBookingButton && !settings.showGetDirections && settings.showCallButton && settings.showMessageButton
+                          ? 'contact-only'
+                          : 'booking+directions';
+
+                const presets = [
+                  { id: 'booking+directions', icon: CalendarCheck, label: t('businessCard.presetBookingDirections'), color: 'blue' },
+                  { id: 'booking+contact',    icon: CalendarCheck, label: t('businessCard.presetBookingContact'),    color: 'green' },
+                  { id: 'directions+contact', icon: Navigation,    label: t('businessCard.presetDirectionsContact'), color: 'purple' },
+                  { id: 'contact-only',       icon: Phone,         label: t('businessCard.presetContactOnly'),       color: 'orange' },
+                ];
+
+                const applyPreset = (id) => {
+                  const map = {
+                    'booking+directions': { showBookingButton: true,  showGetDirections: true,  showCallButton: false, showMessageButton: false },
+                    'booking+contact':    { showBookingButton: true,  showGetDirections: false, showCallButton: true,  showMessageButton: true },
+                    'directions+contact': { showBookingButton: false, showGetDirections: true,  showCallButton: true,  showMessageButton: true },
+                    'contact-only':       { showBookingButton: false, showGetDirections: false, showCallButton: true,  showMessageButton: true },
+                  };
+                  setSettings(s => ({ ...s, ...map[id] }));
+                  setSaved(false);
+                };
+
+                return presets.map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyPreset(p.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[5px] border transition-colors text-left ${
+                      preset === p.id
+                        ? 'border-[#364153] bg-[#364153]/5'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      preset === p.id ? 'border-[#364153]' : 'border-gray-300'
+                    }`}>
+                      {preset === p.id && <div className="w-2 h-2 rounded-full bg-[#364153]" />}
+                    </div>
+                    <p.icon className={`w-4 h-4 flex-shrink-0 ${preset === p.id ? 'text-[#364153]' : 'text-gray-400'}`} />
+                    <span className={`text-sm ${preset === p.id ? 'font-medium text-[#364153]' : 'text-gray-600'}`}>{p.label}</span>
+                  </button>
+                ));
+              })()}
+
+              {/* ── service_mode = walkin → info + contact toggles only ── */}
+              {serviceMode === 'walkin' && (
+                <div className="flex items-start gap-2.5 p-3 bg-blue-50 border border-blue-200 rounded-[5px]">
+                  <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-blue-700 leading-relaxed">{t('businessCard.walkinOnlyInfo')}</p>
                 </div>
               )}
 
-              <SectionToggle
-                icon={Phone}
-                label={t('businessCard.callButton')}
-                description={t('businessCard.callButtonDesc')}
-                value={settings.showCallButton}
-                onChange={v => {
-                  if (v) {
-                    // Enabling call → disable booking
-                    setSettings(s => ({ ...s, showCallButton: true, showBookingButton: false }));
-                    setSaved(false);
-                  } else {
-                    // Disabling call → if message also off, auto-enable booking
-                    if (!settings.showMessageButton) {
-                      setSettings(s => ({ ...s, showCallButton: false, showBookingButton: true }));
-                    } else {
-                      setSettings(s => ({ ...s, showCallButton: false }));
-                    }
-                    setSaved(false);
-                  }
-                }}
-                accent="green"
-              />
-              <SectionToggle
-                icon={MessageCircle}
-                label={t('businessCard.messageButton')}
-                description={t('businessCard.messageButtonDesc')}
-                value={settings.showMessageButton}
-                onChange={v => {
-                  if (v) {
-                    // Enabling message → disable booking
-                    setSettings(s => ({ ...s, showMessageButton: true, showBookingButton: false }));
-                    setSaved(false);
-                  } else {
-                    // Disabling message → if call also off, auto-enable booking
-                    if (!settings.showCallButton) {
-                      setSettings(s => ({ ...s, showMessageButton: false, showBookingButton: true }));
-                    } else {
-                      setSettings(s => ({ ...s, showMessageButton: false }));
-                    }
-                    setSaved(false);
-                  }
-                }}
-                accent="purple"
-              />
+              {/* ── service_mode = booking → existing toggle logic ── */}
+              {serviceMode !== 'walkin' && serviceMode !== 'both' && (
+                <>
+                  <SectionToggle
+                    icon={CalendarCheck}
+                    label={t('businessCard.bookingButton')}
+                    description={t('businessCard.bookingButtonDesc')}
+                    value={settings.showBookingButton !== false}
+                    onChange={v => {
+                      if (!v) {
+                        setSettings(s => ({ ...s, showBookingButton: false, showCallButton: true, showMessageButton: true }));
+                        setSaved(false);
+                      } else {
+                        setSettings(s => ({ ...s, showBookingButton: true, showCallButton: false, showMessageButton: false }));
+                        setSaved(false);
+                      }
+                    }}
+                    accent="blue"
+                  />
+
+                  {settings.showBookingButton === false && (
+                    <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-[5px]">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-700 leading-relaxed">{t('businessCard.bookingDisabledWarning')}</p>
+                    </div>
+                  )}
+
+                  <SectionToggle
+                    icon={Phone}
+                    label={t('businessCard.callButton')}
+                    description={t('businessCard.callButtonDesc')}
+                    value={settings.showCallButton}
+                    onChange={v => {
+                      if (v) {
+                        setSettings(s => ({ ...s, showCallButton: true, showBookingButton: false }));
+                        setSaved(false);
+                      } else {
+                        if (!settings.showMessageButton) {
+                          setSettings(s => ({ ...s, showCallButton: false, showBookingButton: true }));
+                        } else {
+                          setSettings(s => ({ ...s, showCallButton: false }));
+                        }
+                        setSaved(false);
+                      }
+                    }}
+                    accent="green"
+                  />
+                  <SectionToggle
+                    icon={MessageCircle}
+                    label={t('businessCard.messageButton')}
+                    description={t('businessCard.messageButtonDesc')}
+                    value={settings.showMessageButton}
+                    onChange={v => {
+                      if (v) {
+                        setSettings(s => ({ ...s, showMessageButton: true, showBookingButton: false }));
+                        setSaved(false);
+                      } else {
+                        if (!settings.showCallButton) {
+                          setSettings(s => ({ ...s, showMessageButton: false, showBookingButton: true }));
+                        } else {
+                          setSettings(s => ({ ...s, showMessageButton: false }));
+                        }
+                        setSaved(false);
+                      }
+                    }}
+                    accent="purple"
+                  />
+                </>
+              )}
+
+              {/* ── walkin contact toggles ── */}
+              {serviceMode === 'walkin' && (
+                <>
+                  <SectionToggle
+                    icon={Phone}
+                    label={t('businessCard.callButton')}
+                    description={t('businessCard.callButtonDesc')}
+                    value={settings.showCallButton}
+                    onChange={v => {
+                      setSettings(s => ({ ...s, showCallButton: v }));
+                      setSaved(false);
+                    }}
+                    accent="green"
+                  />
+                  <SectionToggle
+                    icon={MessageCircle}
+                    label={t('businessCard.messageButton')}
+                    description={t('businessCard.messageButtonDesc')}
+                    value={settings.showMessageButton}
+                    onChange={v => {
+                      setSettings(s => ({ ...s, showMessageButton: v }));
+                      setSaved(false);
+                    }}
+                    accent="purple"
+                  />
+                </>
+              )}
             </div>
           </div>
 
@@ -780,9 +903,10 @@ export default function PublicPageManager() {
               </div>
             ) : (
               <PreviewCard
-                settings={settings}
+                settings={serviceMode === 'walkin' ? { ...settings, showBookingButton: false, showGetDirections: true } : settings}
                 user={user}
                 businessData={businessData}
+                serviceMode={serviceMode}
               />
             )}
 
@@ -839,9 +963,10 @@ export default function PublicPageManager() {
               ) : (
                 <div className="flex justify-center">
                   <PreviewCard
-                    settings={settings}
+                    settings={serviceMode === 'walkin' ? { ...settings, showBookingButton: false, showGetDirections: true } : settings}
                     user={user}
                     businessData={businessData}
+                    serviceMode={serviceMode}
                   />
                 </div>
               )}
