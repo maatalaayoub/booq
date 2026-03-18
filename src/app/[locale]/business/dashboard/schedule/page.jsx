@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Plus,
@@ -20,6 +21,8 @@ import {
   ChevronLeft,
   ChevronRight,
   List,
+  Check,
+  AlertTriangle,
 } from 'lucide-react';
 import AddExceptionModal from '@/components/dashboard/AddExceptionModal';
 import ExceptionDetailModal from '@/components/dashboard/ExceptionDetailModal';
@@ -84,12 +87,13 @@ const DEFAULT_HOURS = DAY_NAMES.map((_, i) => ({
 export default function SchedulePage() {
   const { t, isRTL } = useLanguage();
   const { businessCategory } = useBusinessCategory();
+  const router = useRouter();
   const calendarRef = useRef(null);
   const [businessHours, setBusinessHours] = useState(DEFAULT_HOURS);
   const [exceptions, setExceptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalDefaultDate, setModalDefaultDate] = useState(null);
   const [activeTab, setActiveTab] = useState('hours'); // 'hours' | 'calendar'
@@ -97,6 +101,9 @@ export default function SchedulePage() {
   const [deletingId, setDeletingId] = useState(null);
   const [selectedExc, setSelectedExc] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingNavUrl, setPendingNavUrl] = useState(null);
+  const savedHoursRef = useRef(null);
 
   // ── Fetch data from API ──
   useEffect(() => {
@@ -107,6 +114,9 @@ export default function SchedulePage() {
           const data = await res.json();
           if (data.businessHours?.length > 0) {
             setBusinessHours(data.businessHours);
+            savedHoursRef.current = JSON.parse(JSON.stringify(data.businessHours));
+          } else {
+            savedHoursRef.current = JSON.parse(JSON.stringify(DEFAULT_HOURS));
           }
           setExceptions(data.exceptions || []);
         }
@@ -129,7 +139,9 @@ export default function SchedulePage() {
         body: JSON.stringify({ businessHours }),
       });
       if (res.ok) {
-        setHasChanges(false);
+        savedHoursRef.current = JSON.parse(JSON.stringify(businessHours));
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
       }
     } catch (err) {
       console.error('Failed to save hours:', err);
@@ -145,7 +157,67 @@ export default function SchedulePage() {
         d.dayOfWeek === dayIndex ? { ...d, [field]: value } : d
       )
     );
-    setHasChanges(true);
+  };
+
+  // Count how many day settings differ from saved state
+  const changeCount = useMemo(() => {
+    if (!savedHoursRef.current) return 0;
+    let count = 0;
+    for (let i = 0; i < businessHours.length; i++) {
+      const curr = businessHours[i];
+      const orig = savedHoursRef.current[i];
+      if (!orig) { count++; continue; }
+      if (curr.isOpen !== orig.isOpen || curr.openTime !== orig.openTime || curr.closeTime !== orig.closeTime) {
+        count++;
+      }
+    }
+    return count;
+  }, [businessHours]);
+
+  const hasChanges = changeCount > 0;
+
+  // Warn on browser tab close / refresh
+  useEffect(() => {
+    const handler = (e) => {
+      if (!hasChanges) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasChanges]);
+
+  // Intercept sidebar/link clicks for unsaved changes
+  useEffect(() => {
+    if (!hasChanges) return;
+    const handleClick = (e) => {
+      const anchor = e.target.closest('a[href]');
+      if (!anchor) return;
+      const href = anchor.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('tel:') || href.startsWith('https://')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingNavUrl(href);
+      setShowUnsavedDialog(true);
+    };
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, [hasChanges]);
+
+  const handleDiscardAndNavigate = () => {
+    const url = pendingNavUrl;
+    setShowUnsavedDialog(false);
+    setPendingNavUrl(null);
+    savedHoursRef.current = JSON.parse(JSON.stringify(businessHours));
+    if (url) router.push(url);
+  };
+
+  const handleSaveAndNavigate = async () => {
+    await saveHours();
+    const url = pendingNavUrl;
+    setShowUnsavedDialog(false);
+    setPendingNavUrl(null);
+    if (url) router.push(url);
   };
 
   // ── Add exception via API ──
@@ -416,14 +488,21 @@ export default function SchedulePage() {
               <button
                 onClick={saveHours}
                 disabled={!hasChanges || saving}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-[5px] text-sm font-medium transition-all ${
+                className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-[5px] text-sm font-medium transition-all ${
                   hasChanges
                     ? 'bg-[#364153] hover:bg-[#2a3444] text-white shadow-sm'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : saved
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 }`}
               >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {saving ? t('common.saving') : t('common.saveChanges')}
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+                {saved ? t('common.saved') : t('common.saveChanges')}
+                {hasChanges && changeCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                    {changeCount}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -653,6 +732,47 @@ export default function SchedulePage() {
         exception={selectedExc}
         onDelete={deleteFromDetail}
       />
+
+      {/* ── Unsaved Changes Dialog ── */}
+      {showUnsavedDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className={`bg-white rounded-[5px] shadow-xl max-w-sm w-full mx-4 overflow-hidden ${isRTL ? 'rtl' : 'ltr'}`}>
+            <div className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-800">{t('common.unsavedTitle')}</h3>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed">{t('common.unsavedMessage')}</p>
+              <p className="text-xs text-gray-400 mt-1.5">
+                {changeCount} {t('common.changes')}
+              </p>
+            </div>
+            <div className={`flex gap-2 px-5 pb-5 pt-2 ${isRTL ? '' : 'flex-row-reverse'}`}>
+              <button
+                onClick={() => { setShowUnsavedDialog(false); setPendingNavUrl(null); }}
+                className="flex-1 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-[5px] hover:bg-gray-50 transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleDiscardAndNavigate}
+                className="flex-1 py-2.5 text-sm font-medium text-red-600 border border-red-200 rounded-[5px] hover:bg-red-50 transition-colors"
+              >
+                {t('common.discard')}
+              </button>
+              <button
+                onClick={handleSaveAndNavigate}
+                disabled={saving}
+                className="flex-1 py-2.5 text-sm font-medium text-white bg-[#364153] rounded-[5px] hover:bg-[#364153]/90 transition-colors disabled:opacity-60"
+              >
+                {saving ? t('common.saving') : t('common.save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

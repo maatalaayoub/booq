@@ -21,7 +21,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useBusinessCategory } from '@/contexts/BusinessCategoryContext';
 
 // ─── CURRENCY OPTIONS ────────────────────────────────────────
-const CURRENCIES = ['MAD', 'EUR', 'USD', 'GBP', 'SAR', 'AED'];
+const CURRENCIES = ['MAD'];
 
 // ─── SERVICE PRESETS BY PROFESSIONAL TYPE ───────────────────────
 const SERVICE_PRESETS = {
@@ -127,6 +127,14 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
   const { t } = useLanguage();
   const presets = SERVICE_PRESETS[specialty] || SERVICE_PRESETS.default;
 
+  // Sanitize text: strip HTML tags and control characters
+  const sanitizeText = (val) => {
+    if (!val) return '';
+    return val
+      .replace(/<[^>]*>/g, '')
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  };
+
   const [form, setForm] = useState({
     name: service?.name || '',
     description: service?.description || '',
@@ -220,7 +228,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
             <input
               type="text"
               value={form.name}
-              onChange={e => set('name', e.target.value)}
+              onChange={e => set('name', sanitizeText(e.target.value))}
               placeholder={t('services.serviceNamePlaceholder')}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153]"
             />
@@ -231,7 +239,7 @@ function ServiceModal({ service, specialty, onClose, onSave }) {
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('services.description')}</label>
             <textarea
               value={form.description}
-              onChange={e => set('description', e.target.value)}
+              onChange={e => set('description', sanitizeText(e.target.value))}
               placeholder={t('services.descriptionPlaceholder')}
               rows={2}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153] resize-none"

@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+const sanitizeText = (value) => {
+  if (typeof value !== 'string') return value;
+  return value.replace(/<[^>]*>/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, 500);
+};
+
+const sanitizePhone = (value) => {
+  if (typeof value !== 'string') return value;
+  return value.replace(/[^0-9+\-\s()]/g, '').trim().slice(0, 30);
+};
+
 // Helper: get userId from session or Bearer token
 async function getUserId(request) {
   const { userId } = await auth();
@@ -179,7 +189,13 @@ export async function POST(request) {
     const body = await request.json();
     const { client_name, client_phone, client_address, service, price, start_time, end_time, status, notes } = body;
 
-    if (!client_name || !service || !start_time || !end_time) {
+    const cleanClientName = sanitizeText(client_name);
+    const cleanPhone = client_phone ? sanitizePhone(client_phone) : null;
+    const cleanAddress = client_address ? sanitizeText(client_address) : null;
+    const cleanService = sanitizeText(service);
+    const cleanNotes = notes ? sanitizeText(notes) : null;
+
+    if (!cleanClientName || !cleanService || !start_time || !end_time) {
       return NextResponse.json({ error: 'Missing required fields: client_name, service, start_time, end_time' }, { status: 400 });
     }
 
@@ -193,15 +209,15 @@ export async function POST(request) {
       .from('appointments')
       .insert({
         business_info_id: businessInfoId,
-        client_name,
-        client_phone: client_phone || null,
-        client_address: client_address || null,
-        service,
+        client_name: cleanClientName,
+        client_phone: cleanPhone,
+        client_address: cleanAddress,
+        service: cleanService,
         price: price ? parseFloat(price) : null,
         start_time,
         end_time,
         status: status || 'confirmed',
-        notes: notes || null,
+        notes: cleanNotes,
       })
       .select()
       .single();
@@ -239,10 +255,18 @@ export async function PUT(request) {
       return NextResponse.json({ error: 'Missing appointment id' }, { status: 400 });
     }
 
+    // Sanitize text fields in update
+    const sanitizedFields = { ...updateFields };
+    if (sanitizedFields.client_name) sanitizedFields.client_name = sanitizeText(sanitizedFields.client_name);
+    if (sanitizedFields.client_phone) sanitizedFields.client_phone = sanitizePhone(sanitizedFields.client_phone);
+    if (sanitizedFields.client_address) sanitizedFields.client_address = sanitizeText(sanitizedFields.client_address);
+    if (sanitizedFields.service) sanitizedFields.service = sanitizeText(sanitizedFields.service);
+    if (sanitizedFields.notes) sanitizedFields.notes = sanitizeText(sanitizedFields.notes);
+
     // Only allow updating own appointments
     const { data: appointment, error } = await supabase
       .from('appointments')
-      .update(updateFields)
+      .update(sanitizedFields)
       .eq('id', id)
       .eq('business_info_id', businessInfoId)
       .select()

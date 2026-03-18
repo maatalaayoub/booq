@@ -235,6 +235,17 @@ async function uploadDocument(supabase, file, userId, type) {
     return { error: 'Invalid file type. Use JPEG, PNG, WebP, or PDF.' };
   }
 
+  // Validate magic bytes
+  const header = new Uint8Array(bytes.slice(0, 12));
+  const isJPEG = header[0] === 0xFF && header[1] === 0xD8 && header[2] === 0xFF;
+  const isPNG = header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4E && header[3] === 0x47;
+  const isWEBP = header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46
+              && header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50;
+  const isPDF = header[0] === 0x25 && header[1] === 0x50 && header[2] === 0x44 && header[3] === 0x46;
+  if (!isJPEG && !isPNG && !isWEBP && !isPDF) {
+    return { error: 'Invalid file content. File does not match its declared type.' };
+  }
+
   const ext = mimeType === 'application/pdf' ? 'pdf' : mimeType.split('/')[1].replace('jpeg', 'jpg');
   const timestamp = Date.now();
   const filePath = `${type}/${userId}-${timestamp}.${ext}`;

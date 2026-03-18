@@ -14,6 +14,8 @@ import {
   AlertCircle,
   Navigation,
   Map,
+  Store,
+  Sparkles,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -66,8 +68,22 @@ function DetailsSkeleton() {
   );
 }
 
+// ─── SANITIZATION HELPERS ────────────────────────────────────
+function sanitizeText(value) {
+  if (!value) return '';
+  return value
+    .replace(/<[^>]*>/g, '')          // strip HTML tags
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // strip control chars
+}
+
+function sanitizePhone(value) {
+  if (!value) return '';
+  return value.replace(/[^0-9+\-\s()]/g, ''); // keep digits, +, -, spaces, parens
+}
+
 // ─── FORM INPUT ─────────────────────────────────────────────
 function FormInput({ label, icon: Icon, value, onChange, placeholder, type = 'text', disabled = false }) {
+  const isPhone = type === 'tel';
   return (
     <div className="space-y-1.5">
       <label className="flex items-center gap-2 text-sm font-medium text-gray-600">
@@ -77,9 +93,13 @@ function FormInput({ label, icon: Icon, value, onChange, placeholder, type = 'te
       <input
         type={type}
         value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const raw = e.target.value;
+          onChange(isPhone ? sanitizePhone(raw) : sanitizeText(raw));
+        }}
         placeholder={placeholder}
         disabled={disabled}
+        {...(isPhone ? { inputMode: 'tel', pattern: '[0-9+\\-\\s()]*' } : {})}
         className="w-full px-3.5 py-2.5 border border-gray-200 rounded-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153] disabled:bg-gray-50 disabled:text-gray-500 transition-all"
       />
     </div>
@@ -113,7 +133,7 @@ function FormSelect({ label, icon: Icon, value, onChange, options, disabled = fa
 // ─── SECTION CARD ─────────────────────────────────────────────
 function SectionCard({ title, icon: Icon, iconColor = 'text-[#364153]', iconBg = 'bg-[#364153]/10', children }) {
   return (
-    <div className="bg-white rounded-[5px] border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-[5px] border border-gray-300 overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
         <div className={`w-8 h-8 ${iconBg} rounded-[5px] flex items-center justify-center`}>
           <Icon className={`w-4 h-4 ${iconColor}`} />
@@ -136,6 +156,8 @@ export default function BusinessDetailsPage() {
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [businessCategory, setBusinessCategory] = useState(null);
+  const [specialtyName, setSpecialtyName] = useState('');
+  const [serviceCategoryName, setServiceCategoryName] = useState('');
   const [form, setForm] = useState({
     businessName: '',
     address: '',
@@ -157,6 +179,8 @@ export default function BusinessDetailsPage() {
       .then((data) => {
         if (data) {
           setBusinessCategory(data.businessCategory);
+          setSpecialtyName(data.specialtyName || '');
+          setServiceCategoryName(data.serviceCategoryName || '');
           setForm({
             businessName: data.businessName || '',
             address: data.address || '',
@@ -189,11 +213,19 @@ export default function BusinessDetailsPage() {
     setSaving(true);
     setSaveStatus(null);
 
+    const sanitizedForm = {
+      ...form,
+      businessName: sanitizeText(form.businessName),
+      address: sanitizeText(form.address),
+      phone: sanitizePhone(form.phone),
+      serviceArea: sanitizeText(form.serviceArea),
+    };
+
     try {
       const res = await fetch('/api/business/details', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(sanitizedForm),
       });
 
       if (res.ok) {
@@ -269,12 +301,39 @@ export default function BusinessDetailsPage() {
                 onChange={(v) => set('businessName', v)}
                 placeholder={t('businessDetails.businessNamePlaceholder') || 'e.g. Ayoub Barbershop'}
               />
+              <FormInput
+                label={t('businessDetails.serviceCategory') || 'Service Category'}
+                icon={Store}
+                value={serviceCategoryName}
+                onChange={() => {}}
+                disabled
+              />
               <FormSelect
                 label={t('businessDetails.professionalType') || 'Professional Type'}
                 icon={Briefcase}
                 value={form.professionalType}
-                onChange={(v) => set('professionalType', v)}
+                onChange={() => {}}
                 options={professionalTypeOptions}
+                disabled
+              />
+              <FormInput
+                label={t('businessDetails.specialty') || 'Specialty'}
+                icon={Sparkles}
+                value={specialtyName}
+                onChange={() => {}}
+                disabled
+              />
+              <FormSelect
+                label={t('businessDetails.businessType') || 'Business Type'}
+                icon={Store}
+                value={businessCategory || ''}
+                onChange={() => {}}
+                options={[
+                  { value: 'salon_owner', label: t('businessDetails.category.salon_owner') || 'Salon / Shop Owner' },
+                  { value: 'mobile_service', label: t('businessDetails.category.mobile_service') || 'Mobile Service' },
+                  { value: 'job_seeker', label: t('businessDetails.category.job_seeker') || 'Job Seeker' },
+                ]}
+                disabled
               />
               <FormInput
                 label={t('businessDetails.phone') || 'Phone Number'}
@@ -337,7 +396,7 @@ export default function BusinessDetailsPage() {
       </div>
 
       {/* Save Button Bar */}
-      <div className="mt-6 bg-white rounded-[5px] border border-gray-200 shadow-sm p-4 flex items-center justify-between sticky bottom-4">
+      <div className="mt-6 bg-white rounded-[5px] border border-gray-300 p-4 flex items-center justify-between sticky bottom-4">
         <div className="flex items-center gap-2 text-sm">
           {saveStatus === 'success' && (
             <>

@@ -35,6 +35,13 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
   const { businessCategory } = useBusinessCategory();
   const today = new Date().toISOString().split('T')[0];
 
+  const sanitizeText = (val) => {
+    if (!val) return '';
+    return val
+      .replace(/<[^>]*>/g, '')
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  };
+
   const filteredExceptionTypes = businessCategory === 'mobile_service'
     ? EXCEPTION_TYPES.filter(type => !['break', 'lunch_break', 'closure'].includes(type.value))
     : EXCEPTION_TYPES;
@@ -268,7 +275,7 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                   type="text"
                   placeholder={t('addException.titlePlaceholder')}
                   value={formData.title}
-                  onChange={(e) => handleChange('title', e.target.value)}
+                  onChange={(e) => handleChange('title', sanitizeText(e.target.value))}
                   className={inputClass('title')}
                 />
                 {errors.title && <p className="mt-1 text-xs text-red-500">{errors.title}</p>}
@@ -403,7 +410,7 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
                   rows={2}
                   placeholder={t('addException.notesPlaceholder')}
                   value={formData.notes}
-                  onChange={(e) => handleChange('notes', e.target.value)}
+                  onChange={(e) => handleChange('notes', sanitizeText(e.target.value))}
                   className={`${inputClass('notes')} resize-none`}
                 />
               </div>

@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// ─── SANITIZATION HELPERS ──────────────────────────────────
+function sanitizeText(value) {
+  if (!value || typeof value !== 'string') return value;
+  return value
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim()
+    .slice(0, 500);
+}
+
 // Helper: get userId from session or Bearer token
 async function getUserId(request) {
   const { userId } = await auth();
@@ -149,7 +159,7 @@ export async function POST(request) {
 
     const exceptionData = {
       business_info_id: ctx.businessInfoId,
-      title,
+      title: sanitizeText(title),
       type,
       date,
       end_date: fullDay && endDate ? endDate : null,
@@ -158,7 +168,7 @@ export async function POST(request) {
       is_full_day: fullDay,
       recurring: recurring || false,
       recurring_day: recurring ? recurringDay : null,
-      notes: notes || null,
+      notes: sanitizeText(notes) || null,
     };
 
     const { data, error } = await supabase

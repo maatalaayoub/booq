@@ -55,8 +55,33 @@ export default function VerificationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [fileError, setFileError] = useState(null);
   const identityInputRef = useRef(null);
   const businessInputRef = useRef(null);
+
+  const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+  const validateFile = async (file) => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return t('verification.invalidFileType');
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return t('verification.fileTooLarge');
+    }
+    // Check magic bytes
+    const buffer = await file.slice(0, 12).arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    const isJPEG = bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+    const isPNG = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+    const isWEBP = bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+                && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+    const isPDF = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46; // %PDF
+    if (!isJPEG && !isPNG && !isWEBP && !isPDF) {
+      return t('verification.invalidFileType');
+    }
+    return null;
+  };
 
   const IDENTITY_DOC_TYPES = [
     { value: 'national_id', labelKey: 'dashboard.verification.nationalId' },
@@ -143,16 +168,32 @@ export default function VerificationPage() {
   const allPrerequisitesMet = prerequisites.every(p => p.met);
   const metCount = prerequisites.filter(p => p.met).length;
 
-  const handleIdentityUpload = (e) => {
+  const handleIdentityUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFileError(null);
+    const error = await validateFile(file);
+    if (error) {
+      setFileError(error);
+      setTimeout(() => setFileError(null), 5000);
+      e.target.value = '';
+      return;
+    }
     setIdentityFile(file);
     e.target.value = '';
   };
 
-  const handleBusinessUpload = (e) => {
+  const handleBusinessUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setFileError(null);
+    const error = await validateFile(file);
+    if (error) {
+      setFileError(error);
+      setTimeout(() => setFileError(null), 5000);
+      e.target.value = '';
+      return;
+    }
     setBusinessFile(file);
     e.target.value = '';
   };
@@ -376,7 +417,7 @@ export default function VerificationPage() {
                   <Upload className="w-4 h-4" />
                   {identityFile ? t('dashboard.verification.changeFile') : t('dashboard.verification.selectFile')}
                 </button>
-                <input ref={identityInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleIdentityUpload} />
+                <input ref={identityInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" className="hidden" onChange={handleIdentityUpload} />
               </div>
             )}
 
@@ -472,7 +513,7 @@ export default function VerificationPage() {
                   <Upload className="w-4 h-4" />
                   {businessFile ? t('dashboard.verification.changeFile') : t('dashboard.verification.selectFile')}
                 </button>
-                <input ref={businessInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleBusinessUpload} />
+                <input ref={businessInputRef} type="file" accept=".jpg,.jpeg,.png,.webp,.pdf" className="hidden" onChange={handleBusinessUpload} />
               </div>
             )}
 
@@ -526,6 +567,12 @@ export default function VerificationPage() {
                     : null
               }
             </p>
+          )}
+          {fileError && (
+            <div className="mt-3 flex items-center gap-2 text-xs text-red-500">
+              <XCircle className="w-4 h-4" />
+              <span>{fileError}</span>
+            </div>
           )}
           {submitError && (
             <div className="mt-3 flex items-center gap-2 text-xs text-red-500">

@@ -91,6 +91,15 @@ export async function POST(request) {
     const body = await request.json();
     const { settings } = body;
 
+    // Sanitize businessName: strip HTML/script tags and control characters
+    if (settings?.businessName) {
+      settings.businessName = settings.businessName
+        .replace(/<[^>]*>/g, '')
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+        .trim()
+        .slice(0, 60);
+    }
+
     // Also update business_name in the canonical location (category-specific table)
     if (settings?.businessName && ctx.tableName) {
       await supabase

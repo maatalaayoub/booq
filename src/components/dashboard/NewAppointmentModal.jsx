@@ -22,6 +22,11 @@ import {
   MapPin,
 } from 'lucide-react';
 
+const sanitizeText = (val) => {
+  if (typeof val !== 'string') return val;
+  return val.replace(/<[^>]*>/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+};
+
 function parseDateAndTime(dateStr) {
   if (!dateStr) {
     const now = new Date();
@@ -274,7 +279,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                   type="text"
                   placeholder={t('newAppointment.clientPlaceholder')}
                   value={formData.client}
-                  onChange={(e) => handleChange('client', e.target.value)}
+                  onChange={(e) => handleChange('client', sanitizeText(e.target.value))}
                   className={inputClass('client')}
                 />
                 {errors.client && <p className="mt-1 text-xs text-red-500">{errors.client}</p>}
@@ -310,7 +315,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                     type="text"
                     placeholder={t('newAppointment.clientAddressPlaceholder')}
                     value={formData.clientAddress}
-                    onChange={(e) => handleChange('clientAddress', e.target.value)}
+                    onChange={(e) => handleChange('clientAddress', sanitizeText(e.target.value))}
                     className={inputClass('clientAddress')}
                   />
                   {errors.clientAddress && <p className="mt-1 text-xs text-red-500">{errors.clientAddress}</p>}
@@ -513,7 +518,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                   rows={2}
                   placeholder={t('newAppointment.notesPlaceholder')}
                   value={formData.notes}
-                  onChange={(e) => handleChange('notes', e.target.value)}
+                  onChange={(e) => handleChange('notes', sanitizeText(e.target.value))}
                   className={`${inputClass('notes')} resize-none`}
                 />
               </div>

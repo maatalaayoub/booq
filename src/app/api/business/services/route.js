@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// ─── SANITIZATION HELPERS ──────────────────────────────────
+function sanitizeText(value) {
+  if (!value || typeof value !== 'string') return value;
+  return value
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim()
+    .slice(0, 500);
+}
+
 async function getUserId(request) {
   const { userId } = await auth();
   if (userId) return userId;
@@ -89,8 +99,8 @@ export async function POST(request) {
       .from('business_services')
       .insert({
         business_info_id: ctx.businessInfoId,
-        name: name.trim(),
-        description: description?.trim() || null,
+        name: sanitizeText(name.trim()),
+        description: sanitizeText(description?.trim()) || null,
         duration_minutes: duration_minutes || 30,
         price: parseFloat(price),
         currency: currency || 'MAD',
@@ -125,8 +135,8 @@ export async function PUT(request) {
     const { data, error } = await supabase
       .from('business_services')
       .update({
-        name: name?.trim(),
-        description: description?.trim() || null,
+        name: sanitizeText(name?.trim()),
+        description: sanitizeText(description?.trim()) || null,
         duration_minutes,
         price: parseFloat(price),
         currency: currency || 'MAD',

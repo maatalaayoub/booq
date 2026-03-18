@@ -2,6 +2,20 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
+
+// ─── SANITIZATION HELPERS ──────────────────────────────────
+function sanitizeText(value) {
+  if (!value) return '';
+  return value
+    .replace(/<[^>]*>/g, '')          // strip HTML tags
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // strip control chars
+}
+
+function sanitizePhone(value) {
+  if (!value) return '';
+  return value.replace(/[^0-9+\-\s()]/g, ''); // keep digits, +, -, spaces, parens
+}
+
 import { 
   Store, 
   MapPin, 
@@ -878,7 +892,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                 <input
                   type="text"
                   value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
+                  onChange={(e) => setBusinessName(sanitizeText(e.target.value))}
                   placeholder={businessCategory === 'salon_owner' ? 'e.g. Golden Scissors Salon' : 'e.g. Mobile Cuts by Ahmed'}
                   className="w-full px-4 py-3 border border-gray-200 rounded-[5px] focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent text-gray-900 bg-white text-sm placeholder:text-gray-400"
                 />
@@ -955,8 +969,9 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                 <input
                   type="tel"
                   value={businessPhone}
-                  onChange={(e) => setBusinessPhone(e.target.value)}
+                  onChange={(e) => setBusinessPhone(sanitizePhone(e.target.value))}
                   placeholder="e.g. +212 6XX XXX XXX"
+                  inputMode="tel"
                   className="w-full px-4 py-3 border border-gray-200 rounded-[5px] focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent text-gray-900 bg-white text-sm placeholder:text-gray-400"
                 />
               </div>
@@ -987,7 +1002,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                     <input
                       type="text"
                       value={businessAddress}
-                      onChange={(e) => setBusinessAddress(e.target.value)}
+                      onChange={(e) => setBusinessAddress(sanitizeText(e.target.value))}
                       placeholder={businessCategory === 'mobile_service' ? 'Enter your base address' : 'Enter your salon address'}
                       className="w-full px-4 py-3 border border-gray-200 rounded-[5px] text-gray-900 bg-white text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37]"
                     />

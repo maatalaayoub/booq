@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// ─── SANITIZATION HELPERS ──────────────────────────────────
+function sanitizeText(value) {
+  if (!value || typeof value !== 'string') return value;
+  return value
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim()
+    .slice(0, 500);
+}
+
+function sanitizePhone(value) {
+  if (!value || typeof value !== 'string') return value;
+  return value.replace(/[^0-9+\-\s()]/g, '').trim().slice(0, 30);
+}
+
 // Helper: get userId either from session or Bearer token
 async function getUserId(request) {
   const { userId } = await auth();
@@ -68,11 +83,28 @@ async function getBusinessContext(supabase, clerkUserId) {
     categoryData = data;
   }
 
+  // Get specialty and service category names
+  let specialtyName = null;
+  let serviceCategoryName = null;
+  if (businessInfo.specialty_id) {
+    const { data: specialty } = await supabase
+      .from('specialties')
+      .select('name, service_category_id, service_categories(name)')
+      .eq('id', businessInfo.specialty_id)
+      .single();
+    if (specialty) {
+      specialtyName = specialty.name;
+      serviceCategoryName = specialty.service_categories?.name || null;
+    }
+  }
+
   return {
     userData,
     businessInfo,
     categoryData,
     tableName,
+    specialtyName,
+    serviceCategoryName,
   };
 }
 
@@ -91,11 +123,13 @@ export async function GET(request) {
       return NextResponse.json({ error: ctx.error }, { status: ctx.status });
     }
 
-    const { businessInfo, categoryData } = ctx;
+    const { businessInfo, categoryData, specialtyName, serviceCategoryName } = ctx;
 
     return NextResponse.json({
       businessCategory: businessInfo.business_category,
       professionalType: businessInfo.professional_type,
+      specialtyName: specialtyName || '',
+      serviceCategoryName: serviceCategoryName || '',
       businessName: categoryData?.business_name || '',
       address: categoryData?.address || '',
       city: categoryData?.city || '',
@@ -134,6 +168,13 @@ export async function PUT(request) {
       longitude,
     } = body;
 
+    // Sanitize all text inputs
+    const cleanBusinessName = sanitizeText(businessName);
+    const cleanAddress = sanitizeText(address);
+    const cleanCity = sanitizeText(city);
+    const cleanPhone = sanitizePhone(phone);
+    const cleanServiceArea = sanitizeText(serviceArea);
+
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, userId);
 
@@ -158,10 +199,10 @@ export async function PUT(request) {
     // Update category-specific table
     if (tableName) {
       const updateData = {
-        business_name: businessName || null,
-        address: address || null,
-        city: city || null,
-        phone: phone || null,
+        business_name: cleanBusinessName || null,
+        address: cleanAddress || null,
+        city: cleanCity || null,
+        phone: cleanPhone || null,
         work_location: workLocation || 'my_place',
         latitude: latitude || null,
         longitude: longitude || null,
@@ -169,7 +210,7 @@ export async function PUT(request) {
 
       // Add mobile-service specific fields
       if (businessInfo.business_category === 'mobile_service') {
-        updateData.service_area = serviceArea || null;
+        updateData.service_area = cleanServiceArea || null;
         updateData.travel_radius_km = travelRadiusKm ? parseInt(travelRadiusKm) : null;
       }
 

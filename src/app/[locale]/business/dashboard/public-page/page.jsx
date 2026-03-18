@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   Globe,
   Eye,
@@ -222,7 +222,7 @@ function PreviewCard({ settings, user, businessData, serviceMode }) {
                   className={`flex items-center justify-center rounded-[5px] transition-colors ${
                     contactOnly
                       ? 'flex-1 gap-1 py-2 text-xs font-semibold text-white hover:opacity-90'
-                      : 'w-11 border border-gray-400 text-gray-600 hover:bg-gray-50'
+                      : 'w-12 border border-gray-400 text-gray-600 hover:bg-gray-50'
                   }`}
                   style={contactOnly
                     ? { backgroundColor: accent.bg }
@@ -239,7 +239,7 @@ function PreviewCard({ settings, user, businessData, serviceMode }) {
                   className={`flex items-center justify-center rounded-[5px] transition-colors ${
                     contactOnly
                       ? 'flex-1 gap-1 py-2 text-xs font-semibold text-white hover:opacity-90'
-                      : 'w-11 border border-gray-400 text-gray-600 hover:bg-gray-50'
+                      : 'w-12 border border-gray-400 text-gray-600 hover:bg-gray-50'
                   }`}
                   style={contactOnly
                     ? { backgroundColor: accent.bg }
@@ -297,6 +297,7 @@ export default function PublicPageManager() {
   const { t, isRTL } = useLanguage();
   const { businessCategory, serviceMode } = useBusinessCategory();
 
+  const router = useRouter();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [businessData, setBusinessData] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -307,9 +308,12 @@ export default function PublicPageManager() {
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const [pendingNavUrl, setPendingNavUrl] = useState(null);
   const avatarInputRef = useRef(null);
   const galleryInputRef = useRef(null);
   const hasFetchedRef = useRef(false);
+  const savedSettingsRef = useRef(null);
 
   // Fetch business data & saved settings (only once)
   useEffect(() => {
@@ -320,19 +324,84 @@ export default function PublicPageManager() {
       fetch('/api/business/public-page-settings').then(r => r.ok ? r.json() : null),
     ]).then(([profile, savedData]) => {
       setBusinessData(profile);
+      let initialSettings = { ...DEFAULT_SETTINGS };
       if (savedData?.settings) {
-        // Always use fallbackBusinessName as canonical source (from category table)
         const mergedSettings = { ...savedData.settings };
         if (savedData.fallbackBusinessName) {
           mergedSettings.businessName = savedData.fallbackBusinessName;
         }
+        initialSettings = { ...initialSettings, ...mergedSettings };
         setSettings(s => ({ ...s, ...mergedSettings }));
       } else if (savedData?.fallbackBusinessName) {
-        // No settings saved yet, but we have a name from onboarding
+        initialSettings = { ...initialSettings, businessName: savedData.fallbackBusinessName };
         setSettings(s => ({ ...s, businessName: savedData.fallbackBusinessName }));
       }
+      savedSettingsRef.current = initialSettings;
     }).catch(() => {}).finally(() => setLoading(false));
   }, [isLoaded, user]);
+
+  // Count how many settings differ from saved state
+  const changeCount = useMemo(() => {
+    if (!savedSettingsRef.current) return 0;
+    const base = savedSettingsRef.current;
+    let count = 0;
+    for (const key of Object.keys({ ...base, ...settings })) {
+      const a = base[key];
+      const b = settings[key];
+      if (Array.isArray(a) && Array.isArray(b)) {
+        if (JSON.stringify(a) !== JSON.stringify(b)) count++;
+      } else if (a !== b) {
+        count++;
+      }
+    }
+    return count;
+  }, [settings]);
+
+  const hasUnsavedChanges = changeCount > 0;
+
+  // Warn on browser tab close / refresh
+  useEffect(() => {
+    const handler = (e) => {
+      if (!hasUnsavedChanges) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [hasUnsavedChanges]);
+
+  // Intercept sidebar/link clicks for unsaved changes
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handleClick = (e) => {
+      const anchor = e.target.closest('a[href]');
+      if (!anchor) return;
+      const href = anchor.getAttribute('href');
+      if (!href || href.startsWith('#') || href.startsWith('tel:') || href.startsWith('https://wa.me') || href.startsWith('https://www.google.com')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setPendingNavUrl(href);
+      setShowUnsavedDialog(true);
+    };
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, [hasUnsavedChanges]);
+
+  const handleDiscardAndNavigate = () => {
+    const url = pendingNavUrl;
+    setShowUnsavedDialog(false);
+    setPendingNavUrl(null);
+    savedSettingsRef.current = { ...settings }; // prevent re-trigger
+    if (url) router.push(url);
+  };
+
+  const handleSaveAndNavigate = async () => {
+    await handleSave();
+    const url = pendingNavUrl;
+    setShowUnsavedDialog(false);
+    setPendingNavUrl(null);
+    if (url) router.push(url);
+  };
 
   const set = (key, val) => {
     setSettings(s => ({ ...s, [key]: val }));
@@ -354,6 +423,7 @@ export default function PublicPageManager() {
       if (!res.ok || data.error) {
         throw new Error(data.error || 'Failed to save');
       }
+      savedSettingsRef.current = { ...settings };
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -373,11 +443,49 @@ export default function PublicPageManager() {
     return (await res.json()).url;
   };
 
+  const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+  // Sanitize business name: strip HTML/script tags and control characters
+  const sanitizeBusinessName = (value) => {
+    return value
+      .replace(/<[^>]*>/g, '')          // strip HTML tags
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // strip control chars
+      .slice(0, 60);
+  };
+
+  const validateImageFile = async (file) => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return t('businessCard.invalidFileType');
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return t('businessCard.fileTooLarge');
+    }
+    // Check magic bytes to prevent disguised files
+    const buffer = await file.slice(0, 12).arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    const isJPEG = bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+    const isPNG = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47;
+    const isWEBP = bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+                && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+    if (!isJPEG && !isPNG && !isWEBP) {
+      return t('businessCard.invalidFileType');
+    }
+    return null;
+  };
+
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploadingAvatar(true);
     setUploadError(null);
+    const error = await validateImageFile(file);
+    if (error) {
+      setUploadError(error);
+      setTimeout(() => setUploadError(null), 5000);
+      e.target.value = '';
+      return;
+    }
+    setUploadingAvatar(true);
     try {
       const url = await uploadImage(file, 'business_avatar');
       set('avatarUrl', url);
@@ -392,8 +500,17 @@ export default function PublicPageManager() {
   const handleGalleryCoverUpload = async (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    setUploadingGallery(true);
     setUploadError(null);
+    for (const file of files) {
+      const error = await validateImageFile(file);
+      if (error) {
+        setUploadError(error);
+        setTimeout(() => setUploadError(null), 5000);
+        e.target.value = '';
+        return;
+      }
+    }
+    setUploadingGallery(true);
     try {
       const urls = await Promise.all(files.map(f => uploadImage(f, 'gallery_cover')));
       setSettings(s => ({
@@ -450,8 +567,14 @@ export default function PublicPageManager() {
           )}
           <button
             onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-colors disabled:opacity-60 shrink-0"
+            disabled={saving || !hasUnsavedChanges}
+            className={`relative flex items-center gap-2 px-4 py-2.5 rounded-[5px] text-sm font-medium transition-colors shrink-0 ${
+              hasUnsavedChanges
+                ? 'bg-[#364153] text-white hover:bg-[#364153]/90'
+                : saved
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-200 text-gray-400 cursor-default'
+            } disabled:opacity-60`}
           >
             {saving
               ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -460,6 +583,11 @@ export default function PublicPageManager() {
                 : <Save className="w-4 h-4" />
             }
             {saved ? t('common.saved') : t('common.saveChanges')}
+            {hasUnsavedChanges && (
+              <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+                {changeCount}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -498,7 +626,7 @@ export default function PublicPageManager() {
                 <input
                   type="text"
                   value={settings.businessName}
-                  onChange={e => set('businessName', e.target.value)}
+                  onChange={e => set('businessName', sanitizeBusinessName(e.target.value))}
                   maxLength={60}
                   placeholder="e.g. Ayoub Cuts, Studio Maatala..."
                   className="w-full px-3 py-2.5 border border-gray-200 rounded-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153]"
@@ -575,111 +703,104 @@ export default function PublicPageManager() {
                 ));
               })()}
 
-              {/* ── service_mode = walkin → info + contact toggles only ── */}
-              {serviceMode === 'walkin' && (
-                <div className="flex items-start gap-2.5 p-3 bg-blue-50 border border-blue-200 rounded-[5px]">
-                  <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-blue-700 leading-relaxed">{t('businessCard.walkinOnlyInfo')}</p>
-                </div>
-              )}
+              {/* ── service_mode = walkin → preset radio options ── */}
+              {serviceMode === 'walkin' && (() => {
+                const preset =
+                  settings.showGetDirections && !settings.showCallButton && !settings.showMessageButton
+                    ? 'directions-only'
+                    : settings.showGetDirections && settings.showCallButton && settings.showMessageButton
+                      ? 'directions+contact'
+                      : !settings.showGetDirections && settings.showCallButton && settings.showMessageButton
+                        ? 'contact-only'
+                        : 'directions-only';
 
-              {/* ── service_mode = booking → existing toggle logic ── */}
-              {serviceMode !== 'walkin' && serviceMode !== 'both' && (
-                <>
-                  <SectionToggle
-                    icon={CalendarCheck}
-                    label={t('businessCard.bookingButton')}
-                    description={t('businessCard.bookingButtonDesc')}
-                    value={settings.showBookingButton !== false}
-                    onChange={v => {
-                      if (!v) {
-                        setSettings(s => ({ ...s, showBookingButton: false, showCallButton: true, showMessageButton: true }));
-                        setSaved(false);
-                      } else {
-                        setSettings(s => ({ ...s, showBookingButton: true, showCallButton: false, showMessageButton: false }));
-                        setSaved(false);
-                      }
-                    }}
-                    accent="blue"
-                  />
+                const presets = [
+                  { id: 'directions-only',    icon: Navigation, label: t('businessCard.presetDirectionsOnly'),  color: 'blue' },
+                  { id: 'directions+contact', icon: Navigation, label: t('businessCard.presetDirectionsContact'), color: 'purple' },
+                  { id: 'contact-only',       icon: Phone,      label: t('businessCard.presetContactOnly'),     color: 'orange' },
+                ];
 
-                  {settings.showBookingButton === false && (
-                    <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-[5px]">
-                      <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-700 leading-relaxed">{t('businessCard.bookingDisabledWarning')}</p>
+                const applyPreset = (id) => {
+                  const map = {
+                    'directions-only':    { showBookingButton: false, showGetDirections: true,  showCallButton: false, showMessageButton: false },
+                    'directions+contact': { showBookingButton: false, showGetDirections: true,  showCallButton: true,  showMessageButton: true },
+                    'contact-only':       { showBookingButton: false, showGetDirections: false, showCallButton: true,  showMessageButton: true },
+                  };
+                  setSettings(s => ({ ...s, ...map[id] }));
+                  setSaved(false);
+                };
+
+                return presets.map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyPreset(p.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[5px] border transition-colors text-left ${
+                      preset === p.id
+                        ? 'border-[#364153] bg-[#364153]/5'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      preset === p.id ? 'border-[#364153]' : 'border-gray-300'
+                    }`}>
+                      {preset === p.id && <div className="w-2 h-2 rounded-full bg-[#364153]" />}
                     </div>
-                  )}
+                    <p.icon className={`w-4 h-4 flex-shrink-0 ${preset === p.id ? 'text-[#364153]' : 'text-gray-400'}`} />
+                    <span className={`text-sm ${preset === p.id ? 'font-medium text-[#364153]' : 'text-gray-600'}`}>{p.label}</span>
+                  </button>
+                ));
+              })()}
 
-                  <SectionToggle
-                    icon={Phone}
-                    label={t('businessCard.callButton')}
-                    description={t('businessCard.callButtonDesc')}
-                    value={settings.showCallButton}
-                    onChange={v => {
-                      if (v) {
-                        setSettings(s => ({ ...s, showCallButton: true, showBookingButton: false }));
-                        setSaved(false);
-                      } else {
-                        if (!settings.showMessageButton) {
-                          setSettings(s => ({ ...s, showCallButton: false, showBookingButton: true }));
-                        } else {
-                          setSettings(s => ({ ...s, showCallButton: false }));
-                        }
-                        setSaved(false);
-                      }
-                    }}
-                    accent="green"
-                  />
-                  <SectionToggle
-                    icon={MessageCircle}
-                    label={t('businessCard.messageButton')}
-                    description={t('businessCard.messageButtonDesc')}
-                    value={settings.showMessageButton}
-                    onChange={v => {
-                      if (v) {
-                        setSettings(s => ({ ...s, showMessageButton: true, showBookingButton: false }));
-                        setSaved(false);
-                      } else {
-                        if (!settings.showCallButton) {
-                          setSettings(s => ({ ...s, showMessageButton: false, showBookingButton: true }));
-                        } else {
-                          setSettings(s => ({ ...s, showMessageButton: false }));
-                        }
-                        setSaved(false);
-                      }
-                    }}
-                    accent="purple"
-                  />
-                </>
-              )}
+              {/* ── service_mode = booking → preset radio options ── */}
+              {serviceMode !== 'walkin' && serviceMode !== 'both' && (() => {
+                const preset =
+                  settings.showBookingButton !== false && !settings.showCallButton && !settings.showMessageButton
+                    ? 'booking-only'
+                    : settings.showBookingButton !== false && settings.showCallButton && settings.showMessageButton
+                      ? 'booking+contact'
+                      : !settings.showBookingButton && settings.showCallButton && settings.showMessageButton
+                        ? 'contact-only'
+                        : 'booking-only';
 
-              {/* ── walkin contact toggles ── */}
-              {serviceMode === 'walkin' && (
-                <>
-                  <SectionToggle
-                    icon={Phone}
-                    label={t('businessCard.callButton')}
-                    description={t('businessCard.callButtonDesc')}
-                    value={settings.showCallButton}
-                    onChange={v => {
-                      setSettings(s => ({ ...s, showCallButton: v }));
-                      setSaved(false);
-                    }}
-                    accent="green"
-                  />
-                  <SectionToggle
-                    icon={MessageCircle}
-                    label={t('businessCard.messageButton')}
-                    description={t('businessCard.messageButtonDesc')}
-                    value={settings.showMessageButton}
-                    onChange={v => {
-                      setSettings(s => ({ ...s, showMessageButton: v }));
-                      setSaved(false);
-                    }}
-                    accent="purple"
-                  />
-                </>
-              )}
+                const presets = [
+                  { id: 'booking-only',    icon: CalendarCheck, label: t('businessCard.presetBookingOnly'),    color: 'blue' },
+                  { id: 'booking+contact', icon: CalendarCheck, label: t('businessCard.presetBookingContact'), color: 'green' },
+                  { id: 'contact-only',    icon: Phone,         label: t('businessCard.presetContactOnly'),    color: 'orange' },
+                ];
+
+                const applyPreset = (id) => {
+                  const map = {
+                    'booking-only':    { showBookingButton: true,  showGetDirections: false, showCallButton: false, showMessageButton: false },
+                    'booking+contact': { showBookingButton: true,  showGetDirections: false, showCallButton: true,  showMessageButton: true },
+                    'contact-only':    { showBookingButton: false, showGetDirections: false, showCallButton: true,  showMessageButton: true },
+                  };
+                  setSettings(s => ({ ...s, ...map[id] }));
+                  setSaved(false);
+                };
+
+                return presets.map(p => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => applyPreset(p.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[5px] border transition-colors text-left ${
+                      preset === p.id
+                        ? 'border-[#364153] bg-[#364153]/5'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      preset === p.id ? 'border-[#364153]' : 'border-gray-300'
+                    }`}>
+                      {preset === p.id && <div className="w-2 h-2 rounded-full bg-[#364153]" />}
+                    </div>
+                    <p.icon className={`w-4 h-4 flex-shrink-0 ${preset === p.id ? 'text-[#364153]' : 'text-gray-400'}`} />
+                    <span className={`text-sm ${preset === p.id ? 'font-medium text-[#364153]' : 'text-gray-600'}`}>{p.label}</span>
+                  </button>
+                ));
+              })()}
+
             </div>
           </div>
 
@@ -740,7 +861,7 @@ export default function PublicPageManager() {
                     </button>
                     <p className="text-xs text-gray-400">{t('businessCard.photoHint')}</p>
                   </div>
-                  <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+                  <input ref={avatarInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={handleAvatarUpload} />
                 </div>
               </div>
 
@@ -762,7 +883,7 @@ export default function PublicPageManager() {
                     }
                     {t('businessCard.addPhotos')}
                   </button>
-                  <input ref={galleryInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleGalleryCoverUpload} />
+                  <input ref={galleryInputRef} type="file" accept=".jpg,.jpeg,.png,.webp" multiple className="hidden" onChange={handleGalleryCoverUpload} />
                 </div>
                 <p className="text-xs text-gray-400 mb-3">{t('businessCard.coverGalleryHint')}</p>
                 <div className="grid grid-cols-4 gap-2">
@@ -772,7 +893,7 @@ export default function PublicPageManager() {
                       <button
                         type="button"
                         onClick={() => removeGalleryCover(url)}
-                        className="absolute bottom-1 right-1 w-5 h-5 bg-red-500 rounded-full items-center justify-center hidden group-hover:flex"
+                        className="absolute bottom-1 right-1 w-5 h-5 bg-red-500 rounded-full items-center justify-center flex sm:hidden sm:group-hover:flex"
                       >
                         <Trash2 className="w-3 h-3 text-white" />
                       </button>
@@ -805,14 +926,6 @@ export default function PublicPageManager() {
                 value={settings.showCoverPhoto}
                 onChange={v => set('showCoverPhoto', v)}
                 accent="blue"
-              />
-              <SectionToggle
-                icon={Tag}
-                label={t('businessCard.servicesList')}
-                description={t('businessCard.servicesListDesc')}
-                value={settings.showServices}
-                onChange={v => set('showServices', v)}
-                accent="amber"
               />
               <SectionToggle
                 icon={DollarSign}
@@ -922,6 +1035,11 @@ export default function PublicPageManager() {
         aria-label="Live Preview"
       >
         <Eye className="w-6 h-6" />
+        {hasUnsavedChanges && (
+          <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
+            {changeCount}
+          </span>
+        )}
       </button>
 
       {/* ── Mobile Preview Modal ── */}
@@ -972,6 +1090,47 @@ export default function PublicPageManager() {
               )}
 
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Unsaved Changes Dialog ── */}
+      {showUnsavedDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className={`bg-white rounded-[5px] shadow-xl max-w-sm w-full mx-4 overflow-hidden ${isRTL ? 'rtl' : 'ltr'}`}>
+            <div className="px-5 pt-5 pb-3">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-amber-500" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-800">{t('common.unsavedTitle')}</h3>
+              </div>
+              <p className="text-sm text-gray-500 leading-relaxed">{t('common.unsavedMessage')}</p>
+              <p className="text-xs text-gray-400 mt-1.5">
+                {changeCount} {t('common.changes')}
+              </p>
+            </div>
+            <div className={`flex gap-2 px-5 pb-5 pt-2 ${isRTL ? '' : 'flex-row-reverse'}`}>
+              <button
+                onClick={() => { setShowUnsavedDialog(false); setPendingNavUrl(null); }}
+                className="flex-1 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-[5px] hover:bg-gray-50 transition-colors"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleDiscardAndNavigate}
+                className="flex-1 py-2.5 text-sm font-medium text-red-600 border border-red-200 rounded-[5px] hover:bg-red-50 transition-colors"
+              >
+                {t('common.discard')}
+              </button>
+              <button
+                onClick={handleSaveAndNavigate}
+                disabled={saving}
+                className="flex-1 py-2.5 text-sm font-medium text-white bg-[#364153] rounded-[5px] hover:bg-[#364153]/90 transition-colors disabled:opacity-60"
+              >
+                {saving ? t('common.saving') : t('common.save')}
+              </button>
             </div>
           </div>
         </div>

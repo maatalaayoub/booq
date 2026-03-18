@@ -153,8 +153,13 @@ export default function DashboardLayout({ children }) {
     return <DashboardSkeleton isRTL={isRTL} />;
   }
 
-  // Show minimal layout during onboarding (no sidebar) or while waiting for status
-  if (onboardingCompleted === null || !onboardingCompleted) {
+  // Show skeleton while onboarding status is still loading
+  if (onboardingCompleted === null) {
+    return <DashboardSkeleton isRTL={isRTL} />;
+  }
+
+  // Show minimal layout during onboarding (no sidebar)
+  if (!onboardingCompleted) {
     return (
       <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 ${isRTL ? 'rtl' : 'ltr'}`}>
         <main className="flex-1">

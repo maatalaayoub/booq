@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// ─── SANITIZATION HELPERS ──────────────────────────────────
+function sanitizeText(value) {
+  if (!value || typeof value !== 'string') return value;
+  return value
+    .replace(/<[^>]*>/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim()
+    .slice(0, 500);
+}
+
+function sanitizePhone(value) {
+  if (!value || typeof value !== 'string') return value;
+  return value.replace(/[^0-9+\-\s()]/g, '').trim().slice(0, 30);
+}
+
 // Helper: get userId either from session or Bearer token
 async function getUserId(request) {
   const { userId } = await auth();
@@ -252,10 +267,10 @@ export async function POST(request) {
       // Salon owner data
       const shopSalonData = {
         business_info_id: businessInfoId,
-        business_name: businessName || null,
-        address: address || null,
-        city: city || null,
-        phone: phone || null,
+        business_name: sanitizeText(businessName) || null,
+        address: sanitizeText(address) || null,
+        city: sanitizeText(city) || null,
+        phone: sanitizePhone(phone) || null,
         latitude: latitude || null,
         longitude: longitude || null,
         work_location: workLocation || null,
@@ -276,13 +291,13 @@ export async function POST(request) {
       // Mobile service provider data
       const mobileServiceData = {
         business_info_id: businessInfoId,
-        business_name: businessName || null,
-        address: address || null,
-        city: city || null,
-        phone: phone || null,
+        business_name: sanitizeText(businessName) || null,
+        address: sanitizeText(address) || null,
+        city: sanitizeText(city) || null,
+        phone: sanitizePhone(phone) || null,
         latitude: latitude || null,
         longitude: longitude || null,
-        service_area: serviceArea || null,
+        service_area: sanitizeText(serviceArea) || null,
         travel_radius_km: travelRadiusKm || null,
         work_location: workLocation || null,
         business_hours: businessHours || [],
