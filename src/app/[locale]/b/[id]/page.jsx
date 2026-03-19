@@ -651,6 +651,20 @@ export default function BusinessPage() {
   const [userBookings, setUserBookings] = useState([]);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const [isFavorited, setIsFavorited] = useState(false);
+
+  useEffect(() => {
+    if (!businessId) return;
+    const favs = JSON.parse(localStorage.getItem('favoriteBusinesses') || '[]');
+    setIsFavorited(favs.includes(businessId));
+  }, [businessId]);
+
+  const toggleFavorite = () => {
+    const favs = JSON.parse(localStorage.getItem('favoriteBusinesses') || '[]');
+    const updated = isFavorited ? favs.filter(id => id !== businessId) : [...favs, businessId];
+    localStorage.setItem('favoriteBusinesses', JSON.stringify(updated));
+    setIsFavorited(!isFavorited);
+  };
 
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
   const totalPrice = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
@@ -807,6 +821,10 @@ export default function BusinessPage() {
             <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
           </button>
           <div className="flex gap-2">
+            <button onClick={toggleFavorite}
+              className="w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md flex items-center justify-center hover:bg-black/40 transition-colors">
+              <Heart className={`w-[18px] h-[18px] transition-colors ${isFavorited ? 'fill-red-500 text-red-500' : 'text-white'}`} />
+            </button>
             <button onClick={async () => {
               const url = window.location.href;
               const shareData = { title: document.title, text: document.title, url };
@@ -939,15 +957,15 @@ export default function BusinessPage() {
           <div className="flex items-center gap-2 flex-wrap">
             {business.showCallButton && business.phone && (
               <a href={`tel:${business.phone}`}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-[12px] font-medium">
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors text-[12px] font-medium">
                 <Phone className="w-3.5 h-3.5" />
                 {t('businessCard.call')}
               </a>
             )}
             {business.showMessageButton && business.phone && (
               <a href={`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-[12px] font-medium">
-                <MessageCircle className="w-3.5 h-3.5" />
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors text-[12px] font-medium">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.252-.149-2.868.852.852-2.868-.168-.268A8 8 0 1112 20z"/></svg>
                 {t('businessCard.message')}
               </a>
             )}
@@ -1149,9 +1167,9 @@ export default function BusinessPage() {
                   <h2 className="text-lg font-bold text-gray-900 mb-4">{t('bp.contactInfo')}</h2>
                   <div className="space-y-3">
                     {business.showCallButton && (
-                      <a href={`tel:${business.phone}`} className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors group">
+                      <a href={`tel:${business.phone}`} className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl hover:bg-blue-100 transition-colors group">
                         <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0 group-hover:shadow-md transition-shadow">
-                          <Phone className="w-5 h-5 text-gray-500" />
+                          <Phone className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
                           <p className="text-[15px] font-medium text-gray-900">{t('businessCard.call')}</p>
@@ -1161,13 +1179,13 @@ export default function BusinessPage() {
                     )}
                     {business.showMessageButton && (
                       <a href={`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors group">
+                        className="flex items-center gap-3 p-4 bg-green-50 rounded-2xl hover:bg-green-100 transition-colors group">
                         <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0 group-hover:shadow-md transition-shadow">
-                          <MessageCircle className="w-5 h-5 text-gray-500" />
+                          <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.252-.149-2.868.852.852-2.868-.168-.268A8 8 0 1112 20z"/></svg>
                         </div>
                         <div>
                           <p className="text-[15px] font-medium text-gray-900">{t('businessCard.message')}</p>
-                          <p className="text-[13px] text-gray-400">WhatsApp</p>
+                          <p className="text-[13px] text-green-600">WhatsApp</p>
                         </div>
                       </a>
                     )}
@@ -1323,9 +1341,9 @@ export default function BusinessPage() {
                     </div>
                   </div>
                   {business.phone && business.showCallButton && (
-                    <a href={`tel:${business.phone}`} className="flex items-center gap-3 p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group">
+                    <a href={`tel:${business.phone}`} className="flex items-center gap-3 p-3.5 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors group">
                       <div className="w-9 h-9 rounded-lg bg-white shadow-sm group-hover:shadow-md flex items-center justify-center shrink-0 transition-shadow">
-                        <Phone className="w-4 h-4 text-gray-500" />
+                        <Phone className="w-4 h-4 text-blue-600" />
                       </div>
                       <div>
                         <p className="text-[14px] font-medium text-gray-900">{t('businessCard.call')}</p>
@@ -1335,13 +1353,13 @@ export default function BusinessPage() {
                   )}
                   {business.phone && business.showMessageButton && (
                     <a href={`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors group">
+                      className="flex items-center gap-3 p-3.5 bg-green-50 rounded-xl hover:bg-green-100 transition-colors group">
                       <div className="w-9 h-9 rounded-lg bg-white shadow-sm group-hover:shadow-md flex items-center justify-center shrink-0 transition-shadow">
-                        <MessageCircle className="w-4 h-4 text-gray-500" />
+                        <svg className="w-4 h-4 text-green-600" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.252-.149-2.868.852.852-2.868-.168-.268A8 8 0 1112 20z"/></svg>
                       </div>
                       <div>
                         <p className="text-[14px] font-medium text-gray-900">{t('businessCard.message')}</p>
-                        <p className="text-[12px] text-gray-400">WhatsApp</p>
+                        <p className="text-[12px] text-green-600">WhatsApp</p>
                       </div>
                     </a>
                   )}
