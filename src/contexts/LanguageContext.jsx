@@ -1110,6 +1110,10 @@ const translations = {
     privacyPolicy: 'Privacy Policy',
 
     // Business Page
+    'bp.linkCopied': 'Link copied!',
+    'bp.shareTitle': 'Share',
+    'bp.copyLink': 'Copy link',
+    'bp.cancel': 'Cancel',
     'bp.notFound': 'Business Not Found',
     'bp.notFoundDesc': 'This business page is not available or has been removed.',
     'bp.backHome': 'Back to Home',
@@ -2282,6 +2286,10 @@ const translations = {
     privacyPolicy: 'Politique de confidentialité',
 
     // Business Page
+    'bp.linkCopied': 'Lien copié !',
+    'bp.shareTitle': 'Partager',
+    'bp.copyLink': 'Copier le lien',
+    'bp.cancel': 'Annuler',
     'bp.notFound': 'Entreprise introuvable',
     'bp.notFoundDesc': 'Cette page d\'entreprise n\'est pas disponible ou a été supprimée.',
     'bp.backHome': 'Retour à l\'accueil',
@@ -3437,6 +3445,10 @@ const translations = {
     privacyPolicy: 'سياسة الخصوصية',
 
     // Business Page
+    'bp.linkCopied': 'تم نسخ الرابط!',
+    'bp.shareTitle': 'مشاركة',
+    'bp.copyLink': 'نسخ الرابط',
+    'bp.cancel': 'إلغاء',
     'bp.notFound': 'لم يتم العثور على النشاط التجاري',
     'bp.notFoundDesc': 'هذه الصفحة غير متوفرة أو تمت إزالتها.',
     'bp.backHome': 'العودة للرئيسية',
