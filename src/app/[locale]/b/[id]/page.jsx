@@ -815,8 +815,8 @@ export default function BusinessPage() {
 
       {/* ── INFO BAR ── rating, location, actions ─────────── */}
       <div className="border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-5 sd:px-8 py-3 flex items-center justify-between gap-3">
-          {/* Left: meta chips */}
+        <div className="max-w-5xl mx-auto px-5 sd:px-8 py-3 space-y-2.5 sd:space-y-0 sd:flex sd:items-center sd:justify-between sd:gap-3">
+          {/* Meta chips */}
           <div className="flex flex-wrap items-center gap-2">
             {business.showRating && (
               <span className="inline-flex items-center gap-1 text-[13px] font-semibold text-amber-600">
@@ -844,8 +844,8 @@ export default function BusinessPage() {
             )}
           </div>
 
-          {/* Right: action buttons */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
             {business.showCallButton && business.phone && (
               <a href={`tel:${business.phone}`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-[12px] font-medium">
