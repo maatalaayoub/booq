@@ -7,7 +7,7 @@ import Image from 'next/image';
 export default function ProfilePageNav({ locale, onMenuClick, isRTL, t }) {
   return (
     <header className="relative z-10 bg-gradient-to-r from-slate-900 to-slate-800 border-b border-slate-700 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-6 lg:px-8">
         <nav
           dir="ltr"
           className={`flex items-center justify-between py-3 ${isRTL ? 'flex-row-reverse' : ''}`}

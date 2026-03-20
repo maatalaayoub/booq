@@ -7,7 +7,7 @@ import Image from 'next/image';
 export default function AuthPageNav({ locale, isRTL, t }) {
   return (
     <header className="relative z-20 bg-white border-b border-gray-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-6 lg:px-8">
         <nav
           dir="ltr"
           className={`flex items-center justify-between py-3 ${isRTL ? 'flex-row-reverse' : ''}`}

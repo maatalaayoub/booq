@@ -1086,6 +1086,17 @@ const translations = {
     navProfile: 'Profile',
     navMenu: 'Menu',
 
+    // Favorites Page
+    'favorites.title': 'Favorites',
+    'favorites.empty': 'No favorites yet',
+    'favorites.emptyDesc': 'Browse businesses and tap the heart icon to save your favorites here.',
+    'favorites.explore': 'Explore Businesses',
+    'favorites.from': 'From',
+    'favorites.removeTitle': 'Remove from Favorites?',
+    'favorites.removeDesc': 'This business will be removed from your favorites list.',
+    'favorites.removeConfirm': 'Remove',
+    'favorites.removeCancel': 'Cancel',
+
     // Home Page - Business Cards
     'home.businessesTitle': 'Discover Professionals Near You',
     'home.businessesSubtitle': 'Browse top-rated barbers, hairdressers, and beauty professionals',
@@ -2262,6 +2273,17 @@ const translations = {
     navProfile: 'Profil',
     navMenu: 'Menu',
 
+    // Favorites Page
+    'favorites.title': 'Favoris',
+    'favorites.empty': 'Aucun favori pour le moment',
+    'favorites.emptyDesc': 'Parcourez les entreprises et appuyez sur l\'icône cœur pour enregistrer vos favoris ici.',
+    'favorites.explore': 'Explorer les entreprises',
+    'favorites.from': 'À partir de',
+    'favorites.removeTitle': 'Retirer des favoris ?',
+    'favorites.removeDesc': 'Cette entreprise sera retirée de votre liste de favoris.',
+    'favorites.removeConfirm': 'Retirer',
+    'favorites.removeCancel': 'Annuler',
+
     // Home Page - Business Cards
     'home.businessesTitle': 'Découvrez les professionnels près de chez vous',
     'home.businessesSubtitle': 'Parcourez les meilleurs barbiers, coiffeurs et professionnels de la beauté',
@@ -3420,6 +3442,17 @@ const translations = {
     navPosts: 'منشورات',
     navProfile: 'الملف الشخصي',
     navMenu: 'القائمة',
+
+    // Favorites Page
+    'favorites.title': 'المفضلة',
+    'favorites.empty': 'لا توجد مفضلات بعد',
+    'favorites.emptyDesc': 'تصفح الأنشطة التجارية واضغط على أيقونة القلب لحفظ مفضلاتك هنا.',
+    'favorites.explore': 'استكشف الأنشطة التجارية',
+    'favorites.from': 'ابتداءً من',
+    'favorites.removeTitle': 'إزالة من المفضلة؟',
+    'favorites.removeDesc': 'ستتم إزالة هذا النشاط التجاري من قائمة المفضلة لديك.',
+    'favorites.removeConfirm': 'إزالة',
+    'favorites.removeCancel': 'إلغاء',
 
     // Home Page - Business Cards
     'home.businessesTitle': 'اكتشف المحترفين بالقرب منك',

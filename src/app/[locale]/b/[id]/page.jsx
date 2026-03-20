@@ -126,7 +126,7 @@ function HeroGallery({ gallery, accent, showCover, businessName, businessType, a
 function TabBar({ tabs, activeTab, onTabChange, accent }) {
   return (
     <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-      <div className="max-w-5xl mx-auto flex">
+      <div className="flex">
         {tabs.map(tab => {
           const active = tab.id === activeTab;
           return (
@@ -924,7 +924,7 @@ export default function BusinessPage() {
 
       {/* ── INFO BAR ── rating, location, actions ─────────── */}
       <div className="border-b border-gray-100">
-        <div className="max-w-5xl mx-auto px-5 sd:px-8 py-3 space-y-2.5 sd:space-y-0 sd:flex sd:items-center sd:justify-between sd:gap-3">
+        <div className="px-5 sd:px-8 py-3 space-y-2.5 sd:space-y-0 sd:flex sd:items-center sd:justify-between sd:gap-3">
           {/* Meta chips */}
           <div className="flex flex-wrap items-center gap-2">
             {business.showRating && (
@@ -933,10 +933,10 @@ export default function BusinessPage() {
                 5.0
               </span>
             )}
-            {business.showRating && business.showLocation && business.city && (
+            {business.showRating && business.city && (
               <span className="text-gray-300">·</span>
             )}
-            {business.showLocation && business.city && (
+            {business.city && (
               <span className="inline-flex items-center gap-1 text-[13px] text-gray-500">
                 <MapPin className="w-3.5 h-3.5" />
                 {business.city}
@@ -955,21 +955,21 @@ export default function BusinessPage() {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 flex-wrap">
-            {business.showCallButton && business.phone && (
+            {business.phone && (
               <a href={`tel:${business.phone}`}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors text-[12px] font-medium">
                 <Phone className="w-3.5 h-3.5" />
                 {t('businessCard.call')}
               </a>
             )}
-            {business.showMessageButton && business.phone && (
+            {business.phone && (
               <a href={`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 border border-green-200 text-green-700 hover:bg-green-100 transition-colors text-[12px] font-medium">
                 <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.252-.149-2.868.852.852-2.868-.168-.268A8 8 0 1112 20z"/></svg>
                 {t('businessCard.message')}
               </a>
             )}
-            {business.showGetDirections && directionsUrl && (
+            {directionsUrl && (
               <a href={directionsUrl} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors text-[12px] font-medium">
                 <Navigation className="w-3.5 h-3.5" />
@@ -1128,7 +1128,7 @@ export default function BusinessPage() {
 
             {/* ─── LOCATION & CONTACT (mobile only) ──────── */}
             <div className={`${activeTab !== 'about' ? 'hidden' : ''} sd:hidden`}>
-              {business.showLocation && (business.address || business.city) && (
+              {(business.address || business.city) && (
                 <div className="mb-8">
                   <h2 className="text-lg font-bold text-gray-900 mb-4">{t('bp.location')}</h2>
                   {business.latitude && business.longitude && (
@@ -1166,7 +1166,6 @@ export default function BusinessPage() {
                 <div>
                   <h2 className="text-lg font-bold text-gray-900 mb-4">{t('bp.contactInfo')}</h2>
                   <div className="space-y-3">
-                    {business.showCallButton && (
                       <a href={`tel:${business.phone}`} className="flex items-center gap-3 p-4 bg-blue-50 rounded-2xl hover:bg-blue-100 transition-colors group">
                         <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0 group-hover:shadow-md transition-shadow">
                           <Phone className="w-5 h-5 text-blue-600" />
@@ -1176,8 +1175,6 @@ export default function BusinessPage() {
                           <p className="text-[13px] text-gray-400">{business.phone}</p>
                         </div>
                       </a>
-                    )}
-                    {business.showMessageButton && (
                       <a href={`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-3 p-4 bg-green-50 rounded-2xl hover:bg-green-100 transition-colors group">
                         <div className="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center shrink-0 group-hover:shadow-md transition-shadow">
@@ -1188,7 +1185,6 @@ export default function BusinessPage() {
                           <p className="text-[13px] text-green-600">WhatsApp</p>
                         </div>
                       </a>
-                    )}
                   </div>
                 </div>
               )}
@@ -1308,7 +1304,7 @@ export default function BusinessPage() {
             )}
 
             {/* Location card */}
-            {business.showLocation && (business.address || business.city) && (
+            {(business.address || business.city) && (
               <div className="bg-white border border-gray-300 rounded-lg p-6">
                 <h2 className="text-lg font-bold text-gray-900 mb-5">{t('bp.location')}</h2>
                 {business.latitude && business.longitude && (
@@ -1340,7 +1336,7 @@ export default function BusinessPage() {
                       )}
                     </div>
                   </div>
-                  {business.phone && business.showCallButton && (
+                  {business.phone && (
                     <a href={`tel:${business.phone}`} className="flex items-center gap-3 p-3.5 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors group">
                       <div className="w-9 h-9 rounded-lg bg-white shadow-sm group-hover:shadow-md flex items-center justify-center shrink-0 transition-shadow">
                         <Phone className="w-4 h-4 text-blue-600" />
@@ -1351,7 +1347,7 @@ export default function BusinessPage() {
                       </div>
                     </a>
                   )}
-                  {business.phone && business.showMessageButton && (
+                  {business.phone && (
                     <a href={`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-3 p-3.5 bg-green-50 rounded-xl hover:bg-green-100 transition-colors group">
                       <div className="w-9 h-9 rounded-lg bg-white shadow-sm group-hover:shadow-md flex items-center justify-center shrink-0 transition-shadow">
@@ -1371,7 +1367,7 @@ export default function BusinessPage() {
       </div>
 
       {/* ── FLOATING BOTTOM BAR (mobile) ─────────────────── */}
-      {canBook && !showBookingPanel && (
+      {canBook && !showBookingPanel && activeTab === 'services' && (
         <div className="fixed bottom-0 left-0 right-0 z-30 sd:hidden">
           <div className="bg-white border-t border-gray-200 px-5 py-3 flex items-center gap-3 safe-area-pb">
             {selectedServices.length > 0 ? (

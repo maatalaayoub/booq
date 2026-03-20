@@ -138,7 +138,7 @@ export default function Hero() {
             transition={{ duration: 0.3, ease: 'easeOut' }}
             className="fixed top-0 left-0 right-0 z-50 bg-[#0F172A]/95 backdrop-blur-md border-b border-[#364153]/30 shadow-lg"
           >
-            <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-2.5 flex items-center gap-3" ref={stickyCityRef}>
+            <div className="px-3 sm:px-6 py-3 sm:py-2.5 flex items-center gap-3" ref={stickyCityRef}>
               {/* Left: Sidebar button + Logo (desktop) */}
               <div className="hidden sd:flex items-center gap-3 shrink-0">
                 {isSignedIn && (
