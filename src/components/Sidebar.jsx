@@ -164,11 +164,11 @@ export default function Sidebar({ isOpen, onClose }) {
                 <span className="font-medium text-base">{t('bookings.title') || 'My Bookings'}</span>
               </Link>
 
-              {/* Favorites */}
+              {/* Favorites - hidden on small devices, shown in bottom nav */}
               <Link
                 href={`/${locale}/favorites`}
                 onClick={onClose}
-                className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl transition-all text-[#244C70] hover:bg-gray-50"
+                className="hidden md:flex items-center gap-3 w-full px-4 py-3.5 rounded-xl transition-all text-[#244C70] hover:bg-gray-50"
               >
                 <Heart className="h-5 w-5 text-[#244C70]" strokeWidth={1.5} />
                 <span className="font-medium text-base">{t('favorites') || 'Favorites'}</span>

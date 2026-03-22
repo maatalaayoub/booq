@@ -25,6 +25,13 @@ const translations = {
     cityOujda: 'Oujda',
     cityKenitra: 'Kenitra',
     cityTetouan: 'Tetouan',
+
+    // Service Modes
+    'serviceMode.label': 'How would you like your service?',
+    'serviceMode.atHome': 'At Home',
+    'serviceMode.atHomeDesc': 'We come to you',
+    'serviceMode.inShop': 'In Place',
+    'serviceMode.inShopDesc': 'Visit & book',
     
     // Header
     features: 'Features',
@@ -1223,6 +1230,13 @@ const translations = {
     cityOujda: 'Oujda',
     cityKenitra: 'Kénitra',
     cityTetouan: 'Tétouan',
+
+    // Service Modes
+    'serviceMode.label': 'Comment souhaitez-vous votre service ?',
+    'serviceMode.atHome': 'À Domicile',
+    'serviceMode.atHomeDesc': 'On vient chez vous',
+    'serviceMode.inShop': 'Sur Place',
+    'serviceMode.inShopDesc': 'Visitez & réservez',
     
     // Header
     features: 'Fonctionnalités',
@@ -2425,6 +2439,13 @@ const translations = {
     cityOujda: 'وجدة',
     cityKenitra: 'القنيطرة',
     cityTetouan: 'تطوان',
+
+    // Service Modes
+    'serviceMode.label': 'كيف تريد الخدمة؟',
+    'serviceMode.atHome': 'في المنزل',
+    'serviceMode.atHomeDesc': 'نأتي إليك',
+    'serviceMode.inShop': 'في المكان',
+    'serviceMode.inShopDesc': 'زُر واحجز',
     
     // Header
     features: 'المميزات',
@@ -3602,7 +3623,7 @@ export function LanguageProvider({ children }) {
   const getLocaleFromPath = useCallback((path) => {
     const segments = (path || '').split('/').filter(Boolean);
     const urlLocale = segments[0];
-    return locales.includes(urlLocale) ? urlLocale : 'en';
+    return locales.includes(urlLocale) ? urlLocale : 'fr';
   }, []);
   
   // Initialize locale from pathname (consistent on server and client)

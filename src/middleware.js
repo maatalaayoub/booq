@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // Supported locales
 const locales = ['en', 'fr', 'ar'];
-const defaultLocale = 'en';
+const defaultLocale = 'fr';
 
 // Define route matchers for different sections
 const isUserRoute = createRouteMatcher(['/user/:path*', '/:locale/user/:path*']);
