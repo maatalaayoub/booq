@@ -147,6 +147,7 @@ function FlyToSelected({ businesses, selectedBusinessId, markerRefs }) {
 
 export default function PlacesMap({ businesses, locale, hoveredBusinessId, selectedBusinessId, onPopupClose }) {
   const [ready, setReady] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   const markerRefs = useRef({});
 
   useEffect(() => {
@@ -184,6 +185,7 @@ export default function PlacesMap({ businesses, locale, hoveredBusinessId, selec
         zoom={12}
         zoomControl={false}
         style={{ height: '100%', width: '100%', zIndex: 0 }}
+        whenReady={() => setMapReady(true)}
       >
       <TileLayer
         attribution='&copy; <a href="https://carto.com/">Carto</a>'
@@ -194,6 +196,7 @@ export default function PlacesMap({ businesses, locale, hoveredBusinessId, selec
       <FlyToHovered businesses={businesses} hoveredBusinessId={hoveredBusinessId} />
       <FlyToSelected businesses={businesses} selectedBusinessId={selectedBusinessId} markerRefs={markerRefs} />
 
+      {mapReady && (
       <MarkerClusterGroup
         chunkedLoading
         showCoverageOnHover={false}
@@ -340,6 +343,7 @@ export default function PlacesMap({ businesses, locale, hoveredBusinessId, selec
           </Marker>
         ))}
       </MarkerClusterGroup>
+      )}
     </MapContainer>
     </>
   );

@@ -74,7 +74,7 @@ export default function DashboardHeader() {
               href={`/${locale}`}
               className="flex items-center"
             >
-              <img src="/images/dark-logo.png" alt="Booq" width={140} height={42} className="h-8 md:h-10 w-auto" />
+              <img src="/images/booka(dark).png" alt="Booka.ma" width={140} height={42} className="h-8 md:h-10 w-auto" />
             </Link>
           </div>
 

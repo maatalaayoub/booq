@@ -63,8 +63,8 @@ export default function Footer() {
           {/* Logo */}
           <div className="flex items-center">
             <Image 
-              src="/images/white-logo.png" 
-              alt="Booq" 
+              src="/images/booka(white).png" 
+              alt="Booka.ma" 
               width={180} 
               height={45}
               className="h-8 md:h-10 w-auto"
@@ -108,11 +108,11 @@ export default function Footer() {
               {t('contactUs') || 'Contact Us'}
             </h4>
             <div className="space-y-4">
-              <a href="mailto:hello@barberbook.app" className="flex items-center gap-3 text-gray-400 text-sm transition-colors hover:text-amber-400">
+              <a href="mailto:hello@booka.ma" className="flex items-center gap-3 text-gray-400 text-sm transition-colors hover:text-amber-400">
                 <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
                   <Mail className="h-4 w-4" />
                 </div>
-                hello@barberbook.app
+                hello@booka.ma
               </a>
               <a href="tel:+212600000000" className="flex items-center gap-3 text-gray-400 text-sm transition-colors hover:text-amber-400">
                 <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
@@ -160,7 +160,7 @@ export default function Footer() {
         >
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <p className="text-sm text-gray-500">
-              © {new Date().getFullYear()} Coiffy. {t('allRightsReserved')}
+              © {new Date().getFullYear()} Booka.ma. {t('allRightsReserved')}
             </p>
             
             <div className="flex items-center gap-6">

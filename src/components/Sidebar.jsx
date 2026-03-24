@@ -96,6 +96,39 @@ export default function Sidebar({ isOpen, onClose }) {
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] px-4">
+              {/* Auth Buttons - Only show when NOT signed in */}
+              {!isLoaded ? (
+                <div className="py-4 px-2">
+                  <div className="flex-1 h-10 bg-gray-100 rounded-xl animate-pulse" />
+                </div>
+              ) : !isSignedIn && (
+                <div className="flex flex-col gap-3 px-2 mb-4">
+                  <div className="flex gap-3">
+                    <Link 
+                      href={`/${locale}/auth/user/sign-in`}
+                      onClick={onClose}
+                      className="flex-1 rounded-full border border-gray-200 bg-white px-4 py-3 text-center text-sm font-semibold text-[#0F172A] transition-all hover:border-[#D4AF37]"
+                    >
+                      {t('login')}
+                    </Link>
+                    <Link 
+                      href={`/${locale}/auth/user/sign-up`}
+                      onClick={onClose}
+                      className="flex-1 rounded-full bg-[#0F172A] px-4 py-3 text-center text-sm font-semibold text-white transition-all hover:bg-[#1E293B]"
+                    >
+                      {t('signUp')}
+                    </Link>
+                  </div>
+                  <Link 
+                    href={`/${locale}/auth/business/sign-up`}
+                    onClick={onClose}
+                    className="flex items-center justify-center w-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4CF67] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-all hover:brightness-110"
+                  >
+                    {t('barberSpace')}
+                  </Link>
+                </div>
+              )}
+
               {/* Profile Section */}
               {isLoaded && isSignedIn && user && (
                 <div className="mb-4">
@@ -268,45 +301,9 @@ export default function Sidebar({ isOpen, onClose }) {
                 ))}
               </div>
 
-              {/* Auth Buttons - Only show when NOT signed in */}
-              {!isLoaded ? (
-                <div className="py-4">
-                  <div className="flex-1 h-10 bg-gray-100 rounded-xl animate-pulse" />
-                </div>
-              ) : !isSignedIn && (
-                <>
-                  <div className="h-px bg-gray-200 my-4" />
-                  <div className="flex flex-col gap-3 px-2">
-                    <div className="flex gap-3">
-                      <Link 
-                        href={`/${locale}/auth/user/sign-in`}
-                        onClick={onClose}
-                        className="flex-1 rounded-full border border-gray-200 bg-white px-4 py-3 text-center text-sm font-semibold text-[#0F172A] transition-all hover:border-[#D4AF37]"
-                      >
-                        {t('login')}
-                      </Link>
-                      <Link 
-                        href={`/${locale}/auth/user/sign-up`}
-                        onClick={onClose}
-                        className="flex-1 rounded-full bg-[#0F172A] px-4 py-3 text-center text-sm font-semibold text-white transition-all hover:bg-[#1E293B]"
-                      >
-                        {t('signUp')}
-                      </Link>
-                    </div>
-                    <Link 
-                      href={`/${locale}/auth/business/sign-up`}
-                      onClick={onClose}
-                      className="flex items-center justify-center w-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4CF67] px-4 py-3 text-sm font-semibold text-[#0F172A] transition-all hover:brightness-110"
-                    >
-                      {t('barberSpace')}
-                    </Link>
-                  </div>
-                </>
-              )}
-
               {/* Copyright */}
               <div className="px-4 py-4 border-t border-gray-200">
-                <p className="text-xs text-gray-400 text-center">© 2026 booq. All rights reserved.</p>
+                <p className="text-xs text-gray-400 text-center">© 2026 Booka.ma. All rights reserved.</p>
               </div>
 
               {/* Bottom padding for mobile navigation */}

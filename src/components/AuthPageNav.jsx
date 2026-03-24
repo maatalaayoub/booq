@@ -15,8 +15,8 @@ export default function AuthPageNav({ locale, isRTL, t }) {
           {/* Logo */}
           <Link href={`/${locale}`}>
             <Image
-              src="/images/dark-logo.png"
-              alt="Booq"
+              src="/images/booka(dark).png"
+              alt="Booka.ma"
               width={140}
               height={42}
               className="h-8 md:h-10 w-auto"

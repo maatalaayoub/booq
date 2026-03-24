@@ -25,7 +25,7 @@ export default function AdminHeader() {
               <Menu className="w-6 h-6" />
             </button>
             <Link href={`/${locale}/admin`} className="flex items-center">
-              <img src="/images/dark-logo.png" alt="Booq" className="h-8 md:h-10 w-auto" />
+              <img src="/images/booka(dark).png" alt="Booka.ma" className="h-8 md:h-10 w-auto" />
             </Link>
           </div>
 

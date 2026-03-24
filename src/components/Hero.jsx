@@ -128,7 +128,7 @@ export default function Hero() {
                 </button>
                 )}
                 <Link href={`/${locale}`} className="shrink-0">
-                  <Image src="/images/white-logo.png" alt="Booq" width={100} height={30} className="h-7 w-auto" />
+                  <Image src="/images/booka(white).png" alt="Booka.ma" width={100} height={30} className="h-7 w-auto" />
                 </Link>
               </div>
 
@@ -140,6 +140,9 @@ export default function Hero() {
                   <input
                     type="text"
                     placeholder={t('searchPlaceholder')}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
                     className="flex-1 bg-transparent text-[#364153] placeholder-gray-400 outline-none text-xs font-medium min-w-0 mx-1.5"
                   />
                   <div className="h-5 w-px bg-gray-200 shrink-0" />
@@ -154,7 +157,7 @@ export default function Hero() {
                     <ChevronDown className="h-3 w-3 text-gray-400 shrink-0" />
                   </button>
                 </div>
-                <button className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-r from-[#D4AF37] to-[#F4CF67] shrink-0 shadow-sm">
+                <button onClick={handleSearch} className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-r from-[#D4AF37] to-[#F4CF67] shrink-0 shadow-sm">
                   <Search className="h-4 w-4 text-[#364153]" />
                 </button>
                 {/* City dropdown */}
@@ -296,8 +299,8 @@ export default function Hero() {
               </button>
             )}
             <Image 
-              src="/images/white-logo.png" 
-              alt="Booq" 
+              src="/images/booka(white).png" 
+              alt="Booka.ma" 
               width={200} 
               height={50}
               className="h-8 sd:h-11 w-auto"

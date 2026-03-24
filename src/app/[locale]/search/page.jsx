@@ -43,12 +43,12 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
       <div className="p-3 sm:p-5 flex-1 flex flex-col gap-1.5 sm:gap-3 min-w-0">
         <div>
           <h3 className="font-bold text-[#1e293b] text-sm sm:text-lg leading-tight line-clamp-1">{biz.businessName}</h3>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 capitalize">{biz.professionalType?.replace('_', ' ') || 'Salon'}</p>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 capitalize">{biz.professionalType?.replace('_', ' ') || t('search.salon')}</p>
         </div>
 
         <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-600">
           <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
-          <span className="line-clamp-1">{biz.city || 'Morocco'}</span>
+          <span className="line-clamp-1">{biz.city || t('search.morocco')}</span>
         </div>
 
         {biz.services && biz.services.length > 0 && (
@@ -81,7 +81,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
           {cardWithButtons(
             <span className="flex-1 bg-[#244C70] text-center text-white py-2.5 rounded-lg text-sm font-semibold group-hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5">
               <CalendarCheck className="w-4 h-4" />
-              Book Now
+              {t('search.bookNow')}
             </span>
           )}
         </div>
@@ -128,7 +128,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                   className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
                 >
                   <Phone className="w-4 h-4" />
-                  Contact
+                  {t('search.contact')}
                 </a>
               ) : (
                 <Link
@@ -136,7 +136,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                   className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  Contact
+                  {t('search.contact')}
                 </Link>
               )}
               <Link
@@ -144,7 +144,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                 className="flex-1 bg-gray-100 text-gray-700 text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
               >
                 <ExternalLink className="w-4 h-4" />
-                Details
+                {t('search.details')}
               </Link>
             </>
           )}
@@ -186,10 +186,10 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
             {/* Info + Buttons */}
             <div className="p-3 flex-1 flex flex-col gap-1.5 min-w-0">
               <h3 className="font-bold text-[#1e293b] text-sm leading-tight line-clamp-1">{biz.businessName}</h3>
-              <p className="text-xs text-gray-500 capitalize">{biz.professionalType?.replace('_', ' ') || 'Salon'}</p>
+              <p className="text-xs text-gray-500 capitalize">{biz.professionalType?.replace('_', ' ') || t('search.salon')}</p>
               <div className="flex items-center gap-1 text-xs text-gray-600">
                 <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                <span className="line-clamp-1">{biz.city || 'Morocco'}</span>
+                <span className="line-clamp-1">{biz.city || t('search.morocco')}</span>
               </div>
               {/* Action buttons based on config */}
               <div className="flex items-center gap-2 mt-auto pt-1">
@@ -200,7 +200,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <CalendarCheck className="w-3 h-3" />
-                    Book Now
+                    {t('search.bookNow')}
                   </Link>
                 ) : biz.showGetDirections ? (
                   <>
@@ -212,7 +212,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Navigation className="w-3 h-3" />
-                      Directions
+                      {t('search.directions')}
                     </a>
                     <Link
                       href={`/${locale}/b/${biz.id}`}
@@ -220,7 +220,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <ExternalLink className="w-3 h-3" />
-                      Details
+                      {t('search.details')}
                     </Link>
                   </>
                 ) : (biz.showCallButton || biz.showMessageButton) ? (
@@ -232,7 +232,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Phone className="w-3 h-3" />
-                        Contact
+                        {t('search.contact')}
                       </a>
                     ) : (
                       <Link
@@ -241,7 +241,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                         onClick={(e) => e.stopPropagation()}
                       >
                         <MessageCircle className="w-3 h-3" />
-                        Contact
+                        {t('search.contact')}
                       </Link>
                     )}
                     <Link
@@ -250,7 +250,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <ExternalLink className="w-3 h-3" />
-                      Details
+                      {t('search.details')}
                     </Link>
                   </>
                 ) : null}
@@ -432,12 +432,13 @@ export default function SearchPage() {
   const isDragging = useRef(false);
   const currentHeight = useRef(0);
 
-  // Snap points as fractions of viewport height
+  // Snap points as fractions of available height (viewport minus bottom nav)
+  const NAV_HEIGHT = 64; // bottom nav h-16 = 4rem = 64px
   const SNAP_MIN = 0.15;
   const SNAP_MID = 0.50;
   const SNAP_MAX = 0.85;
 
-  const getSnapPx = useCallback((fraction) => Math.round(window.innerHeight * fraction), []);
+  const getSnapPx = useCallback((fraction) => Math.round((window.innerHeight - NAV_HEIGHT) * fraction), []);
 
   // Initialize currentHeight on mount
   useEffect(() => {
@@ -445,7 +446,7 @@ export default function SearchPage() {
   }, [getSnapPx]);
 
   const snapToNearest = useCallback((heightPx, velocityY) => {
-    const vh = window.innerHeight;
+    const vh = window.innerHeight - NAV_HEIGHT;
     const snapPoints = [SNAP_MIN * vh, SNAP_MID * vh, SNAP_MAX * vh];
     
     // Velocity-based: if fast swipe, go to next snap in that direction
@@ -485,7 +486,7 @@ export default function SearchPage() {
     currentHeight.current = px;
 
     // Update React state for snap points (controls backdrop, tap-to-expand)
-    const vh = window.innerHeight;
+    const vh = window.innerHeight - NAV_HEIGHT;
     const fraction = px / vh;
     if (animate) {
       if (fraction <= 0.25) setSheetHeight('15vh');
@@ -495,11 +496,11 @@ export default function SearchPage() {
   }, []);
 
   const collapseSheet = useCallback(() => {
-    applyHeight(Math.round(window.innerHeight * SNAP_MIN), true);
+    applyHeight(Math.round((window.innerHeight - NAV_HEIGHT) * SNAP_MIN), true);
   }, [applyHeight]);
 
   const expandSheet = useCallback(() => {
-    applyHeight(Math.round(window.innerHeight * SNAP_MAX), true);
+    applyHeight(Math.round((window.innerHeight - NAV_HEIGHT) * SNAP_MAX), true);
   }, [applyHeight]);
 
   // Handle drag on the header/drag-handle zone
@@ -526,7 +527,7 @@ export default function SearchPage() {
   const handleDragEnd = useCallback((e) => {
     // If no drag occurred, treat as a tap — toggle expand/collapse
     if (!isDragging.current) {
-      const vh = window.innerHeight;
+      const vh = window.innerHeight - NAV_HEIGHT;
       if (currentHeight.current > vh * 0.25) {
         collapseSheet();
       } else {
@@ -561,7 +562,7 @@ export default function SearchPage() {
                 <Search className="w-5 h-5 text-gray-400 shrink-0" />
                 <input 
                   type="text" 
-                  placeholder="Haircut, Barber, Massage..." 
+                  placeholder={t('search.placeholder')} 
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   className="bg-transparent border-none outline-none text-sm w-full min-w-0 placeholder-gray-500"
@@ -578,7 +579,7 @@ export default function SearchPage() {
                 >
                   <MapPin className="w-5 h-5 text-gray-400 shrink-0" />
                   <span className={`text-sm truncate ${cityQuery ? 'text-gray-800' : 'text-gray-500'}`}>
-                    {cityQuery === '__my_location__' ? 'My Location' : cityQuery || 'City'}
+                    {cityQuery === '__my_location__' ? t('search.myLocation') : cityQuery || t('search.city')}
                   </span>
                   <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-auto" />
                 </button>
@@ -603,7 +604,7 @@ export default function SearchPage() {
                         >
                           <span className="flex items-center gap-2">
                             {city === 'My Location' ? <Navigation className="w-4 h-4 opacity-50" /> : <MapPin className="w-4 h-4 opacity-50" />}
-                            {city}
+                            {city === 'My Location' ? t('search.myLocation') : city}
                           </span>
                           {((city === 'My Location' && cityQuery === '__my_location__') || city === cityQuery) && (
                             <Check className="w-4 h-4 text-[#244C70]" />
@@ -625,7 +626,7 @@ export default function SearchPage() {
                 >
                   <CalendarIcon className="w-5 h-5 text-gray-400 shrink-0" />
                   <span className={`text-sm truncate ${selectedDate ? 'text-gray-800' : 'text-gray-500'}`}>
-                    {selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Any date'}
+                    {selectedDate ? new Date(selectedDate).toLocaleDateString(locale === 'ar' ? 'ar-MA' : locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' }) : t('search.anyDate')}
                   </span>
                   <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-auto" />
                 </button>
@@ -641,10 +642,10 @@ export default function SearchPage() {
                       className="absolute top-full right-0 mt-3 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-50 w-72"
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-semibold text-gray-800">Select Date</span>
+                        <span className="text-sm font-semibold text-gray-800">{t('search.selectDate')}</span>
                         {selectedDate && (
                           <button onClick={() => { setSelectedDate(''); setShowDatePicker(false); }} className="text-xs text-[#244C70] hover:underline">
-                            Clear
+                            {t('search.clear')}
                           </button>
                         )}
                       </div>
@@ -656,7 +657,7 @@ export default function SearchPage() {
                         className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-[#244C70]/30 focus:border-[#244C70] outline-none"
                       />
                       <div className="flex gap-2 mt-3">
-                        {['Today', 'Tomorrow'].map((label, i) => {
+                        {[t('search.today'), t('search.tomorrow')].map((label, i) => {
                           const d = new Date(); d.setDate(d.getDate() + i);
                           const val = d.toISOString().split('T')[0];
                           return (
@@ -695,7 +696,7 @@ export default function SearchPage() {
             <Search className="w-4 h-4 text-gray-400 shrink-0" />
             <input 
               type="text" 
-              placeholder="Services or businesses..." 
+              placeholder={t('search.placeholderMobile')} 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               onFocus={collapseSheet}
@@ -708,7 +709,7 @@ export default function SearchPage() {
               }`}
             >
               <MapPin className="w-3.5 h-3.5" />
-              <span className="max-w-[80px] truncate">{cityQuery === '__my_location__' ? 'My Location' : cityQuery || 'City'}</span>
+              <span className="max-w-[80px] truncate">{cityQuery === '__my_location__' ? t('search.myLocation') : cityQuery || t('search.city')}</span>
               <ChevronDown className="w-3 h-3 opacity-60" />
             </button>
             <button 
@@ -740,7 +741,7 @@ export default function SearchPage() {
                 >
                   <span className="flex items-center gap-3">
                     {city === 'My Location' ? <Navigation className="w-4 h-4 opacity-40" /> : <MapPin className="w-4 h-4 opacity-40" />}
-                    {city}
+                    {city === 'My Location' ? t('search.myLocation') : city}
                   </span>
                   {((city === 'My Location' && cityQuery === '__my_location__') || city === cityQuery) && (
                     <Check className="w-4 h-4 text-[#244C70]" />
@@ -762,10 +763,10 @@ export default function SearchPage() {
               className="md:hidden absolute left-0 right-0 top-full bg-white border-t border-gray-100 shadow-lg z-50 p-4"
             >
               <div className="flex items-center justify-between mb-3">
-                <span className="text-sm font-semibold text-gray-800">Select Date</span>
+                <span className="text-sm font-semibold text-gray-800">{t('search.selectDate')}</span>
                 {selectedDate && (
                   <button onClick={() => { setSelectedDate(''); setShowDatePicker(false); }} className="text-xs text-[#244C70] hover:underline">
-                    Clear
+                    {t('search.clear')}
                   </button>
                 )}
               </div>
@@ -777,7 +778,7 @@ export default function SearchPage() {
                 className="w-full border border-gray-200 rounded-lg px-3 py-3 text-sm focus:ring-2 focus:ring-[#244C70]/30 focus:border-[#244C70] outline-none"
               />
               <div className="flex gap-2 mt-3">
-                {['Today', 'Tomorrow', 'This Week'].map((label, i) => {
+                {[t('search.today'), t('search.tomorrow'), t('search.thisWeek')].map((label, i) => {
                   const d = new Date();
                   if (i < 2) d.setDate(d.getDate() + i);
                   else d.setDate(d.getDate() + (7 - d.getDay()));
@@ -810,7 +811,7 @@ export default function SearchPage() {
         <div className="absolute inset-0 md:relative md:w-1/2 md:h-full z-0"
           onTouchStart={() => {
             // On mobile, any map touch collapses the bottom sheet
-            if (window.innerWidth < 768 && currentHeight.current > window.innerHeight * 0.25) {
+            if (window.innerWidth < 768 && currentHeight.current > (window.innerHeight - NAV_HEIGHT) * 0.25) {
               collapseSheet();
             }
           }}
@@ -829,14 +830,14 @@ export default function SearchPage() {
                 className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${serviceMode === 'store' ? 'bg-[#244C70] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
               >
                 <Store className="w-4 h-4" />
-                In-Store
+                {t('search.inStore')}
               </button>
               <button 
                 onClick={() => setServiceMode('mobile')}
                 className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${serviceMode === 'mobile' ? 'bg-[#244C70] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
               >
                 <Car className="w-4 h-4" />
-                Mobile
+                {t('search.mobile')}
               </button>
             </div>
           </div>
@@ -844,10 +845,10 @@ export default function SearchPage() {
           <div className="flex-1 overflow-y-auto p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">
-                {searchQuery || cityQuery ? 'Search Results' : 'Recommended for You'}
+                {searchQuery || cityQuery ? t('search.searchResults') : t('search.recommended')}
               </h2>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500 font-medium">{filteredBusinesses.length} found</span>
+                <span className="text-sm text-gray-500 font-medium">{filteredBusinesses.length} {t('search.found')}</span>
                 <button 
                   onClick={() => setShowFilterDialog(!showFilterDialog)}
                   className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors border ${
@@ -857,7 +858,7 @@ export default function SearchPage() {
                   }`}
                 >
                   <Filter className="w-4 h-4" />
-                  Filters
+                  {t('search.filters')}
                 </button>
               </div>
             </div>
@@ -869,10 +870,10 @@ export default function SearchPage() {
             ) : filteredBusinesses.length === 0 ? (
               <div className="py-20 text-center flex flex-col items-center">
                 <Search className="w-12 h-12 text-gray-300 mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">No results found</h3>
-                <p className="text-gray-500 max-w-sm">Try adjusting your filters or searching for a different city or service.</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">{t('search.noResults')}</h3>
+                <p className="text-gray-500 max-w-sm">{t('search.noResultsDesc')}</p>
                 <button onClick={() => {setSearchQuery(''); setCityQuery(''); setUserLocation(null); setServiceMode('store')}} className="mt-4 text-[#244C70] font-medium hover:underline">
-                  Clear all filters
+                  {t('search.clearAllFilters')}
                 </button>
               </div>
             ) : (
@@ -892,8 +893,8 @@ export default function SearchPage() {
           </div>
         </div>
 
-        {/* BOTTOM SHEET (Mobile Only) */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-[60] pointer-events-none" style={{ height: '100%' }}>
+        {/* BOTTOM SHEET (Mobile Only) — offset above bottom nav (h-16 = 4rem) */}
+        <div className="md:hidden fixed bottom-16 left-0 right-0 z-40 pointer-events-none" style={{ height: 'calc(100% - 4rem)' }}>
           <div 
             ref={sheetRef}
             className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.12)] pointer-events-auto flex flex-col"
@@ -926,7 +927,7 @@ export default function SearchPage() {
                   }`}
                 >
                   <Store className="w-3.5 h-3.5" />
-                  <span>In-Store</span>
+                  <span>{t('search.inStore')}</span>
                 </button>
                 <button
                   onClick={() => setServiceMode('mobile')}
@@ -935,7 +936,7 @@ export default function SearchPage() {
                   }`}
                 >
                   <Car className="w-3.5 h-3.5" />
-                  <span>Mobile</span>
+                  <span>{t('search.mobile')}</span>
                 </button>
               </div>
 
@@ -947,7 +948,7 @@ export default function SearchPage() {
                 }`}
               >
                 <Filter className="w-3.5 h-3.5" />
-                <span>Filters</span>
+                <span>{t('search.filters')}</span>
               </button>
             </div>
 
@@ -956,14 +957,14 @@ export default function SearchPage() {
             >
               <div className="flex justify-between items-center px-1">
                 <h2 className="font-bold text-gray-900 text-base">
-                  {searchQuery ? 'Results' : 'Nearby'}
+                  {searchQuery ? t('search.results') : t('search.nearby')}
                 </h2>
-                <span className="text-sm font-medium text-gray-500">{filteredBusinesses.length} found</span>
+                <span className="text-sm font-medium text-gray-500">{filteredBusinesses.length} {t('search.found')}</span>
               </div>
 
               {filteredBusinesses.length === 0 && !loading && (
                  <div className="py-10 text-center">
-                    <p className="text-gray-500">No results match your criteria.</p>
+                    <p className="text-gray-500">{t('search.noMatch')}</p>
                  </div>
               )}
 
@@ -1000,7 +1001,7 @@ export default function SearchPage() {
             >
               {/* Dialog Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
-                <h2 className="text-lg font-bold text-gray-900">Filters</h2>
+                <h2 className="text-lg font-bold text-gray-900">{t('search.filters')}</h2>
                 <button onClick={() => setShowFilterDialog(false)} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
@@ -1011,9 +1012,9 @@ export default function SearchPage() {
 
                 {/* Service Category */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Service Category</h3>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">{t('search.serviceCategory')}</h3>
                   <div className="flex flex-wrap gap-2">
-                    {[{ value: '', label: 'All' }, { value: 'barber', label: 'Barber' }, { value: 'hairdresser', label: 'Hairdresser' }, { value: 'makeup', label: 'Makeup Artist' }, { value: 'nails', label: 'Nail Technician' }, { value: 'massage', label: 'Massage Therapist' }].map(opt => (
+                    {[{ value: '', label: t('search.all') }, { value: 'barber', label: t('search.barber') }, { value: 'hairdresser', label: t('search.hairdresser') }, { value: 'makeup', label: t('search.makeupArtist') }, { value: 'nails', label: t('search.nailTechnician') }, { value: 'massage', label: t('search.massageTherapist') }].map(opt => (
                       <button
                         key={opt.value}
                         onClick={() => setFilterCategory(opt.value)}
@@ -1029,14 +1030,14 @@ export default function SearchPage() {
 
                 {/* Sort By */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Sort By</h3>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">{t('search.sortBy')}</h3>
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { value: 'recommended', label: 'Recommended' },
-                      { value: 'price-low', label: 'Price: Low to High', icon: DollarSign },
-                      { value: 'price-high', label: 'Price: High to Low', icon: DollarSign },
-                      { value: 'rating', label: 'Highest Rated', icon: Star },
-                      ...(userLocation ? [{ value: 'distance', label: 'Nearest', icon: Navigation }] : []),
+                      { value: 'recommended', label: t('search.sortRecommended') },
+                      { value: 'price-low', label: t('search.sortPriceLow'), icon: DollarSign },
+                      { value: 'price-high', label: t('search.sortPriceHigh'), icon: DollarSign },
+                      { value: 'rating', label: t('search.sortRating'), icon: Star },
+                      ...(userLocation ? [{ value: 'distance', label: t('search.sortNearest'), icon: Navigation }] : []),
                     ].map(opt => (
                       <button
                         key={opt.value}
@@ -1054,7 +1055,7 @@ export default function SearchPage() {
 
                 {/* Date */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Date</h3>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">{t('search.date')}</h3>
                   <input
                     type="date"
                     value={filterDate}
@@ -1063,7 +1064,7 @@ export default function SearchPage() {
                     className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#244C70]/30 focus:border-[#244C70] outline-none"
                   />
                   <div className="flex gap-2 mt-2">
-                    {['Today', 'Tomorrow', 'This Week'].map((label, i) => {
+                    {[t('search.today'), t('search.tomorrow'), t('search.thisWeek')].map((label, i) => {
                       const d = new Date();
                       if (i < 2) d.setDate(d.getDate() + i);
                       else d.setDate(d.getDate() + (7 - d.getDay()));
@@ -1085,9 +1086,9 @@ export default function SearchPage() {
 
                 {/* Rating */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Minimum Rating</h3>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">{t('search.minRating')}</h3>
                   <div className="flex gap-2">
-                    {[{ value: 0, label: 'Any' }, { value: 3, label: '3+' }, { value: 4, label: '4+' }, { value: 4.5, label: '4.5+' }].map(opt => (
+                    {[{ value: 0, label: t('search.any') }, { value: 3, label: '3+' }, { value: 4, label: '4+' }, { value: 4.5, label: '4.5+' }].map(opt => (
                       <button
                         key={opt.value}
                         onClick={() => setFilterRating(opt.value)}
@@ -1104,9 +1105,9 @@ export default function SearchPage() {
 
                 {/* Max Price */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Max Price (MAD)</h3>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">{t('search.maxPrice')}</h3>
                   <div className="flex gap-2 flex-wrap">
-                    {[{ value: '', label: 'Any' }, { value: '50', label: '50' }, { value: '100', label: '100' }, { value: '200', label: '200' }, { value: '500', label: '500' }].map(opt => (
+                    {[{ value: '', label: t('search.any') }, { value: '50', label: '50' }, { value: '100', label: '100' }, { value: '200', label: '200' }, { value: '500', label: '500' }].map(opt => (
                       <button
                         key={opt.value}
                         onClick={() => setFilterPriceMax(opt.value)}
@@ -1124,7 +1125,7 @@ export default function SearchPage() {
                 {/* Distance (only when location is active) */}
                 {userLocation && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-800 mb-3">Distance: {filterDistance} km</h3>
+                    <h3 className="text-sm font-semibold text-gray-800 mb-3">{t('search.distance')}: {filterDistance} {t('search.km')}</h3>
                     <input
                       type="range"
                       min="5"
@@ -1135,8 +1136,8 @@ export default function SearchPage() {
                       className="w-full accent-[#244C70]"
                     />
                     <div className="flex justify-between text-xs text-gray-400 mt-1">
-                      <span>5 km</span>
-                      <span>100 km</span>
+                      <span>5 {t('search.km')}</span>
+                      <span>100 {t('search.km')}</span>
                     </div>
                   </div>
                 )}
@@ -1156,13 +1157,13 @@ export default function SearchPage() {
                   }}
                   className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  Reset
+                  {t('search.reset')}
                 </button>
                 <button
                   onClick={() => setShowFilterDialog(false)}
                   className="flex-1 py-2.5 rounded-xl bg-[#244C70] text-white text-sm font-semibold hover:bg-[#1a3a5a] transition-colors"
                 >
-                  Show Results ({filteredBusinesses.length})
+                  {t('search.showResults')} ({filteredBusinesses.length})
                 </button>
               </div>
             </motion.div>

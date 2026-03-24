@@ -24,8 +24,8 @@ export default function ProfilePageNav({ locale, onMenuClick, isRTL, t }) {
           <div className="flex items-center gap-3">
             <Link href={`/${locale}`}>
               <Image
-                src="/images/white-logo.png"
-                alt="Booq"
+                src="/images/booka(white).png"
+                alt="Booka.ma"
                 width={100}
                 height={30}
                 className="h-8 w-auto"

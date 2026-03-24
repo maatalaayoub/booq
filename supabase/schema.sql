@@ -1,4 +1,4 @@
--- BarberBook Database Schema
+-- Booka.ma Database Schema
 -- Run this in your Supabase SQL Editor
 -- Last updated: February 2026
 

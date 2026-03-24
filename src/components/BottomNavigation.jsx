@@ -10,14 +10,14 @@ const navItems = [
   { id: 'menu', icon: Menu, labelKey: 'navMenu', href: null, action: 'openSidebar' },
   { id: 'favorite', icon: Heart, labelKey: 'navFavorite', href: '/favorites' },
   { id: 'booking', icon: Calendar, labelKey: 'navBooking', href: '/bookings' },
-  { id: 'map', icon: MapPinned, labelKey: 'navMap', href: '/map' },
+  { id: 'map', icon: MapPinned, labelKey: 'navMap', href: '/search' },
   { id: 'home', icon: Home, labelKey: 'navHome', href: '' },
 ];
 
 const defaultLabels = {
   navHome: 'Home',
   navFavorite: 'Favorite',
-  navBooking: 'Book',
+  navBooking: 'Bookings',
   navMap: 'Map',
   navMenu: 'Menu',
 };
@@ -30,7 +30,6 @@ const excludedPaths = [
   '/b/',
   '/profile',
   '/business/profile',
-  '/search',
 ];
 
 export default function BottomNavigation() {
@@ -46,7 +45,7 @@ export default function BottomNavigation() {
     if (pathname === `/${locale}` || pathname === `/${locale}/`) return 'home';
     if (pathname?.includes('/favorites')) return 'favorite';
     if (pathname?.includes('/bookings')) return 'booking';
-    if (pathname?.includes('/map')) return 'map';
+    if (pathname?.includes('/map') || pathname?.includes('/search')) return 'map';
     if (pathname?.includes('/profile')) return null;
     return 'home';
   };
@@ -64,27 +63,26 @@ export default function BottomNavigation() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg sd:hidden">
-      <div className="flex items-center justify-around h-16 px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg sd:hidden overflow-visible">
+      <div className="flex items-center justify-around h-16 px-2 overflow-visible">
         {displayItems.map((item) => {
           const isActive = activeTab === item.id;
           const Icon = item.icon;
           const label = t(item.labelKey) || defaultLabels[item.labelKey];
           const href = item.href !== null ? (item.href ? `/${locale}${item.href}` : `/${locale}`) : '#';
-          const isBooking = item.id === 'booking';
           
           return (
             <Link
               key={item.id}
               href={href}
               onClick={(e) => handleNavClick(item, e)}
-              className={`relative flex flex-col items-center justify-center flex-1 h-full group ${isBooking ? '-mt-4' : ''}`}
+              className="relative flex flex-col items-center justify-center flex-1 h-full group"
             >
               <motion.div
                 className="flex flex-col items-center justify-center"
                 whileTap={{ scale: 0.9 }}
               >
-                {isActive && !isBooking && (
+                {isActive && (
                   <motion.div
                     layoutId="activeTab"
                     className="absolute -top-0.5 w-12 h-1 bg-[#244C70] rounded-full"
@@ -92,36 +90,24 @@ export default function BottomNavigation() {
                     transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                   />
                 )}
-                {isBooking ? (
-                  <div className="w-12 h-12 -mt-2 rounded-full bg-[#244C70] flex items-center justify-center shadow-lg">
-                    <Icon 
-                      size={22} 
-                      strokeWidth={1.5}
-                      className="text-white"
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className={`p-1.5 rounded-xl transition-colors duration-200 ${
-                      isActive 
-                        ? 'text-[#244C70]' 
-                        : 'text-[#244C70]/70'
-                    }`}
-                  >
-                    <Icon 
-                      size={22} 
-                      strokeWidth={isActive ? 2.5 : 1.5}
-                      className={isActive ? 'fill-[#244C70]/20' : ''}
-                    />
-                  </div>
-                )}
+                <div
+                  className={`p-1.5 rounded-xl transition-colors duration-200 ${
+                    isActive 
+                      ? 'text-[#244C70]' 
+                      : 'text-[#244C70]/70'
+                  }`}
+                >
+                  <Icon 
+                    size={22} 
+                    strokeWidth={isActive ? 2.5 : 1.5}
+                    className={isActive ? 'fill-[#244C70]/20' : ''}
+                  />
+                </div>
                 <span
                   className={`text-xs font-medium transition-colors duration-200 ${
-                    isBooking
-                      ? 'text-[#244C70] mt-3'
-                      : isActive 
-                        ? 'text-[#244C70] mt-0.5' 
-                        : 'text-[#244C70]/70 mt-0.5'
+                    isActive 
+                      ? 'text-[#244C70] mt-0.5' 
+                      : 'text-[#244C70]/70 mt-0.5'
                   }`}
                 >
                   {label}

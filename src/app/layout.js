@@ -10,12 +10,12 @@ const geistSans = Geist({
 
 
 export const metadata = {
-  title: "BarberBook - Book Your Barber or Salon in Seconds",
+  title: "Booka.ma - Book Your Barber or Salon in Seconds",
   description: "The smartest way to book barber appointments. Instant booking, smart queue system, and mobile barber services. Download the app today!",
-  keywords: ["barber", "booking", "appointment", "haircut", "barbershop", "grooming", "queue system"],
-  authors: [{ name: "BarberBook" }],
+  keywords: ["barber", "booking", "appointment", "haircut", "barbershop", "grooming", "queue system", "booka"],
+  authors: [{ name: "Booka.ma" }],
   openGraph: {
-    title: "BarberBook - Book Your Barber or Salon in Seconds",
+    title: "Booka.ma - Book Your Barber or Salon in Seconds",
     description: "The smartest way to book barber appointments. Instant booking, smart queue system, and mobile barber services.",
     type: "website",
   },

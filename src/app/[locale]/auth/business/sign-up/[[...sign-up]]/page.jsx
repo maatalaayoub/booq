@@ -88,7 +88,7 @@ export default function BusinessSignUpPage() {
           </h1>
 
           <p className="text-slate-500 text-lg max-w-md mb-10 leading-relaxed">
-            {t('auth.barber.signUpSubtitle') || 'Join 500+ professionals who trust BarberBook to manage and grow their business.'}
+            {t('auth.barber.signUpSubtitle') || 'Join 500+ professionals who trust Booka.ma to manage and grow their business.'}
           </p>
 
           {/* Benefits list */}
