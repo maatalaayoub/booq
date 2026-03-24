@@ -30,6 +30,7 @@ export default function Hero() {
   const [selectedCity, setSelectedCity] = useState('');
   const [isCityOpen, setIsCityOpen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const langRef = useRef(null);
   const cityRef = useRef(null);
   const searchBarRef = useRef(null);
@@ -44,8 +45,13 @@ export default function Hero() {
     console.log('[Hero] Auth state:', { isLoaded, isSignedIn, isBusiness, userRole, isRoleLoaded });
   }, [isLoaded, isSignedIn, isBusiness, userRole, isRoleLoaded]);
   
-
-  
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    if (selectedCity) params.set('city', selectedCity);
+    const qs = params.toString();
+    router.push(`/${locale}/search${qs ? `?${qs}` : ''}`);
+  };  
   // Sync currentLang with locale
   useEffect(() => {
     const lang = languages.find(l => l.code === locale);
@@ -479,6 +485,9 @@ export default function Hero() {
                   <input 
                     type="text" 
                     placeholder={t('searchPlaceholder')}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
                     className="flex-1 bg-transparent text-[#364153] placeholder-gray-400 outline-none text-sm font-medium min-w-0"
                   />
                 </div>
@@ -547,6 +556,7 @@ export default function Hero() {
                   </AnimatePresence>
                 </div>
                 <button 
+                  onClick={handleSearch}
                   className="flex h-10 items-center gap-2 rounded-[10px] bg-gradient-to-r from-[#D4AF37] to-[#F4CF67] px-6 text-sm font-semibold text-[#364153] transition-all hover:brightness-110 shadow-sm shrink-0"
                 >
                   <Search className="h-4 w-4" />
@@ -562,6 +572,9 @@ export default function Hero() {
                   <input 
                     type="text" 
                     placeholder={t('searchPlaceholder')}
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearch()}
                     className="flex-1 bg-transparent text-[#364153] placeholder-gray-400 outline-none text-sm font-medium"
                   />
                 </div>
@@ -629,6 +642,7 @@ export default function Hero() {
                 </div>
                 {/* Search button */}
                 <button 
+                  onClick={handleSearch}
                   className="flex items-center justify-center gap-2 rounded-[10px] bg-gradient-to-r from-[#D4AF37] to-[#F4CF67] px-6 py-3 text-sm font-semibold text-[#364153] transition-all hover:brightness-110 shadow-sm"
                 >
                   <Search className="h-4 w-4" />

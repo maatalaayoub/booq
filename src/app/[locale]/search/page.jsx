@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Search, MapPin, Calendar as CalendarIcon, Filter, Layers, List, Navigation, Star, ArrowLeft, Loader2, Scissors, ChevronLeft, ChevronRight, X, ChevronDown, Check } from 'lucide-react';
+import { Search, MapPin, Calendar as CalendarIcon, Filter, Layers, List, Navigation, Star, ArrowLeft, Loader2, Scissors, ChevronLeft, ChevronRight, X, ChevronDown, Check, Store, Car, DollarSign, Clock, Phone, CalendarCheck, MessageCircle, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MOROCCO_CITIES = [
-  'All Cities', 'Casablanca', 'Rabat', 'Marrakech', 'Fes', 'Tangier',
+  'My Location', 'Casablanca', 'Rabat', 'Marrakech', 'Fes', 'Tangier',
   'Agadir', 'Meknes', 'Oujda', 'Kenitra', 'Tetouan', 'Safi',
   'Mohammedia', 'El Jadida', 'Beni Mellal', 'Nador', 'Taza',
 ];
@@ -20,82 +20,276 @@ const PlacesMap = dynamic(() => import('@/components/PlacesMap'), {
   loading: () => <div className="w-full h-full bg-slate-100 flex items-center justify-center"><Loader2 className="animate-spin text-slate-400 w-8 h-8" /></div>
 });
 
-const ServiceCard = ({ biz, locale, t }) => {
-  return (
-    <Link href={`/${locale}/b/${biz.id}`} className="block">
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all group flex flex-row h-full w-full">
-        {/* Image Section */}
-        <div className="relative w-28 h-28 sm:h-auto sm:w-[220px] bg-gray-100 shrink-0 overflow-hidden">
-          {biz.coverGallery && biz.coverGallery[0] ? (
-            <img src={biz.coverGallery[0]} alt={biz.businessName} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-[#244C70]/10 to-[#244C70]/20 flex items-center justify-center">
-              <Scissors className="w-6 h-6 sm:w-8 sm:h-8 text-[#244C70]/40" />
-            </div>
-          )}
-          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-gray-800 flex items-center gap-0.5 sm:gap-1 shadow-sm">
-            <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 fill-amber-500" />
-            4.9
+const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
+  // Builds the card body with buttons inside the text column
+  const cardWithButtons = (buttons) => (
+    <>
+      {/* Image Section */}
+      <div className="relative w-28 h-28 sm:h-auto sm:w-[220px] bg-gray-100 shrink-0 overflow-hidden">
+        {biz.coverGallery && biz.coverGallery[0] ? (
+          <img src={biz.coverGallery[0]} alt={biz.businessName} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#244C70]/10 to-[#244C70]/20 flex items-center justify-center">
+            <Scissors className="w-6 h-6 sm:w-8 sm:h-8 text-[#244C70]/40" />
           </div>
+        )}
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-gray-800 flex items-center gap-0.5 sm:gap-1 shadow-sm">
+          <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 fill-amber-500" />
+          4.9
+        </div>
+      </div>
+
+      {/* Content Section */}
+      <div className="p-3 sm:p-5 flex-1 flex flex-col gap-1.5 sm:gap-3 min-w-0">
+        <div>
+          <h3 className="font-bold text-[#1e293b] text-sm sm:text-lg leading-tight line-clamp-1">{biz.businessName}</h3>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 capitalize">{biz.professionalType?.replace('_', ' ') || 'Salon'}</p>
         </div>
 
-        {/* Content Section */}
-        <div className="p-3 sm:p-5 flex-1 flex flex-col gap-1.5 sm:gap-3 min-w-0">
-          <div>
-            <h3 className="font-bold text-[#1e293b] text-sm sm:text-lg leading-tight line-clamp-1">{biz.businessName}</h3>
-            <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 capitalize">{biz.professionalType?.replace('_', ' ') || 'Salon'}</p>
+        <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-600">
+          <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
+          <span className="line-clamp-1">{biz.city || 'Morocco'}</span>
+        </div>
+
+        {biz.services && biz.services.length > 0 && (
+          <div className="hidden sm:block flex-1 space-y-2 mt-1">
+            {biz.services.slice(0, 2).map((s, i) => (
+              <div key={i} className="flex justify-between items-center text-sm">
+                <span className="text-gray-600 line-clamp-1 pr-2">{s.name}</span>
+                <span className="font-medium text-[#1e293b] whitespace-nowrap">{s.price} {s.currency}</span>
+              </div>
+            ))}
           </div>
+        )}
 
-          <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-600">
-            <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
-            <span className="line-clamp-1">{biz.city || 'Morocco'}</span>
+        {/* Action buttons inside the text column */}
+        {buttons && (
+          <div className="hidden sm:flex mt-auto pt-3 gap-2">
+            {buttons}
           </div>
+        )}
+      </div>
+    </>
+  );
 
-          {biz.services && biz.services.length > 0 && (
-            <div className="hidden sm:block flex-1 space-y-2 mt-1">
-              {biz.services.slice(0, 2).map((s, i) => (
-                <div key={i} className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600 line-clamp-1 pr-2">{s.name}</span>
-                  <span className="font-medium text-[#1e293b] whitespace-nowrap">{s.price} {s.currency}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="hidden sm:flex mt-2 pt-4 border-t border-gray-100 gap-3">
-            <span className="flex-1 bg-[#244C70] text-center text-white py-2.5 rounded-lg text-sm font-semibold group-hover:bg-[#1a3a5a] transition-colors">
+  // Desktop card rendering with functional buttons inside the text area
+  const desktopCard = biz.showBookingButton ? (
+    // Book Now: entire card links to business page
+    <div className="hidden md:block" onMouseEnter={onHover} onMouseLeave={onLeave}>
+      <Link href={`/${locale}/b/${biz.id}`} className="block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all group">
+        <div className="flex flex-row h-full w-full">
+          {cardWithButtons(
+            <span className="flex-1 bg-[#244C70] text-center text-white py-2.5 rounded-lg text-sm font-semibold group-hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5">
+              <CalendarCheck className="w-4 h-4" />
               Book Now
             </span>
-          </div>
-
-          {/* Mobile compact price hint */}
-          {biz.services && biz.services.length > 0 && (
-            <div className="sm:hidden mt-auto">
-              <span className="text-xs font-semibold text-[#244C70]">
-                From {biz.services[0].price} {biz.services[0].currency}
-              </span>
-            </div>
+          )}
+        </div>
+      </Link>
+    </div>
+  ) : biz.showGetDirections ? (
+    // Get Directions: card is not a link, buttons are real links
+    <div className="hidden md:block" onMouseEnter={onHover} onMouseLeave={onLeave}>
+      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all group">
+        <div className="flex flex-row h-full w-full">
+          {cardWithButtons(
+            <>
+              <a
+                href={biz.latitude && biz.longitude ? `https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}` : '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Navigation className="w-4 h-4" />
+                Get Directions
+              </a>
+              <Link
+                href={`/${locale}/b/${biz.id}`}
+                className="flex-1 bg-gray-100 text-gray-700 text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Details
+              </Link>
+            </>
           )}
         </div>
       </div>
-    </Link>
+    </div>
+  ) : (biz.showCallButton || biz.showMessageButton) ? (
+    // Call & Message: card is not a link, buttons are real links
+    <div className="hidden md:block" onMouseEnter={onHover} onMouseLeave={onLeave}>
+      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all group">
+        <div className="flex flex-row h-full w-full">
+          {cardWithButtons(
+            <>
+              {biz.phone ? (
+                <a
+                  href={`tel:${biz.phone}`}
+                  className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <Phone className="w-4 h-4" />
+                  Contact
+                </a>
+              ) : (
+                <Link
+                  href={`/${locale}/b/${biz.id}`}
+                  className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Contact
+                </Link>
+              )}
+              <Link
+                href={`/${locale}/b/${biz.id}`}
+                className="flex-1 bg-gray-100 text-gray-700 text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Details
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  ) : (
+    // Fallback: entire card links to business page
+    <div className="hidden md:block" onMouseEnter={onHover} onMouseLeave={onLeave}>
+      <Link href={`/${locale}/b/${biz.id}`} className="block">
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all group flex flex-row h-full w-full">
+          {cardWithButtons(null)}
+        </div>
+      </Link>
+    </div>
+  );
+
+  // Desktop: conditional wrapper based on button config
+  // Mobile: card taps select on map, action buttons rendered separately (no nested <a>)
+  return (
+    <>
+      {desktopCard}
+      <div className="md:hidden" onClick={() => onSelect?.(biz.id)}>
+        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden transition-all group flex flex-row h-full w-full">
+            {/* Image */}
+            <div className="relative w-28 self-stretch bg-gray-100 shrink-0 overflow-hidden">
+              {biz.coverGallery && biz.coverGallery[0] ? (
+                <img src={biz.coverGallery[0]} alt={biz.businessName} className="absolute inset-0 w-full h-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#244C70]/10 to-[#244C70]/20 flex items-center justify-center">
+                  <Scissors className="w-6 h-6 text-[#244C70]/40" />
+                </div>
+              )}
+              <div className="absolute top-2 right-2 bg-white px-1.5 py-0.5 rounded-full text-[10px] font-bold text-gray-800 flex items-center gap-0.5 shadow-sm">
+                <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                4.9
+              </div>
+            </div>
+            {/* Info + Buttons */}
+            <div className="p-3 flex-1 flex flex-col gap-1.5 min-w-0">
+              <h3 className="font-bold text-[#1e293b] text-sm leading-tight line-clamp-1">{biz.businessName}</h3>
+              <p className="text-xs text-gray-500 capitalize">{biz.professionalType?.replace('_', ' ') || 'Salon'}</p>
+              <div className="flex items-center gap-1 text-xs text-gray-600">
+                <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                <span className="line-clamp-1">{biz.city || 'Morocco'}</span>
+              </div>
+              {/* Action buttons based on config */}
+              <div className="flex items-center gap-2 mt-auto pt-1">
+                {biz.showBookingButton ? (
+                  <Link
+                    href={`/${locale}/b/${biz.id}`}
+                    className="flex-1 bg-[#244C70] text-white text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1a3a5a] transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <CalendarCheck className="w-3 h-3" />
+                    Book Now
+                  </Link>
+                ) : biz.showGetDirections ? (
+                  <>
+                    <a
+                      href={biz.latitude && biz.longitude ? `https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}` : '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 bg-[#244C70] text-white text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1a3a5a] transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Navigation className="w-3 h-3" />
+                      Directions
+                    </a>
+                    <Link
+                      href={`/${locale}/b/${biz.id}`}
+                      className="flex-1 bg-gray-100 text-gray-700 text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-gray-200 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Details
+                    </Link>
+                  </>
+                ) : (biz.showCallButton || biz.showMessageButton) ? (
+                  <>
+                    {biz.phone ? (
+                      <a
+                        href={`tel:${biz.phone}`}
+                        className="flex-1 bg-[#244C70] text-white text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1a3a5a] transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Phone className="w-3 h-3" />
+                        Contact
+                      </a>
+                    ) : (
+                      <Link
+                        href={`/${locale}/b/${biz.id}`}
+                        className="flex-1 bg-[#244C70] text-white text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1a3a5a] transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        Contact
+                      </Link>
+                    )}
+                    <Link
+                      href={`/${locale}/b/${biz.id}`}
+                      className="flex-1 bg-gray-100 text-gray-700 text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-gray-200 transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Details
+                    </Link>
+                  </>
+                ) : null}
+              </div>
+            </div>
+        </div>
+      </div>
+    </>
   );
 };
 
 export default function SearchPage() {
   const { locale } = useParams();
+  const searchParams = useSearchParams();
   const { t, isRTL } = useLanguage();
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   
   // States
-  const [searchQuery, setSearchQuery] = useState('');
-  const [cityQuery, setCityQuery] = useState('');
-  const [serviceMode, setServiceMode] = useState('all'); // all, store, mobile
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+  const [cityQuery, setCityQuery] = useState(searchParams.get('city') || '');
+  const [serviceMode, setServiceMode] = useState('store'); // store, mobile
   const [showFilters, setShowFilters] = useState(false);
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [userLocation, setUserLocation] = useState(null); // { lat, lng }
+  const [locationLoading, setLocationLoading] = useState(false);
+
+  // Filter dialog state
+  const [showFilterDialog, setShowFilterDialog] = useState(false);
+  const [filterRating, setFilterRating] = useState(0); // 0 = any, 3, 4, 4.5
+  const [filterPriceMax, setFilterPriceMax] = useState(''); // '' = any
+  const [filterDistance, setFilterDistance] = useState(50); // km, only used with location
+  const [filterSortBy, setFilterSortBy] = useState('recommended'); // recommended, price-low, price-high, rating, distance
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterCategory, setFilterCategory] = useState(''); // '' = any, or professional_type value
+  const [hoveredBusinessId, setHoveredBusinessId] = useState(null);
+  const [selectedBusinessId, setSelectedBusinessId] = useState(null);
 
   // Bottom sheet state for mobile
   const [sheetHeight, setSheetHeight] = useState('50vh'); // '10vh', '50vh', '85vh'
@@ -118,43 +312,242 @@ export default function SearchPage() {
 
   // Filter Logic
   const filteredBusinesses = useMemo(() => {
-    return businesses.filter(b => {
+    let results = businesses.filter(b => {
       const matchSearch = searchQuery === '' || 
                           (b.businessName?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || 
                           (b.professionalType?.toLowerCase() || '').includes(searchQuery.toLowerCase());
-      const matchCity = cityQuery === '' || 
-                        (b.city?.toLowerCase() || '').includes(cityQuery.toLowerCase());
+      
+      let matchCity = true;
+      let distance = null;
+      if (cityQuery === '__my_location__' && userLocation) {
+        if (b.latitude && b.longitude) {
+          const R = 6371;
+          const dLat = (b.latitude - userLocation.lat) * Math.PI / 180;
+          const dLng = (b.longitude - userLocation.lng) * Math.PI / 180;
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(b.latitude * Math.PI / 180) *
+                    Math.sin(dLng/2) * Math.sin(dLng/2);
+          distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          matchCity = distance <= filterDistance;
+        } else {
+          matchCity = false;
+        }
+      } else if (cityQuery && cityQuery !== '__my_location__') {
+        matchCity = (b.city?.toLowerCase() || '').includes(cityQuery.toLowerCase());
+      }
       
       let matchMode = true;
       if (serviceMode === 'store') matchMode = b.serviceMode !== 'mobile';
       if (serviceMode === 'mobile') matchMode = b.serviceMode === 'mobile' || b.businessCategory === 'mobile_service';
 
-      return matchSearch && matchCity && matchMode;
+      // Rating filter
+      let matchRating = true;
+      if (filterRating > 0) {
+        const bizRating = b.rating || 0;
+        matchRating = bizRating >= filterRating;
+      }
+
+      // Price filter
+      let matchPrice = true;
+      if (filterPriceMax !== '') {
+        const minPrice = b.services && b.services.length > 0 ? Math.min(...b.services.map(s => s.price || Infinity)) : Infinity;
+        matchPrice = minPrice <= Number(filterPriceMax);
+      }
+
+      // Category filter
+      let matchCategory = true;
+      if (filterCategory) {
+        matchCategory = b.professionalType === filterCategory;
+      }
+
+      if (matchSearch && matchCity && matchMode && matchRating && matchPrice && matchCategory) {
+        b._distance = distance;
+        return true;
+      }
+      return false;
     });
-  }, [businesses, searchQuery, cityQuery, serviceMode]);
+
+    // Sorting
+    if (filterSortBy === 'price-low') {
+      results.sort((a, b) => {
+        const aPrice = a.services?.[0]?.price || Infinity;
+        const bPrice = b.services?.[0]?.price || Infinity;
+        return aPrice - bPrice;
+      });
+    } else if (filterSortBy === 'price-high') {
+      results.sort((a, b) => {
+        const aPrice = a.services?.[0]?.price || 0;
+        const bPrice = b.services?.[0]?.price || 0;
+        return bPrice - aPrice;
+      });
+    } else if (filterSortBy === 'rating') {
+      results.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (filterSortBy === 'distance' && userLocation) {
+      results.sort((a, b) => (a._distance ?? Infinity) - (b._distance ?? Infinity));
+    }
+
+    return results;
+  }, [businesses, searchQuery, cityQuery, serviceMode, userLocation, filterRating, filterPriceMax, filterDistance, filterSortBy, filterCategory]);
 
 
-  // --- Mobile Sheet Handlers ---
-  const handleDragEnd = (event, info) => {
-    const offset = info.offset.y;
-    const velocity = info.velocity.y;
+  // Close all dropdowns
+  const closeAllDropdowns = useCallback(() => {
+    setShowCityDropdown(false);
+    setShowDatePicker(false);
+  }, []);
+
+  const handleCitySelect = useCallback((city) => {
+    if (city === 'My Location') {
+      setLocationLoading(true);
+      setCityQuery('__my_location__');
+      setShowCityDropdown(false);
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            setLocationLoading(false);
+          },
+          () => {
+            setCityQuery('');
+            setUserLocation(null);
+            setLocationLoading(false);
+          },
+          { enableHighAccuracy: true, timeout: 10000 }
+        );
+      } else {
+        setCityQuery('');
+        setLocationLoading(false);
+      }
+    } else {
+      setCityQuery(city);
+      setUserLocation(null);
+      setShowCityDropdown(false);
+    }
+  }, []);
+
+  // --- Mobile Sheet: pixel-based real-time drag ---
+  const sheetRef = useRef(null);
+  const dragStartY = useRef(0);
+  const dragStartHeight = useRef(0);
+  const isDragging = useRef(false);
+  const currentHeight = useRef(0);
+
+  // Snap points as fractions of viewport height
+  const SNAP_MIN = 0.15;
+  const SNAP_MID = 0.50;
+  const SNAP_MAX = 0.85;
+
+  const getSnapPx = useCallback((fraction) => Math.round(window.innerHeight * fraction), []);
+
+  // Initialize currentHeight on mount
+  useEffect(() => {
+    currentHeight.current = getSnapPx(SNAP_MID);
+  }, [getSnapPx]);
+
+  const snapToNearest = useCallback((heightPx, velocityY) => {
+    const vh = window.innerHeight;
+    const snapPoints = [SNAP_MIN * vh, SNAP_MID * vh, SNAP_MAX * vh];
     
-    // swipe down
-    if (offset > 100 || velocity > 500) {
-      if (sheetHeight === '85vh') setSheetHeight('50vh');
-      else if (sheetHeight === '50vh') setSheetHeight('15vh');
+    // Velocity-based: if fast swipe, go to next snap in that direction
+    if (Math.abs(velocityY) > 0.4) {
+      if (velocityY > 0) {
+        // swiping down — find next lower snap
+        const lower = snapPoints.filter(s => s < dragStartHeight.current - 20);
+        const target = lower.length ? lower[lower.length - 1] : snapPoints[0];
+        return target;
+      } else {
+        // swiping up — find next higher snap
+        const higher = snapPoints.filter(s => s > dragStartHeight.current + 20);
+        const target = higher.length ? higher[0] : snapPoints[snapPoints.length - 1];
+        return target;
+      }
     }
-    // swipe up
-    else if (offset < -100 || velocity < -500) {
-      if (sheetHeight === '15vh') setSheetHeight('50vh');
-      else if (sheetHeight === '50vh') setSheetHeight('85vh');
+
+    // Otherwise snap to closest
+    let closest = snapPoints[0];
+    let minDist = Math.abs(heightPx - snapPoints[0]);
+    for (let i = 1; i < snapPoints.length; i++) {
+      const dist = Math.abs(heightPx - snapPoints[i]);
+      if (dist < minDist) { minDist = dist; closest = snapPoints[i]; }
     }
-  };
+    return closest;
+  }, []);
+
+  const applyHeight = useCallback((px, animate) => {
+    const el = sheetRef.current;
+    if (!el) return;
+    if (animate) {
+      el.style.transition = 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)';
+    } else {
+      el.style.transition = 'none';
+    }
+    el.style.height = `${px}px`;
+    currentHeight.current = px;
+
+    // Update React state for snap points (controls backdrop, tap-to-expand)
+    const vh = window.innerHeight;
+    const fraction = px / vh;
+    if (animate) {
+      if (fraction <= 0.25) setSheetHeight('15vh');
+      else if (fraction <= 0.68) setSheetHeight('50vh');
+      else setSheetHeight('85vh');
+    }
+  }, []);
+
+  const collapseSheet = useCallback(() => {
+    applyHeight(Math.round(window.innerHeight * SNAP_MIN), true);
+  }, [applyHeight]);
+
+  const expandSheet = useCallback(() => {
+    applyHeight(Math.round(window.innerHeight * SNAP_MAX), true);
+  }, [applyHeight]);
+
+  // Handle drag on the header/drag-handle zone
+  const handleDragStart = useCallback((e) => {
+    dragStartY.current = e.touches[0].clientY;
+    dragStartHeight.current = currentHeight.current;
+    isDragging.current = false;
+  }, []);
+
+  const handleDragMove = useCallback((e) => {
+    const deltaY = e.touches[0].clientY - dragStartY.current;
+    if (!isDragging.current && Math.abs(deltaY) > 5) {
+      isDragging.current = true;
+    }
+    if (isDragging.current) {
+      const newHeight = Math.max(
+        getSnapPx(SNAP_MIN) * 0.8,
+        Math.min(getSnapPx(SNAP_MAX) * 1.05, dragStartHeight.current - deltaY)
+      );
+      applyHeight(newHeight, false);
+    }
+  }, [applyHeight, getSnapPx]);
+
+  const handleDragEnd = useCallback((e) => {
+    // If no drag occurred, treat as a tap — toggle expand/collapse
+    if (!isDragging.current) {
+      const vh = window.innerHeight;
+      if (currentHeight.current > vh * 0.25) {
+        collapseSheet();
+      } else {
+        expandSheet();
+      }
+      return;
+    }
+
+    const deltaY = e.changedTouches[0].clientY - dragStartY.current;
+    const absVelocity = Math.abs(deltaY) > 80 ? Math.abs(deltaY) / 200 : 0;
+    const directedVelocity = deltaY > 0 ? absVelocity : -absVelocity;
+
+    const targetPx = snapToNearest(currentHeight.current, directedVelocity);
+    applyHeight(targetPx, true);
+    isDragging.current = false;
+  }, [snapToNearest, applyHeight, collapseSheet, expandSheet]);
 
   return (
-    <div className="h-screen bg-gray-50 overflow-hidden relative md:flex md:flex-col">
+    <div className="h-screen bg-gray-50 overflow-hidden relative md:flex md:flex-col" style={{ overscrollBehavior: 'none' }}>
       {/* Top Navigation - Desktop & Mobile */}
-      <header className="md:bg-white md:border-b md:border-gray-200 z-30 md:shrink-0 md:relative fixed top-0 left-0 right-0">
+      <header className="md:bg-white md:border-b md:border-gray-200 z-[50] md:shrink-0 md:relative fixed top-0 left-0 right-0">
         <div className="flex items-center px-4 h-14 md:h-16 max-w-7xl mx-auto w-full gap-4">
           <Link href={`/${locale}`} className="p-2 -ml-2 rounded-full md:hover:bg-gray-100 text-gray-700 transition-colors bg-white/80 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none shadow-sm md:shadow-none">
             <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -162,7 +555,7 @@ export default function SearchPage() {
           
           <div className="flex-1 flex gap-2 items-center">
             {/* Desktop Search Bar */}
-            <div className="hidden md:flex flex-1 items-center bg-gray-100 rounded-full pl-4 pr-1 py-1 gap-3 focus-within:ring-2 focus-within:ring-[#244C70]/30 transition-shadow">
+            <div className="hidden md:flex flex-1 items-center bg-gray-100 rounded-full pl-4 pr-1 py-1 gap-3 border border-gray-300 focus-within:ring-2 focus-within:ring-[#244C70]/30 transition-shadow">
               
               <div className="flex flex-1 items-center gap-2">
                 <Search className="w-5 h-5 text-gray-400 shrink-0" />
@@ -185,7 +578,7 @@ export default function SearchPage() {
                 >
                   <MapPin className="w-5 h-5 text-gray-400 shrink-0" />
                   <span className={`text-sm truncate ${cityQuery ? 'text-gray-800' : 'text-gray-500'}`}>
-                    {cityQuery || 'All Cities'}
+                    {cityQuery === '__my_location__' ? 'My Location' : cityQuery || 'City'}
                   </span>
                   <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-auto" />
                 </button>
@@ -203,16 +596,16 @@ export default function SearchPage() {
                       {MOROCCO_CITIES.map(city => (
                         <button
                           key={city}
-                          onClick={() => { setCityQuery(city === 'All Cities' ? '' : city); setShowCityDropdown(false); }}
+                          onClick={() => handleCitySelect(city)}
                           className={`w-full flex items-center justify-between px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${
-                            (city === 'All Cities' && !cityQuery) || city === cityQuery ? 'text-[#244C70] font-medium bg-[#244C70]/5' : 'text-gray-700'
+                            (city === 'My Location' && cityQuery === '__my_location__') || city === cityQuery ? 'text-[#244C70] font-medium bg-[#244C70]/5' : 'text-gray-700'
                           }`}
                         >
                           <span className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 opacity-50" />
+                            {city === 'My Location' ? <Navigation className="w-4 h-4 opacity-50" /> : <MapPin className="w-4 h-4 opacity-50" />}
                             {city}
                           </span>
-                          {((city === 'All Cities' && !cityQuery) || city === cityQuery) && (
+                          {((city === 'My Location' && cityQuery === '__my_location__') || city === cityQuery) && (
                             <Check className="w-4 h-4 text-[#244C70]" />
                           )}
                         </button>
@@ -293,68 +686,37 @@ export default function SearchPage() {
             {/* Mobile Header Title */}
             <div className="md:hidden flex-1">
             </div>
-            
-            <button 
-              onClick={() => setShowFilters(!showFilters)}
-              className={`p-2 rounded-full transition-colors flex items-center justify-center shrink-0 shadow-sm ${showFilters ? 'bg-[#244C70] text-white' : 'bg-white/80 backdrop-blur-sm text-gray-700 md:bg-gray-100 md:backdrop-blur-none md:shadow-none hover:bg-gray-200'}`}
-            >
-              <Filter className="w-5 h-5" />
-            </button>
           </div>
         </div>
 
-        {/* Mobile Search & Filter Chips */}
-        <div className="md:hidden px-4 pb-3 flex flex-col gap-2">
-          {/* Search Input */}
-          <div className="flex items-center bg-white/80 backdrop-blur-md rounded-full px-4 py-2.5 gap-2 shadow-sm">
+        {/* Mobile Search Field with Search & City buttons inside */}
+        <div className="md:hidden px-4 pb-3">
+          <div className="flex items-center bg-white/80 backdrop-blur-md rounded-full pl-4 pr-1.5 py-1.5 gap-2 shadow-sm">
             <Search className="w-4 h-4 text-gray-400 shrink-0" />
             <input 
               type="text" 
               placeholder="Services or businesses..." 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onFocus={collapseSheet}
               className="bg-transparent border-none outline-none text-sm flex-1 w-full placeholder-gray-500"
             />
-          </div>
-           
-          {/* Filter Chips Row */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar">
-            {/* City Chip */}
             <button
-              onClick={() => { setShowCityDropdown(!showCityDropdown); setShowDatePicker(false); }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm whitespace-nowrap border transition-colors backdrop-blur-md shadow-sm ${
-                cityQuery ? 'bg-[#244C70]/90 border-[#244C70]/30 text-white font-medium' : 'bg-white/80 border-white/50 text-gray-700'
+              onClick={() => { setShowCityDropdown(!showCityDropdown); setShowDatePicker(false); collapseSheet(); }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs whitespace-nowrap border transition-colors shrink-0 ${
+                cityQuery ? 'bg-[#244C70] border-[#244C70] text-white font-medium' : 'bg-gray-50 border-gray-200 text-gray-600'
               }`}
             >
               <MapPin className="w-3.5 h-3.5" />
-              <span>{cityQuery || 'City'}</span>
+              <span className="max-w-[80px] truncate">{cityQuery === '__my_location__' ? 'My Location' : cityQuery || 'City'}</span>
               <ChevronDown className="w-3 h-3 opacity-60" />
             </button>
-
-            {/* Date Chip */}
-            <button
-              onClick={() => { setShowDatePicker(!showDatePicker); setShowCityDropdown(false); }}
-              className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm whitespace-nowrap border transition-colors backdrop-blur-md shadow-sm ${
-                selectedDate ? 'bg-[#244C70]/90 border-[#244C70]/30 text-white font-medium' : 'bg-white/80 border-white/50 text-gray-700'
-              }`}
+            <button 
+              className="bg-[#244C70] hover:bg-[#1a3a5a] text-white p-2 rounded-full transition-colors shrink-0"
+              title="Search"
             >
-              <CalendarIcon className="w-3.5 h-3.5" />
-              <span>{selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Date'}</span>
-              <ChevronDown className="w-3 h-3 opacity-60" />
+              <Search className="w-4 h-4" />
             </button>
-
-            {/* Service Mode Chips */}
-            {['all', 'store', 'mobile'].map(mode => (
-              <button
-                key={mode}
-                onClick={() => setServiceMode(mode)}
-                className={`px-3.5 py-2 rounded-full text-sm whitespace-nowrap border transition-colors backdrop-blur-md shadow-sm ${
-                  serviceMode === mode ? 'bg-[#244C70] text-white border-[#244C70]' : 'bg-white/80 border-white/50 text-gray-700'
-                }`}
-              >
-                {mode === 'all' ? 'All' : mode === 'store' ? 'In-Store' : 'Mobile'}
-              </button>
-            ))}
           </div>
         </div>
 
@@ -366,21 +728,21 @@ export default function SearchPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
-              className="md:hidden absolute left-0 right-0 top-full bg-white border-t border-gray-100 shadow-lg z-50 max-h-72 overflow-y-auto"
+              className="md:hidden absolute left-0 right-0 top-full bg-white border-t border-gray-100 shadow-lg z-[70] max-h-72 overflow-y-auto"
             >
               {MOROCCO_CITIES.map(city => (
                 <button
                   key={city}
-                  onClick={() => { setCityQuery(city === 'All Cities' ? '' : city); setShowCityDropdown(false); }}
+                  onClick={() => handleCitySelect(city)}
                   className={`w-full flex items-center justify-between px-5 py-3 text-sm border-b border-gray-50 active:bg-gray-100 transition-colors ${
-                    (city === 'All Cities' && !cityQuery) || city === cityQuery ? 'text-[#244C70] font-medium bg-[#244C70]/5' : 'text-gray-700'
+                    (city === 'My Location' && cityQuery === '__my_location__') || city === cityQuery ? 'text-[#244C70] font-medium bg-[#244C70]/5' : 'text-gray-700'
                   }`}
                 >
                   <span className="flex items-center gap-3">
-                    <MapPin className="w-4 h-4 opacity-40" />
+                    {city === 'My Location' ? <Navigation className="w-4 h-4 opacity-40" /> : <MapPin className="w-4 h-4 opacity-40" />}
                     {city}
                   </span>
-                  {((city === 'All Cities' && !cityQuery) || city === cityQuery) && (
+                  {((city === 'My Location' && cityQuery === '__my_location__') || city === cityQuery) && (
                     <Check className="w-4 h-4 text-[#244C70]" />
                   )}
                 </button>
@@ -438,15 +800,22 @@ export default function SearchPage() {
 
       {/* Backdrop for closing dropdowns */}
       {(showCityDropdown || showDatePicker) && (
-        <div className="fixed inset-0 z-10" onClick={() => { setShowCityDropdown(false); setShowDatePicker(false); }} />
+        <div className="fixed inset-0 z-40" onClick={closeAllDropdowns} />
       )}
 
       {/* Main Layout Area */}
       <div className="md:flex-1 md:flex md:flex-row absolute inset-0 md:relative overflow-hidden">
         
         {/* Map: full screen on mobile, 50% on desktop */}
-        <div className="absolute inset-0 md:relative md:w-1/2 md:h-full z-0">
-          <PlacesMap businesses={filteredBusinesses} locale={locale} />
+        <div className="absolute inset-0 md:relative md:w-1/2 md:h-full z-0"
+          onTouchStart={() => {
+            // On mobile, any map touch collapses the bottom sheet
+            if (window.innerWidth < 768 && currentHeight.current > window.innerHeight * 0.25) {
+              collapseSheet();
+            }
+          }}
+        >
+          <PlacesMap businesses={filteredBusinesses} locale={locale} hoveredBusinessId={hoveredBusinessId} selectedBusinessId={selectedBusinessId} onPopupClose={() => setSelectedBusinessId(null)} />
         </div>
 
         {/* RIGHT: Results Panel (Desktop Only) */}
@@ -454,32 +823,43 @@ export default function SearchPage() {
           
           {/* Quick Filters */}
           <div className="bg-white py-3 px-6 border-b border-gray-200 flex items-center gap-2 overflow-x-auto scroller-hide shrink-0">
-            <button 
-              onClick={() => setServiceMode('all')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border whitespace-nowrap transition-colors ${serviceMode === 'all' ? 'bg-[#244C70] text-white border-[#244C70]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
-            >
-              All Services
-            </button>
-            <button 
-              onClick={() => setServiceMode('store')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border whitespace-nowrap transition-colors ${serviceMode === 'store' ? 'bg-[#244C70] text-white border-[#244C70]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
-            >
-              In-Store
-            </button>
-            <button 
-              onClick={() => setServiceMode('mobile')}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium border whitespace-nowrap transition-colors ${serviceMode === 'mobile' ? 'bg-[#244C70] text-white border-[#244C70]' : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300'}`}
-            >
-              Mobile Service
-            </button>
+            <div className="flex rounded-full border border-gray-200 overflow-hidden">
+              <button 
+                onClick={() => setServiceMode('store')}
+                className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${serviceMode === 'store' ? 'bg-[#244C70] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+              >
+                <Store className="w-4 h-4" />
+                In-Store
+              </button>
+              <button 
+                onClick={() => setServiceMode('mobile')}
+                className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${serviceMode === 'mobile' ? 'bg-[#244C70] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
+              >
+                <Car className="w-4 h-4" />
+                Mobile
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-6">
-            <div className="flex justify-between items-end mb-4">
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-900">
                 {searchQuery || cityQuery ? 'Search Results' : 'Recommended for You'}
               </h2>
-              <span className="text-sm text-gray-500 font-medium">{filteredBusinesses.length} found</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-500 font-medium">{filteredBusinesses.length} found</span>
+                <button 
+                  onClick={() => setShowFilterDialog(!showFilterDialog)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                    showFilterDialog || filterRating || filterPriceMax || filterSortBy !== 'recommended' || filterCategory
+                      ? 'bg-[#244C70] border-[#244C70] text-white'
+                      : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Filter className="w-4 h-4" />
+                  Filters
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -491,14 +871,21 @@ export default function SearchPage() {
                 <Search className="w-12 h-12 text-gray-300 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-1">No results found</h3>
                 <p className="text-gray-500 max-w-sm">Try adjusting your filters or searching for a different city or service.</p>
-                <button onClick={() => {setSearchQuery(''); setCityQuery(''); setServiceMode('all')}} className="mt-4 text-[#244C70] font-medium hover:underline">
+                <button onClick={() => {setSearchQuery(''); setCityQuery(''); setUserLocation(null); setServiceMode('store')}} className="mt-4 text-[#244C70] font-medium hover:underline">
                   Clear all filters
                 </button>
               </div>
             ) : (
               <div className="grid xl:grid-cols-2 gap-4">
                 {filteredBusinesses.map(biz => (
-                  <ServiceCard key={biz.id} biz={biz} locale={locale} t={t} />
+                  <ServiceCard 
+                    key={biz.id} 
+                    biz={biz} 
+                    locale={locale} 
+                    t={t}
+                    onHover={() => setHoveredBusinessId(biz.id)}
+                    onLeave={() => setHoveredBusinessId(null)}
+                  />
                 ))}
               </div>
             )}
@@ -506,27 +893,66 @@ export default function SearchPage() {
         </div>
 
         {/* BOTTOM SHEET (Mobile Only) */}
-        <div className="md:hidden absolute bottom-0 left-0 right-0 z-20 pointer-events-none" style={{ height: '100%' }}>
-          <motion.div 
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.1)] pointer-events-auto flex flex-col"
-            initial={{ height: '50vh' }}
-            animate={{ height: sheetHeight }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-[60] pointer-events-none" style={{ height: '100%' }}>
+          <div 
+            ref={sheetRef}
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-4px_24px_rgba(0,0,0,0.12)] pointer-events-auto flex flex-col"
+            style={{ 
+              height: '50vh', 
+              transition: 'height 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+              willChange: 'height',
+              transform: 'translateZ(0)',
+            }}
           >
-            {/* Drag Handle */}
-            <motion.div 
-              className="w-full flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing shrink-0"
-              drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.2}
-              onDragEnd={handleDragEnd}
+            {/* Drag Handle Zone - large touch target */}
+            <div 
+              className="w-full flex flex-col items-center py-3 cursor-grab active:cursor-grabbing shrink-0 select-none"
+              onTouchStart={handleDragStart}
+              onTouchMove={handleDragMove}
+              onTouchEnd={handleDragEnd}
               style={{ touchAction: 'none' }}
             >
-               <div className="w-12 h-1.5 bg-gray-300 rounded-full" />
-            </motion.div>
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+
+            {/* Filter Chips Row */}
+            <div className="flex items-center justify-between px-4 pb-2 shrink-0">
+              {/* Service Mode Toggle - Left */}
+              <div className="flex rounded-full border border-gray-200 overflow-hidden">
+                <button
+                  onClick={() => setServiceMode('store')}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 text-sm whitespace-nowrap transition-colors ${
+                    serviceMode === 'store' ? 'bg-[#244C70] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  <span>In-Store</span>
+                </button>
+                <button
+                  onClick={() => setServiceMode('mobile')}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 text-sm whitespace-nowrap transition-colors ${
+                    serviceMode === 'mobile' ? 'bg-[#244C70] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <Car className="w-3.5 h-3.5" />
+                  <span>Mobile</span>
+                </button>
+              </div>
+
+              {/* Filter Button - Right */}
+              <button
+                onClick={() => { setShowFilterDialog(true); collapseSheet(); }}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm whitespace-nowrap border transition-colors ${
+                  filterRating || filterPriceMax || filterSortBy !== 'recommended' || filterCategory ? 'bg-[#244C70] border-[#244C70] text-white font-medium' : 'bg-gray-50 border-gray-200 text-gray-700'
+                }`}
+              >
+                <Filter className="w-3.5 h-3.5" />
+                <span>Filters</span>
+              </button>
+            </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3"
-                onTouchStart={(e) => e.stopPropagation()}
+                style={{ overscrollBehavior: 'contain' }}
             >
               <div className="flex justify-between items-center px-1">
                 <h2 className="font-bold text-gray-900 text-base">
@@ -542,24 +968,207 @@ export default function SearchPage() {
               )}
 
               {filteredBusinesses.map(biz => (
-                <ServiceCard key={biz.id} biz={biz} locale={locale} t={t} />
+                <ServiceCard key={biz.id} biz={biz} locale={locale} t={t} onSelect={(id) => { setSelectedBusinessId(id); collapseSheet(); }} />
               ))}
               
               {/* padding bottom for mobile safe area */}
               <div className="h-20 shrink-0" />
             </div>
 
-            {/* Tap to expand overlay when sheet is minified */}
-            {sheetHeight === '15vh' && (
-              <div 
-                className="absolute inset-0 z-10 cursor-pointer" 
-                onClick={() => setSheetHeight('50vh')}
-              />
-            )}
-          </motion.div>
+          </div>
         </div>
 
       </div>
+
+      {/* Filter Dialog */}
+      <AnimatePresence>
+        {showFilterDialog && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 z-[80]"
+              onClick={() => setShowFilterDialog(false)}
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 md:bottom-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:max-w-lg md:rounded-2xl bg-white rounded-t-2xl z-[81] max-h-[85vh] flex flex-col shadow-2xl"
+            >
+              {/* Dialog Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+                <h2 className="text-lg font-bold text-gray-900">Filters</h2>
+                <button onClick={() => setShowFilterDialog(false)} className="p-1.5 rounded-full hover:bg-gray-100 transition-colors">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Filter Content */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">
+
+                {/* Service Category */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Service Category</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {[{ value: '', label: 'All' }, { value: 'barber', label: 'Barber' }, { value: 'hairdresser', label: 'Hairdresser' }, { value: 'makeup', label: 'Makeup Artist' }, { value: 'nails', label: 'Nail Technician' }, { value: 'massage', label: 'Massage Therapist' }].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setFilterCategory(opt.value)}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm border transition-colors ${
+                          filterCategory === opt.value ? 'bg-[#244C70] border-[#244C70] text-white font-medium' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Sort By */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Sort By</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { value: 'recommended', label: 'Recommended' },
+                      { value: 'price-low', label: 'Price: Low to High', icon: DollarSign },
+                      { value: 'price-high', label: 'Price: High to Low', icon: DollarSign },
+                      { value: 'rating', label: 'Highest Rated', icon: Star },
+                      ...(userLocation ? [{ value: 'distance', label: 'Nearest', icon: Navigation }] : []),
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setFilterSortBy(opt.value)}
+                        className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-sm border transition-colors ${
+                          filterSortBy === opt.value ? 'bg-[#244C70] border-[#244C70] text-white font-medium' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {opt.icon && <opt.icon className="w-3.5 h-3.5" />}
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Date */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Date</h3>
+                  <input
+                    type="date"
+                    value={filterDate}
+                    onChange={e => setFilterDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-[#244C70]/30 focus:border-[#244C70] outline-none"
+                  />
+                  <div className="flex gap-2 mt-2">
+                    {['Today', 'Tomorrow', 'This Week'].map((label, i) => {
+                      const d = new Date();
+                      if (i < 2) d.setDate(d.getDate() + i);
+                      else d.setDate(d.getDate() + (7 - d.getDay()));
+                      const val = d.toISOString().split('T')[0];
+                      return (
+                        <button
+                          key={label}
+                          onClick={() => setFilterDate(val)}
+                          className={`flex-1 py-2 text-xs rounded-lg border transition-colors ${
+                            filterDate === val ? 'bg-[#244C70] text-white border-[#244C70]' : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Rating */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Minimum Rating</h3>
+                  <div className="flex gap-2">
+                    {[{ value: 0, label: 'Any' }, { value: 3, label: '3+' }, { value: 4, label: '4+' }, { value: 4.5, label: '4.5+' }].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setFilterRating(opt.value)}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm border transition-colors ${
+                          filterRating === opt.value ? 'bg-[#244C70] border-[#244C70] text-white font-medium' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {opt.value > 0 && <Star className="w-3.5 h-3.5 fill-current" />}
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Max Price */}
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-800 mb-3">Max Price (MAD)</h3>
+                  <div className="flex gap-2 flex-wrap">
+                    {[{ value: '', label: 'Any' }, { value: '50', label: '50' }, { value: '100', label: '100' }, { value: '200', label: '200' }, { value: '500', label: '500' }].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setFilterPriceMax(opt.value)}
+                        className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm border transition-colors ${
+                          filterPriceMax === opt.value ? 'bg-[#244C70] border-[#244C70] text-white font-medium' : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {opt.value && <DollarSign className="w-3.5 h-3.5" />}
+                        {opt.value ? `≤ ${opt.label}` : opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Distance (only when location is active) */}
+                {userLocation && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-800 mb-3">Distance: {filterDistance} km</h3>
+                    <input
+                      type="range"
+                      min="5"
+                      max="100"
+                      step="5"
+                      value={filterDistance}
+                      onChange={e => setFilterDistance(Number(e.target.value))}
+                      className="w-full accent-[#244C70]"
+                    />
+                    <div className="flex justify-between text-xs text-gray-400 mt-1">
+                      <span>5 km</span>
+                      <span>100 km</span>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+
+              {/* Dialog Footer */}
+              <div className="flex gap-3 px-5 py-4 border-t border-gray-100 shrink-0">
+                <button
+                  onClick={() => {
+                    setFilterRating(0);
+                    setFilterPriceMax('');
+                    setFilterDistance(50);
+                    setFilterSortBy('recommended');
+                    setFilterDate('');
+                    setFilterCategory('');
+                  }}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={() => setShowFilterDialog(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-[#244C70] text-white text-sm font-semibold hover:bg-[#1a3a5a] transition-colors"
+                >
+                  Show Results ({filteredBusinesses.length})
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
