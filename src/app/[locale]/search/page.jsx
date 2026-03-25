@@ -5,7 +5,8 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Search, MapPin, Calendar as CalendarIcon, Filter, Layers, List, Navigation, Star, ArrowLeft, Loader2, Scissors, ChevronLeft, ChevronRight, X, ChevronDown, Check, Store, Car, DollarSign, Clock, Phone, CalendarCheck, MessageCircle, ExternalLink } from 'lucide-react';
+import Sidebar from '@/components/Sidebar';
+import { Search, MapPin, Calendar as CalendarIcon, Filter, Layers, List, Navigation, Star, ArrowLeft, Loader2, Scissors, ChevronLeft, ChevronRight, X, ChevronDown, Check, Store, Car, DollarSign, Clock, Phone, CalendarCheck, MessageCircle, ExternalLink, Map as MapIcon, LayoutList } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MOROCCO_CITIES = [
@@ -21,144 +22,106 @@ const PlacesMap = dynamic(() => import('@/components/PlacesMap'), {
 });
 
 const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
-  // Builds the card body with buttons inside the text column
-  const cardWithButtons = (buttons) => (
-    <>
-      {/* Image Section */}
-      <div className="relative w-28 h-28 sm:h-auto sm:w-[220px] bg-gray-100 shrink-0 overflow-hidden">
-        {biz.coverGallery && biz.coverGallery[0] ? (
-          <img src={biz.coverGallery[0]} alt={biz.businessName} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#244C70]/10 to-[#244C70]/20 flex items-center justify-center">
-            <Scissors className="w-6 h-6 sm:w-8 sm:h-8 text-[#244C70]/40" />
-          </div>
-        )}
-        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-white px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-gray-800 flex items-center gap-0.5 sm:gap-1 shadow-sm">
-          <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-500 fill-amber-500" />
-          4.9
-        </div>
-      </div>
 
-      {/* Content Section */}
-      <div className="p-3 sm:p-5 flex-1 flex flex-col gap-1.5 sm:gap-3 min-w-0">
-        <div>
-          <h3 className="font-bold text-[#1e293b] text-sm sm:text-lg leading-tight line-clamp-1">{biz.businessName}</h3>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1 capitalize">{biz.professionalType?.replace('_', ' ') || t('search.salon')}</p>
-        </div>
-
-        <div className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm text-gray-600">
-          <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 shrink-0" />
-          <span className="line-clamp-1">{biz.city || t('search.morocco')}</span>
-        </div>
-
-        {biz.services && biz.services.length > 0 && (
-          <div className="hidden sm:block flex-1 space-y-2 mt-1">
-            {biz.services.slice(0, 2).map((s, i) => (
-              <div key={i} className="flex justify-between items-center text-sm">
-                <span className="text-gray-600 line-clamp-1 pr-2">{s.name}</span>
-                <span className="font-medium text-[#1e293b] whitespace-nowrap">{s.price} {s.currency}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Action buttons inside the text column */}
-        {buttons && (
-          <div className="hidden sm:flex mt-auto pt-3 gap-2">
-            {buttons}
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  // Desktop card rendering with functional buttons inside the text area
-  const desktopCard = biz.showBookingButton ? (
-    // Book Now: entire card links to business page
-    <div className="hidden md:block" onMouseEnter={onHover} onMouseLeave={onLeave}>
-      <Link href={`/${locale}/b/${biz.id}`} className="block bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all group">
-        <div className="flex flex-row h-full w-full">
-          {cardWithButtons(
-            <span className="flex-1 bg-[#244C70] text-center text-white py-2.5 rounded-lg text-sm font-semibold group-hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5">
-              <CalendarCheck className="w-4 h-4" />
-              {t('search.bookNow')}
-            </span>
-          )}
-        </div>
+  /* ── Desktop vertical card (md+) ── */
+  const desktopButtons = biz.showBookingButton ? (
+    <div className="flex items-center gap-3 px-5 pb-5 mt-auto">
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-2.5 border border-gray-300 rounded-full">
+        {t('search.details') || 'Details'}
+      </Link>
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-full text-sm font-semibold hover:bg-[#1a3a5a] transition-colors">
+        {t('search.bookNow')}
       </Link>
     </div>
   ) : biz.showGetDirections ? (
-    // Get Directions: card is not a link, buttons are real links
-    <div className="hidden md:block" onMouseEnter={onHover} onMouseLeave={onLeave}>
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all group">
-        <div className="flex flex-row h-full w-full">
-          {cardWithButtons(
-            <>
-              <a
-                href={biz.latitude && biz.longitude ? `https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}` : '#'}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
-              >
-                <Navigation className="w-4 h-4" />
-                Get Directions
-              </a>
-              <Link
-                href={`/${locale}/b/${biz.id}`}
-                className="flex-1 bg-gray-100 text-gray-700 text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <ExternalLink className="w-4 h-4" />
-                Details
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
+    <div className="flex items-center gap-3 px-5 pb-5 mt-auto">
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-2.5 border border-gray-300 rounded-full">
+        {t('search.details') || 'Details'}
+      </Link>
+      <a
+        href={biz.latitude && biz.longitude ? `https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}` : '#'}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-full text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
+      >
+        <Navigation className="w-4 h-4" />
+        {t('search.directions') || 'Directions'}
+      </a>
     </div>
   ) : (biz.showCallButton || biz.showMessageButton) ? (
-    // Call & Message: card is not a link, buttons are real links
-    <div className="hidden md:block" onMouseEnter={onHover} onMouseLeave={onLeave}>
-      <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all group">
-        <div className="flex flex-row h-full w-full">
-          {cardWithButtons(
-            <>
-              {biz.phone ? (
-                <a
-                  href={`tel:${biz.phone}`}
-                  className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <Phone className="w-4 h-4" />
-                  {t('search.contact')}
-                </a>
-              ) : (
-                <Link
-                  href={`/${locale}/b/${biz.id}`}
-                  className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  {t('search.contact')}
-                </Link>
-              )}
-              <Link
-                href={`/${locale}/b/${biz.id}`}
-                className="flex-1 bg-gray-100 text-gray-700 text-center py-2.5 rounded-lg text-sm font-semibold hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
-              >
-                <ExternalLink className="w-4 h-4" />
-                {t('search.details')}
-              </Link>
-            </>
-          )}
-        </div>
-      </div>
+    <div className="flex items-center gap-3 px-5 pb-5 mt-auto">
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-2.5 border border-gray-300 rounded-full">
+        {t('search.details') || 'Details'}
+      </Link>
+      {biz.phone ? (
+        <a href={`tel:${biz.phone}`} className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-full text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5">
+          <Phone className="w-4 h-4" />
+          {t('search.contact')}
+        </a>
+      ) : (
+        <Link href={`/${locale}/b/${biz.id}`} className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-full text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5">
+          <MessageCircle className="w-4 h-4" />
+          {t('search.contact')}
+        </Link>
+      )}
     </div>
   ) : (
-    // Fallback: entire card links to business page
-    <div className="hidden md:block" onMouseEnter={onHover} onMouseLeave={onLeave}>
-      <Link href={`/${locale}/b/${biz.id}`} className="block">
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-md transition-all group flex flex-row h-full w-full">
-          {cardWithButtons(null)}
-        </div>
+    <div className="flex items-center gap-3 px-5 pb-5 mt-auto">
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-2.5 border border-gray-300 rounded-full">
+        {t('search.details') || 'Details'}
       </Link>
+    </div>
+  );
+
+  const desktopCard = (
+    <div className="hidden md:flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all group h-full" onMouseEnter={onHover} onMouseLeave={onLeave}>
+      {/* Cover image */}
+      <div className="relative w-full h-44 bg-gray-100 overflow-hidden shrink-0">
+        {biz.coverGallery && biz.coverGallery[0] ? (
+          <img src={biz.coverGallery[0]} alt={biz.businessName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-[#244C70]/10 to-[#244C70]/20 flex items-center justify-center">
+            <Scissors className="w-8 h-8 text-[#244C70]/40" />
+          </div>
+        )}
+        {/* Badge */}
+        {biz.rating > 0 && (
+        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-gray-800 flex items-center gap-1 shadow-sm">
+          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+          {(biz.rating || 0).toFixed(1)}
+        </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-col flex-1 px-5 pt-4">
+        <h3 className="font-bold text-[#1e293b] text-base leading-tight line-clamp-1">{biz.businessName}</h3>
+        <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-1.5">
+          <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+          <span className="line-clamp-1">{biz.city || t('search.morocco')}</span>
+        </div>
+
+        {/* Divider + services */}
+        {biz.services && biz.services.length > 0 && (
+          <>
+            <div className="h-px bg-gray-100 my-3" />
+            <div className="space-y-1.5">
+              {biz.services.slice(0, 2).map((s, i) => (
+                <div key={i} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-600 line-clamp-1 pr-2">{s.name}</span>
+                  <span className="font-semibold text-[#1e293b] whitespace-nowrap">{s.price} {s.currency}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Spacer */}
+        <div className="flex-1 min-h-4" />
+      </div>
+
+      {/* Buttons */}
+      {desktopButtons}
     </div>
   );
 
@@ -178,10 +141,12 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
                   <Scissors className="w-6 h-6 text-[#244C70]/40" />
                 </div>
               )}
+              {biz.rating > 0 && (
               <div className="absolute top-2 right-2 bg-white px-1.5 py-0.5 rounded-full text-[10px] font-bold text-gray-800 flex items-center gap-0.5 shadow-sm">
                 <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                4.9
+                {(biz.rating || 0).toFixed(1)}
               </div>
+              )}
             </div>
             {/* Info + Buttons */}
             <div className="p-3 flex-1 flex flex-col gap-1.5 min-w-0">
@@ -266,6 +231,7 @@ export default function SearchPage() {
   const { locale } = useParams();
   const searchParams = useSearchParams();
   const { t, isRTL } = useLanguage();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -293,6 +259,14 @@ export default function SearchPage() {
 
   // Bottom sheet state for mobile
   const [sheetHeight, setSheetHeight] = useState('50vh'); // '10vh', '50vh', '85vh'
+  const [showMap, setShowMap] = useState(true);
+  const [showServices, setShowServices] = useState(true);
+
+  useEffect(() => {
+    const handleToggleSidebar = () => setIsSidebarOpen(prev => !prev);
+    window.addEventListener('toggle-home-sidebar', handleToggleSidebar);
+    return () => window.removeEventListener('toggle-home-sidebar', handleToggleSidebar);
+  }, []);
 
   useEffect(() => {
     fetch('/api/businesses')
@@ -361,11 +335,26 @@ export default function SearchPage() {
       }
 
       if (matchSearch && matchCity && matchMode && matchRating && matchPrice && matchCategory) {
-        b._distance = distance;
         return true;
       }
       return false;
     });
+
+    // Attach distances without mutating originals
+    const distanceMap = new Map();
+    if (userLocation) {
+      results.forEach(b => {
+        if (b.latitude && b.longitude) {
+          const R = 6371;
+          const dLat = (b.latitude - userLocation.lat) * Math.PI / 180;
+          const dLng = (b.longitude - userLocation.lng) * Math.PI / 180;
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(userLocation.lat * Math.PI / 180) * Math.cos(b.latitude * Math.PI / 180) *
+                    Math.sin(dLng/2) * Math.sin(dLng/2);
+          distanceMap.set(b.id, R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+        }
+      });
+    }
 
     // Sorting
     if (filterSortBy === 'price-low') {
@@ -383,7 +372,7 @@ export default function SearchPage() {
     } else if (filterSortBy === 'rating') {
       results.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     } else if (filterSortBy === 'distance' && userLocation) {
-      results.sort((a, b) => (a._distance ?? Infinity) - (b._distance ?? Infinity));
+      results.sort((a, b) => (distanceMap.get(a.id) ?? Infinity) - (distanceMap.get(b.id) ?? Infinity));
     }
 
     return results;
@@ -548,7 +537,7 @@ export default function SearchPage() {
   return (
     <div className="h-screen bg-gray-50 overflow-hidden relative md:flex md:flex-col" style={{ overscrollBehavior: 'none' }}>
       {/* Top Navigation - Desktop & Mobile */}
-      <header className="md:bg-white md:border-b md:border-gray-200 z-[50] md:shrink-0 md:relative fixed top-0 left-0 right-0">
+      <header className="md:bg-white md:border-b md:border-gray-200 z-[30] md:z-[50] md:shrink-0 md:relative fixed top-0 left-0 right-0">
         <div className="flex items-center px-4 h-14 md:h-16 max-w-7xl mx-auto w-full gap-2 md:gap-4">
           <Link href={`/${locale}`} className="hidden md:flex p-2 -ml-2 rounded-full md:hover:bg-gray-100 text-gray-700 transition-colors bg-white/80 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none shadow-sm md:shadow-none">
             <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
@@ -556,32 +545,33 @@ export default function SearchPage() {
           
           <div className="flex-1 flex gap-2 items-center">
             {/* Desktop Search Bar */}
-            <div className="hidden md:flex flex-1 items-center bg-gray-100 rounded-full pl-4 pr-1 py-1 gap-3 border border-gray-300 focus-within:ring-2 focus-within:ring-[#244C70]/30 transition-shadow">
+            <div className="hidden md:flex flex-1 items-center bg-white rounded-full px-1.5 py-1.5 gap-0 border border-gray-300">
               
-              <div className="flex flex-1 items-center gap-2">
-                <Search className="w-5 h-5 text-gray-400 shrink-0" />
+              {/* Search Input */}
+              <div className="flex flex-1 items-center gap-2.5 px-4 py-1.5 min-w-0">
+                <Search className="w-[18px] h-[18px] text-gray-400 shrink-0" />
                 <input 
                   type="text" 
                   placeholder={t('search.placeholder')} 
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="bg-transparent border-none outline-none text-sm w-full min-w-0 placeholder-gray-500"
+                  className="bg-transparent border-none outline-none text-sm w-full min-w-0 text-gray-800 placeholder-gray-400"
                 />
               </div>
 
-              <div className="w-px h-6 bg-gray-300 shrink-0"></div>
+              <div className="w-px h-7 bg-gray-200 shrink-0"></div>
               
               {/* City Dropdown Trigger */}
-              <div className="flex flex-1 items-center gap-2 relative">
+              <div className="flex flex-1 items-center relative min-w-0">
                 <button
                   onClick={() => { setShowCityDropdown(!showCityDropdown); setShowDatePicker(false); }}
-                  className="flex items-center gap-2 w-full text-left"
+                  className="flex items-center gap-2.5 w-full px-4 py-1.5 text-left rounded-full hover:bg-gray-50 transition-colors"
                 >
-                  <MapPin className="w-5 h-5 text-gray-400 shrink-0" />
-                  <span className={`text-sm truncate ${cityQuery ? 'text-gray-800' : 'text-gray-500'}`}>
+                  <MapPin className="w-[18px] h-[18px] text-gray-400 shrink-0" />
+                  <span className={`text-sm truncate ${cityQuery ? 'text-gray-800' : 'text-gray-400'}`}>
                     {cityQuery === '__my_location__' ? t('search.myLocation') : cityQuery || t('search.city')}
                   </span>
-                  <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-auto" />
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-auto" />
                 </button>
 
                 {/* City Dropdown Panel */}
@@ -616,19 +606,19 @@ export default function SearchPage() {
                 </AnimatePresence>
               </div>
 
-              <div className="w-px h-6 bg-gray-300 shrink-0"></div>
+              <div className="w-px h-7 bg-gray-200 shrink-0"></div>
               
               {/* Date Picker Trigger */}
-              <div className="flex flex-1 items-center gap-2 relative">
+              <div className="flex flex-1 items-center relative min-w-0">
                 <button
                   onClick={() => { setShowDatePicker(!showDatePicker); setShowCityDropdown(false); }}
-                  className="flex items-center gap-2 w-full text-left"
+                  className="flex items-center gap-2.5 w-full px-4 py-1.5 text-left rounded-full hover:bg-gray-50 transition-colors"
                 >
-                  <CalendarIcon className="w-5 h-5 text-gray-400 shrink-0" />
-                  <span className={`text-sm truncate ${selectedDate ? 'text-gray-800' : 'text-gray-500'}`}>
+                  <CalendarIcon className="w-[18px] h-[18px] text-gray-400 shrink-0" />
+                  <span className={`text-sm truncate ${selectedDate ? 'text-gray-800' : 'text-gray-400'}`}>
                     {selectedDate ? new Date(selectedDate).toLocaleDateString(locale === 'ar' ? 'ar-MA' : locale === 'fr' ? 'fr-FR' : 'en-US', { month: 'short', day: 'numeric' }) : t('search.anyDate')}
                   </span>
-                  <ChevronDown className="w-4 h-4 text-gray-400 shrink-0 ml-auto" />
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-auto" />
                 </button>
 
                 {/* Date Picker Panel */}
@@ -677,10 +667,11 @@ export default function SearchPage() {
               </div>
 
               <button 
-                className="bg-[#244C70] hover:bg-[#1a3a5a] text-white p-2.5 rounded-full transition-colors flex items-center justify-center shrink-0 ml-1"
+                className="bg-[#244C70] hover:bg-[#1a3a5a] text-white px-5 py-2 rounded-full transition-colors flex items-center justify-center gap-2 shrink-0 text-sm font-medium"
                 title="Search"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-4 h-4" />
+                {t('search.searchBtn')}
               </button>
             </div>
 
@@ -801,14 +792,65 @@ export default function SearchPage() {
 
       {/* Backdrop for closing dropdowns */}
       {(showCityDropdown || showDatePicker) && (
-        <div className="fixed inset-0 z-40" onClick={closeAllDropdowns} />
+        <div className="fixed inset-0 z-[25] md:z-40" onClick={closeAllDropdowns} />
       )}
 
       {/* Main Layout Area */}
-      <div className="md:flex-1 md:flex md:flex-row absolute inset-0 md:relative overflow-hidden">
+      <div className="flex-1 flex flex-col absolute inset-0 md:relative overflow-hidden">
+
+        {/* Desktop toolbar — always visible on md+ */}
+        <div className="hidden md:flex bg-white py-3 px-6 border-b border-gray-200 items-center gap-2 overflow-x-auto scroller-hide shrink-0 z-20">
+          <div className="flex rounded-full border border-gray-200 bg-white overflow-hidden">
+            <button 
+              onClick={() => setServiceMode('store')}
+              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${serviceMode === 'store' ? 'bg-white text-gray-900' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+            >
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${serviceMode === 'store' ? 'bg-[#244C70] border-[#244C70]' : 'border-gray-300 bg-white'}`}>
+                {serviceMode === 'store' && <Check className="w-3 h-3 text-white" />}
+              </div>
+              {t('search.inStore')}
+            </button>
+            <button 
+              onClick={() => setServiceMode('mobile')}
+              className={`flex items-center gap-2 px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${serviceMode === 'mobile' ? 'bg-white text-gray-900' : 'bg-white text-gray-500 hover:bg-gray-50'}`}
+            >
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${serviceMode === 'mobile' ? 'bg-[#244C70] border-[#244C70]' : 'border-gray-300 bg-white'}`}>
+                {serviceMode === 'mobile' && <Check className="w-3 h-3 text-white" />}
+              </div>
+              {t('search.mobile')}
+            </button>
+          </div>
+          {/* Show/Hide Services toggle — hidden when map is off */}
+          {showMap && (
+          <button
+            onClick={() => setShowServices(prev => !prev)}
+            className="ml-auto flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors shrink-0"
+          >
+            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${showServices ? 'bg-[#244C70] border-[#244C70]' : 'border-gray-300 bg-white'}`}>
+              {showServices && <Check className="w-3 h-3 text-white" />}
+            </div>
+            Services
+          </button>
+          )}
+          {/* Show/Hide Map toggle — hidden when services are off */}
+          {showServices && (
+          <button
+            onClick={() => setShowMap(prev => !prev)}
+            className={`${!showMap ? 'ml-auto' : ''} flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 transition-colors shrink-0`}
+          >
+            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${showMap ? 'bg-[#244C70] border-[#244C70]' : 'border-gray-300 bg-white'}`}>
+              {showMap && <Check className="w-3 h-3 text-white" />}
+            </div>
+            Map
+          </button>
+          )}
+        </div>
+
+        {/* Map + Services row */}
+        <div className="flex-1 flex flex-row relative overflow-hidden">
         
-        {/* Map: full screen on mobile, 50% on desktop */}
-        <div className="absolute inset-0 md:relative md:w-1/2 md:h-full z-0"
+        {/* Map: full screen on mobile, toggle-controlled on md+ */}
+        <div className={`absolute inset-0 md:relative md:h-full z-0 ${showMap ? (showServices ? 'md:block md:w-1/3 lg:w-2/5 xl:w-1/2' : 'md:block md:w-full') : 'md:hidden'}`}
           onTouchStart={() => {
             // On mobile, any map touch collapses the bottom sheet
             if (window.innerWidth < 768 && currentHeight.current > (window.innerHeight - NAV_HEIGHT) * 0.25) {
@@ -820,27 +862,7 @@ export default function SearchPage() {
         </div>
 
         {/* RIGHT: Results Panel (Desktop Only) */}
-        <div className="hidden md:flex w-1/2 h-full flex-col bg-gray-50 z-10 border-l border-gray-200">
-          
-          {/* Quick Filters */}
-          <div className="bg-white py-3 px-6 border-b border-gray-200 flex items-center gap-2 overflow-x-auto scroller-hide shrink-0">
-            <div className="flex rounded-full border border-gray-200 overflow-hidden">
-              <button 
-                onClick={() => setServiceMode('store')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${serviceMode === 'store' ? 'bg-[#244C70] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-              >
-                <Store className="w-4 h-4" />
-                {t('search.inStore')}
-              </button>
-              <button 
-                onClick={() => setServiceMode('mobile')}
-                className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ${serviceMode === 'mobile' ? 'bg-[#244C70] text-white' : 'bg-white text-gray-700 hover:bg-gray-50'}`}
-              >
-                <Car className="w-4 h-4" />
-                {t('search.mobile')}
-              </button>
-            </div>
-          </div>
+        <div className={`${showServices ? 'hidden md:flex' : 'hidden'} h-full flex-col bg-gray-50 z-10 border-gray-200 ${showMap ? 'md:w-2/3 md:border-l lg:w-3/5 xl:w-1/2' : 'md:w-full'}`}>
 
           <div className="flex-1 overflow-y-auto p-6">
             <div className="flex justify-between items-center mb-4">
@@ -877,7 +899,7 @@ export default function SearchPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid xl:grid-cols-2 gap-4">
+              <div className={`grid gap-4 md:grid-cols-2`}>
                 {filteredBusinesses.map(biz => (
                   <ServiceCard 
                     key={biz.id} 
@@ -891,6 +913,7 @@ export default function SearchPage() {
               </div>
             )}
           </div>
+        </div>
         </div>
 
         {/* BOTTOM SHEET (Mobile Only) — offset above bottom nav (h-16 = 4rem) */}
@@ -1170,6 +1193,8 @@ export default function SearchPage() {
           </>
         )}
       </AnimatePresence>
+
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
     </div>
   );
 }

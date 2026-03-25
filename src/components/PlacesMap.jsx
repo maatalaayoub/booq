@@ -108,17 +108,48 @@ function createHighlightedIcon() {
   });
 }
 
+// Returns true only when both coords are real finite numbers (guards against NaN / "NaN" strings)
+const hasValidCoords = (b) =>
+  b != null &&
+  Number.isFinite(Number(b.latitude)) &&
+  Number.isFinite(Number(b.longitude));
+
 // Calculate bounds to show all markers
 function BoundsFitter({ businesses }) {
   const map = useMap();
   
   useEffect(() => {
-    const validBusinesses = businesses?.filter(b => b && b.latitude && b.longitude) || [];
-    if (validBusinesses.length > 0) {
-      const bounds = L.latLngBounds(validBusinesses.map(b => [b.latitude, b.longitude]));
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
-    }
+    const validBusinesses = businesses?.filter(hasValidCoords) || [];
+    if (validBusinesses.length === 0) return;
+    // Skip if map container has zero size (hidden via CSS)
+    const size = map.getSize();
+    if (!size || size.x === 0 || size.y === 0) return;
+    try {
+      const bounds = L.latLngBounds(validBusinesses.map(b => [Number(b.latitude), Number(b.longitude)]));
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 14 });
+      }
+    } catch (_) { /* skip invalid coords */ }
   }, [businesses, map]);
+
+  return null;
+}
+
+// Invalidate map size when container becomes visible after being hidden
+function MapResizeHandler() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    if (!container) return;
+
+    const observer = new ResizeObserver(() => {
+      map.invalidateSize({ animate: false });
+    });
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [map]);
 
   return null;
 }
@@ -130,9 +161,14 @@ function FlyToHovered({ businesses, hoveredBusinessId }) {
   useEffect(() => {
     if (!hoveredBusinessId) return;
     const biz = businesses?.find(b => b.id === hoveredBusinessId);
-    if (biz?.latitude && biz?.longitude) {
-      map.flyTo([biz.latitude, biz.longitude], 15, { duration: 0.8 });
-    }
+    if (!hasValidCoords(biz)) return;
+    const size = map.getSize();
+    if (!size || size.x === 0 || size.y === 0) return;
+    const lat = Number(biz.latitude);
+    const lng = Number(biz.longitude);
+    try {
+      map.flyTo([lat, lng], 15, { duration: 0.8 });
+    } catch (_) { /* skip invalid coords */ }
   }, [hoveredBusinessId, businesses, map]);
 
   return null;
@@ -145,14 +181,18 @@ function FlyToSelected({ businesses, selectedBusinessId, markerRefs }) {
   useEffect(() => {
     if (!selectedBusinessId) return;
     const biz = businesses?.find(b => b.id === selectedBusinessId);
-    if (biz?.latitude && biz?.longitude) {
-      map.flyTo([biz.latitude, biz.longitude], 16, { duration: 0.8 });
-      // Open the popup after flyTo completes
+    if (!hasValidCoords(biz)) return;
+    const size = map.getSize();
+    if (!size || size.x === 0 || size.y === 0) return;
+    const lat = Number(biz.latitude);
+    const lng = Number(biz.longitude);
+    try {
+      map.flyTo([lat, lng], 16, { duration: 0.8 });
       setTimeout(() => {
         const marker = markerRefs.current?.[selectedBusinessId];
         if (marker) marker.openPopup();
       }, 900);
-    }
+    } catch (_) { /* skip invalid coords */ }
   }, [selectedBusinessId, businesses, map, markerRefs]);
 
   return null;
@@ -205,6 +245,7 @@ export default function PlacesMap({ businesses, locale, hoveredBusinessId, selec
         url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
       />
       
+      <MapResizeHandler />
       <BoundsFitter businesses={businesses} />
       <FlyToHovered businesses={businesses} hoveredBusinessId={hoveredBusinessId} />
       <FlyToSelected businesses={businesses} selectedBusinessId={selectedBusinessId} markerRefs={markerRefs} />
@@ -235,10 +276,10 @@ export default function PlacesMap({ businesses, locale, hoveredBusinessId, selec
           });
         }}
       >
-        {businesses?.filter(b => b && b.latitude && b.longitude).map((biz) => (
+        {businesses?.filter(hasValidCoords).map((biz) => (
           <Marker 
             key={biz.id} 
-            position={[biz.latitude, biz.longitude]}
+            position={[Number(biz.latitude), Number(biz.longitude)]}
             icon={biz.id === hoveredBusinessId || biz.id === selectedBusinessId ? highlightedIcon || customIcon : customIcon}
             ref={(ref) => { if (ref) markerRefs.current[biz.id] = ref; }}
             eventHandlers={{

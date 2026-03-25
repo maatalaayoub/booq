@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+function validCoord(lat, lng) {
+  const la = Number(lat);
+  const lo = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+  if (la === 0 && lo === 0) return null;
+  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
+  return { latitude: la, longitude: lo };
+}
+
 /**
  * GET /api/business-page/[id]
  * Public endpoint – fetch full business details for the public-facing page.
@@ -60,8 +69,8 @@ export async function GET(_request, { params }) {
       address: details.address || '',
       city: details.city || '',
       phone: details.phone || null,
-      latitude: details.latitude || null,
-      longitude: details.longitude || null,
+      latitude: validCoord(details.latitude, details.longitude)?.latitude ?? null,
+      longitude: validCoord(details.latitude, details.longitude)?.longitude ?? null,
       businessHours: details.business_hours || [],
       // Card display settings
       avatarUrl: settings.avatarUrl || null,

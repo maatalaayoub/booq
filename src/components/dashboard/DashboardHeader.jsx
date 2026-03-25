@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Bell, Menu, BadgeCheck } from 'lucide-react';
+import { Bell, Menu, BadgeCheck, User } from 'lucide-react';
 import Link from 'next/link';
 import { useVerificationStatus } from '@/hooks/useVerificationStatus';
 
@@ -48,8 +48,8 @@ export default function DashboardHeader() {
     };
   }, []);
 
-  // Use profile avatar if available, otherwise fall back to Clerk
-  const profileImage = avatarUrl || user?.imageUrl;
+  // Prefer uploaded avatars. If the user has no real image, render a gray fallback.
+  const profileImage = avatarUrl || (user?.hasImage ? user.imageUrl : null);
 
   const handleOpenSidebar = () => {
     window.dispatchEvent(new CustomEvent('toggle-mobile-sidebar'));
@@ -98,11 +98,17 @@ export default function DashboardHeader() {
               >
                 <div className="relative">
                   <div className="w-9 h-9 rounded-full ring-2 ring-[#D4AF37]/50 overflow-hidden">
-                    <img 
-                      src={profileImage} 
-                      alt={user.firstName || 'Profile'} 
-                      className="w-full h-full object-cover"
-                    />
+                    {profileImage ? (
+                      <img
+                        src={profileImage}
+                        alt={user.firstName || 'Profile'}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-300 flex items-center justify-center">
+                        <User className="w-5 h-5 text-gray-600" />
+                      </div>
+                    )}
                   </div>
                   {isVerified && (
                     <div className="absolute -bottom-0.5 -right-0.5 bg-blue-500 rounded-full p-0.5">

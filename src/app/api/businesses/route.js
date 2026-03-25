@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// Validate that lat/lng are real-world coordinates (not 0,0 "null island")
+function validCoord(lat, lng) {
+  const la = Number(lat);
+  const lo = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+  if (la === 0 && lo === 0) return null; // null island
+  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
+  return { latitude: la, longitude: lo };
+}
+
 /**
  * GET /api/businesses
  * Fetch active businesses grouped by professional_type for the home page.
@@ -74,8 +84,8 @@ export async function GET(request) {
         showBookingButton: biz.service_mode === 'walkin' ? false : settings.showBookingButton !== false,
         showGetDirections: biz.service_mode === 'walkin' ? true : (settings.showGetDirections || false),
         phone: details?.phone || null,
-        latitude: details?.latitude || null,
-        longitude: details?.longitude || null,
+        latitude: validCoord(details?.latitude, details?.longitude)?.latitude ?? null,
+        longitude: validCoord(details?.latitude, details?.longitude)?.longitude ?? null,
         totalServices: services.length,
         services: services.slice(0, 3).map(s => ({
           name: s.name,

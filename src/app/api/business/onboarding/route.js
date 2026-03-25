@@ -17,6 +17,15 @@ function sanitizePhone(value) {
   return value.replace(/[^0-9+\-\s()]/g, '').trim().slice(0, 30);
 }
 
+function validCoord(lat, lng) {
+  const la = Number(lat);
+  const lo = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+  if (la === 0 && lo === 0) return null;
+  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
+  return { latitude: la, longitude: lo };
+}
+
 // Helper: get userId either from session or Bearer token
 async function getUserId(request) {
   const { userId } = await auth();
@@ -271,8 +280,8 @@ export async function POST(request) {
         address: sanitizeText(address) || null,
         city: sanitizeText(city) || null,
         phone: sanitizePhone(phone) || null,
-        latitude: latitude || null,
-        longitude: longitude || null,
+        latitude: validCoord(latitude, longitude)?.latitude ?? null,
+        longitude: validCoord(latitude, longitude)?.longitude ?? null,
         work_location: workLocation || null,
         business_hours: businessHours || [],
       };
@@ -295,8 +304,8 @@ export async function POST(request) {
         address: sanitizeText(address) || null,
         city: sanitizeText(city) || null,
         phone: sanitizePhone(phone) || null,
-        latitude: latitude || null,
-        longitude: longitude || null,
+        latitude: validCoord(latitude, longitude)?.latitude ?? null,
+        longitude: validCoord(latitude, longitude)?.longitude ?? null,
         service_area: sanitizeText(serviceArea) || null,
         travel_radius_km: travelRadiusKm || null,
         work_location: workLocation || null,

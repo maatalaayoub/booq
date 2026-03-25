@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+function validCoord(lat, lng) {
+  const la = Number(lat);
+  const lo = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+  if (la === 0 && lo === 0) return null;
+  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
+  return { latitude: la, longitude: lo };
+}
+
 async function getUserId(request) {
   const { userId } = await auth();
   if (userId) return userId;
@@ -81,8 +90,8 @@ export async function GET(request) {
       serviceRadius: mobileInfo?.travel_radius_km || null,
       citiesCovered: mobileInfo?.cities_covered || [],
       travelFee: mobileInfo?.travel_fee != null ? Number(mobileInfo.travel_fee) : 0,
-      latitude: mobileInfo?.latitude || null,
-      longitude: mobileInfo?.longitude || null,
+      latitude: validCoord(mobileInfo?.latitude, mobileInfo?.longitude)?.latitude ?? null,
+      longitude: validCoord(mobileInfo?.latitude, mobileInfo?.longitude)?.longitude ?? null,
     });
   } catch (error) {
     console.error('[service-area GET] Error:', error);
@@ -131,8 +140,8 @@ export async function PUT(request) {
       travel_radius_km: serviceRadius != null ? serviceRadius : null,
       cities_covered: citiesCovered || [],
       travel_fee: travelFee != null ? travelFee : 0,
-      latitude: latitude != null ? latitude : null,
-      longitude: longitude != null ? longitude : null,
+      latitude: validCoord(latitude, longitude)?.latitude ?? null,
+      longitude: validCoord(latitude, longitude)?.longitude ?? null,
     };
 
     const { error: updateError } = await supabase

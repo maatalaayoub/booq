@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+function validCoord(lat, lng) {
+  const la = Number(lat);
+  const lo = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+  if (la === 0 && lo === 0) return null;
+  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
+  return { latitude: la, longitude: lo };
+}
+
 /**
  * POST /api/businesses/favorites
  * Fetch businesses by an array of IDs (for the favorites page).
@@ -72,8 +81,8 @@ export async function POST(request) {
           showBookingButton: biz.service_mode === 'walkin' ? false : settings.showBookingButton !== false,
           showGetDirections: biz.service_mode === 'walkin' ? true : (settings.showGetDirections || false),
           phone: details?.phone || null,
-          latitude: details?.latitude || null,
-          longitude: details?.longitude || null,
+          latitude: validCoord(details?.latitude, details?.longitude)?.latitude ?? null,
+          longitude: validCoord(details?.latitude, details?.longitude)?.longitude ?? null,
           totalServices: services.length,
           services: services.slice(0, 3).map(s => ({
             name: s.name,

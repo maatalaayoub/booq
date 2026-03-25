@@ -2,6 +2,15 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+function validCoord(lat, lng) {
+  const la = Number(lat);
+  const lo = Number(lng);
+  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
+  if (la === 0 && lo === 0) return null;
+  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
+  return { latitude: la, longitude: lo };
+}
+
 // ─── SANITIZATION HELPERS ──────────────────────────────────
 function sanitizeText(value) {
   if (!value || typeof value !== 'string') return value;
@@ -137,8 +146,8 @@ export async function GET(request) {
       workLocation: categoryData?.work_location || 'my_place',
       serviceArea: categoryData?.service_area || '',
       travelRadiusKm: categoryData?.travel_radius_km || '',
-      latitude: categoryData?.latitude || null,
-      longitude: categoryData?.longitude || null,
+      latitude: validCoord(categoryData?.latitude, categoryData?.longitude)?.latitude ?? null,
+      longitude: validCoord(categoryData?.latitude, categoryData?.longitude)?.longitude ?? null,
     });
   } catch (error) {
     console.error('[business/details GET] Error:', error);
@@ -204,8 +213,8 @@ export async function PUT(request) {
         city: cleanCity || null,
         phone: cleanPhone || null,
         work_location: workLocation || 'my_place',
-        latitude: latitude || null,
-        longitude: longitude || null,
+        latitude: validCoord(latitude, longitude)?.latitude ?? null,
+        longitude: validCoord(latitude, longitude)?.longitude ?? null,
       };
 
       // Add mobile-service specific fields
