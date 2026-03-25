@@ -262,7 +262,7 @@ function DateStrip({ selectedDate, onSelectDate, businessHours, accent, t }) {
 /* ================================================================
    TIME SLOT GRID
    ================================================================ */
-function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, userBookings }) {
+function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, userBookings, totalDuration }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-10">
@@ -292,15 +292,32 @@ function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, u
   }
 
   const findUserBooking = (slotStart, slotEnd) => {
-    return (userBookings || []).find(b => slotStart < b.end && slotEnd > b.start);
+    return (userBookings || []).find(b => slotStart >= b.start && slotStart < b.end);
+  };
+
+  // Determine if a slot falls within the selected appointment range
+  const isInSelectedRange = (slotStart) => {
+    if (!selectedSlot) return false;
+    const selEnd = selectedSlot.end;
+    return slotStart >= selectedSlot.start && slotStart < selEnd;
   };
 
   return (
     <div>
       <p className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('bp.selectTime')}</p>
+      {selectedSlot && (
+        <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl border" style={{ borderColor: accent.bg + '40', backgroundColor: accent.bg + '08' }}>
+          <Clock className="w-4 h-4" style={{ color: accent.bg }} />
+          <span className="text-[13px] font-semibold" style={{ color: accent.bg }}>
+            {selectedSlot.start} → {selectedSlot.end}
+          </span>
+          <span className="text-[11px] text-gray-400">({totalDuration} min)</span>
+        </div>
+      )}
       <div className="grid grid-cols-3 sd:grid-cols-4 gap-2">
         {slots.map(slot => {
           const sel = selectedSlot?.start === slot.start;
+          const inRange = !sel && isInSelectedRange(slot.start);
           const matchedBooking = findUserBooking(slot.start, slot.end);
           const userBooked = matchedBooking?.status;
           const isBooked = !!matchedBooking;
@@ -310,21 +327,27 @@ function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, u
                 isBooked
                   ? 'bg-white border-2 cursor-not-allowed'
                   : sel ? 'text-white shadow-lg scale-[1.02]'
+                  : inRange ? 'text-white/90 scale-[1.01]'
                   : slot.available ? 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300 hover:shadow-sm'
                   : 'bg-gray-50 text-gray-300 cursor-not-allowed line-through'
               }`}
               style={
                 isBooked
                   ? { borderColor: userBooked === 'confirmed' ? '#16a34a' : '#f59e0b', color: userBooked === 'confirmed' ? '#16a34a' : '#f59e0b' }
-                  : sel ? { backgroundColor: accent.bg } : undefined
+                  : sel ? { backgroundColor: accent.bg }
+                  : inRange ? { backgroundColor: accent.bg + 'B3' }
+                  : undefined
               }
             >
               {slot.start}
               {isBooked && (
-                <span className={`block text-[9px] font-bold uppercase tracking-wider mt-0.5 ${
-                  userBooked === 'confirmed' ? 'text-green-600' : 'text-amber-500'
+                <span className={`absolute top-1 right-1 ${
+                  userBooked === 'confirmed' ? 'text-green-500' : 'text-amber-500'
                 }`}>
-                  {userBooked === 'confirmed' ? t('bp.approved') : t('bp.pending')}
+                  {userBooked === 'confirmed'
+                    ? <CheckCircle2 className="w-3.5 h-3.5" />
+                    : <Clock className="w-3.5 h-3.5" />
+                  }
                 </span>
               )}
             </button>
@@ -599,8 +622,8 @@ function SuccessModal({ appointment, onClose, accent, t }) {
           <div className="bg-gray-50 rounded-2xl p-5 text-left space-y-3 mb-8">
             {[
               [t('bp.service'), appointment.service],
-              [t('bp.date'), new Date(appointment.startTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })],
-              [t('bp.time'), new Date(appointment.startTime).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })],
+              [t('bp.date'), new Date(appointment.startTime).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' })],
+              [t('bp.time'), new Date(appointment.startTime).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })],
             ].map(([label, val]) => (
               <div key={label} className="flex justify-between text-[14px]">
                 <span className="text-gray-400">{label}</span>
@@ -1076,14 +1099,14 @@ export default function BusinessPage() {
                     </div>
                     <DateStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} businessHours={business.businessHours} accent={accent} t={t} />
                     {selectedDate && (
-                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} />
+                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} totalDuration={totalDuration} />
                     )}
                     {selectedSlot && (
                       <button onClick={handleBookNow}
                         className="w-full py-3.5 rounded-xl text-[15px] font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] shadow-lg"
                         style={{ backgroundColor: accent.bg }}>
                         <Calendar className="w-4 h-4" />
-                        {t('bp.bookFor')} {selectedSlot.start}
+                        {t('bp.bookFor')} {selectedSlot.start} → {selectedSlot.end}
                       </button>
                     )}
                     {selectedSlot && !isSignedIn && (
@@ -1247,7 +1270,7 @@ export default function BusinessPage() {
 
                     {/* Time slots */}
                     {selectedDate && (
-                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} />
+                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} totalDuration={totalDuration} />
                     )}
 
                     {/* Confirm button */}
@@ -1256,7 +1279,7 @@ export default function BusinessPage() {
                         className="w-full py-3.5 rounded-xl text-[15px] font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] shadow-lg"
                         style={{ backgroundColor: accent.bg }}>
                         <Calendar className="w-4 h-4" />
-                        {t('bp.bookFor')} {selectedSlot.start}
+                        {t('bp.bookFor')} {selectedSlot.start} → {selectedSlot.end}
                       </button>
                     )}
                     {selectedSlot && !isSignedIn && (

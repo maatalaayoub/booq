@@ -28,8 +28,8 @@ export async function GET(request) {
 
     // Don't allow booking in the past
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const requestedDate = new Date(dateStr + 'T00:00:00');
+    today.setUTCHours(0, 0, 0, 0);
+    const requestedDate = new Date(dateStr + 'T00:00:00Z');
     if (requestedDate < today) {
       return NextResponse.json({ slots: [], message: 'Cannot book in the past' });
     }
@@ -109,7 +109,7 @@ export async function GET(request) {
       }
     }
 
-    // Get existing appointments for this date (confirmed only)
+    // Get existing confirmed appointments for this date (only confirmed blocks slots for other users)
     const dayStart = `${dateStr}T00:00:00.000Z`;
     const dayEnd = `${dateStr}T23:59:59.999Z`;
 
@@ -121,13 +121,13 @@ export async function GET(request) {
       .gte('start_time', dayStart)
       .lte('start_time', dayEnd);
 
-    // Convert appointments to blocked HH:MM ranges
+    // Convert appointments to blocked HH:MM ranges (use UTC to match stored times)
     const appointmentRanges = (appointments || []).map(apt => {
       const s = new Date(apt.start_time);
       const e = new Date(apt.end_time);
       return {
-        start: `${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`,
-        end: `${String(e.getHours()).padStart(2, '0')}:${String(e.getMinutes()).padStart(2, '0')}`,
+        start: `${String(s.getUTCHours()).padStart(2, '0')}:${String(s.getUTCMinutes()).padStart(2, '0')}`,
+        end: `${String(e.getUTCHours()).padStart(2, '0')}:${String(e.getUTCMinutes()).padStart(2, '0')}`,
       };
     });
 
@@ -144,8 +144,8 @@ export async function GET(request) {
     // If today, don't show past slots (add 30-min buffer)
     const now = new Date();
     let minStartMinutes = 0;
-    if (dateStr === now.toISOString().split('T')[0]) {
-      minStartMinutes = now.getHours() * 60 + now.getMinutes() + 30;
+    if (dateStr === `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`) {
+      minStartMinutes = now.getUTCHours() * 60 + now.getUTCMinutes() + 30;
     }
 
     for (let start = openMinutes; start + duration <= closeMinutes; start += SLOT_INTERVAL) {
@@ -183,8 +183,8 @@ export async function GET(request) {
           const s = new Date(apt.start_time);
           const e = new Date(apt.end_time);
           return {
-            start: `${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`,
-            end: `${String(e.getHours()).padStart(2, '0')}:${String(e.getMinutes()).padStart(2, '0')}`,
+            start: `${String(s.getUTCHours()).padStart(2, '0')}:${String(s.getUTCMinutes()).padStart(2, '0')}`,
+            end: `${String(e.getUTCHours()).padStart(2, '0')}:${String(e.getUTCMinutes()).padStart(2, '0')}`,
             status: apt.status,
           };
         });

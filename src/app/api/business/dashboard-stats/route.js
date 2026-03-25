@@ -58,9 +58,9 @@ export async function GET(request) {
 
     // ── Today's bookings ────────────────────────────────
     const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    todayStart.setUTCHours(0, 0, 0, 0);
     const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    todayEnd.setUTCHours(23, 59, 59, 999);
 
     const { count: todayBookings } = await supabase
       .from('appointments')
@@ -72,11 +72,11 @@ export async function GET(request) {
 
     // ── This week's revenue (completed appointments) ────
     const weekStart = new Date();
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
+    weekStart.setUTCHours(0, 0, 0, 0);
     const weekEnd = new Date();
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
+    weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+    weekEnd.setUTCHours(23, 59, 59, 999);
 
     const { data: weekAppointments } = await supabase
       .from('appointments')

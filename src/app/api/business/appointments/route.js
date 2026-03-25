@@ -56,10 +56,10 @@ async function getBusinessInfoId(supabase, clerkId) {
 async function validateAgainstSchedule(supabase, businessInfoId, startTimeISO, endTimeISO) {
   const startDate = new Date(startTimeISO);
   const endDate = new Date(endTimeISO);
-  const dayOfWeek = startDate.getDay(); // 0=Sunday
+  const dayOfWeek = startDate.getUTCDay(); // 0=Sunday
   const dateStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
-  const startHHMM = `${String(startDate.getHours()).padStart(2, '0')}:${String(startDate.getMinutes()).padStart(2, '0')}`;
-  const endHHMM = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+  const startHHMM = `${String(startDate.getUTCHours()).padStart(2, '0')}:${String(startDate.getUTCMinutes()).padStart(2, '0')}`;
+  const endHHMM = `${String(endDate.getUTCHours()).padStart(2, '0')}:${String(endDate.getUTCMinutes()).padStart(2, '0')}`;
 
   // Get business category to determine the correct table
   const { data: businessInfo } = await supabase

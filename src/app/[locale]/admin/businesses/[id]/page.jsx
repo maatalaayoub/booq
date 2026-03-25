@@ -464,8 +464,8 @@ export default function AdminBusinessDetailPage() {
                             </td>
                             <td className="px-3 py-2.5 text-gray-600">{a.service}</td>
                             <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">
-                              {new Date(a.start_time).toLocaleDateString()}
-                              <span className="text-gray-400 ml-1">{new Date(a.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              {new Date(a.start_time).toLocaleDateString(undefined, { timeZone: 'UTC' })}
+                              <span className="text-gray-400 ml-1">{new Date(a.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })}</span>
                             </td>
                             <td className="px-3 py-2.5 text-gray-700 font-medium">
                               {a.price ? `${Number(a.price).toFixed(0)} MAD` : '—'}

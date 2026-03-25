@@ -72,6 +72,7 @@ export default function BookingsPage() {
     const date = new Date(dateStr);
     return date.toLocaleDateString(locale === 'ar' ? 'ar-MA' : locale === 'fr' ? 'fr-FR' : 'en-US', {
       weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+      timeZone: 'UTC',
     });
   };
 
@@ -79,6 +80,7 @@ export default function BookingsPage() {
     const date = new Date(dateStr);
     return date.toLocaleTimeString(locale === 'ar' ? 'ar-MA' : locale === 'fr' ? 'fr-FR' : 'en-US', {
       hour: '2-digit', minute: '2-digit', hour12: locale !== 'fr',
+      timeZone: 'UTC',
     });
   };
 

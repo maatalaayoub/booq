@@ -24,6 +24,7 @@ const ScheduleCalendarWrapper = forwardRef(function ScheduleCalendarWrapper(
       initialView="dayGridMonth"
       headerToolbar={false}
       events={events}
+      timeZone="UTC"
       editable={false}
       selectable={true}
       selectMirror={false}

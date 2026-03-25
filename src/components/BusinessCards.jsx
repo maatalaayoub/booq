@@ -110,8 +110,8 @@ function BusinessCard({ business, t, locale }) {
         {business.showServices && business.services.length > 0 && (
           <div className="mb-2">
             <div className="space-y-0.5">
-              {business.services.slice(0, 2).map(s => (
-                <div key={s.name} className="flex justify-between items-center text-[11px]">
+              {business.services.slice(0, 2).map((s, i) => (
+                <div key={s.id || i} className="flex justify-between items-center text-[11px]">
                   <span className="text-gray-600 truncate mr-2">{s.name}</span>
                   {business.showPrices && (
                     <span className="font-medium text-gray-800 whitespace-nowrap">{s.price} {s.currency}</span>

@@ -54,7 +54,7 @@ const STATUS_COLORS = {
   cancelled: { bg: '#EF4444', border: '#DC2626' },
 };
 
-// Parse a date string into { date, time } parts
+// Parse a date string into { date, time } parts (use UTC to match stored times)
 function parseDateAndTime(dateStr) {
   if (!dateStr) {
     const now = new Date();
@@ -64,8 +64,8 @@ function parseDateAndTime(dateStr) {
   if (isNaN(d.getTime())) {
     return { date: dateStr.split('T')[0], time: '09:00' };
   }
-  const hours = d.getHours().toString().padStart(2, '0');
-  const minutes = d.getMinutes().toString().padStart(2, '0');
+  const hours = d.getUTCHours().toString().padStart(2, '0');
+  const minutes = d.getUTCMinutes().toString().padStart(2, '0');
   const time = (hours === '00' && minutes === '00') ? '09:00' : `${hours}:${minutes}`;
   return { date: d.toISOString().split('T')[0], time };
 }
@@ -228,8 +228,8 @@ export default function AppointmentsPage() {
   const checkScheduleConflict = useCallback((dateStr, startTime, endTime) => {
     if (!dateStr || !startTime) return '';
     const { businessHours, exceptions } = schedule;
-    const dateObj = new Date(`${dateStr}T${startTime}:00`);
-    const dayOfWeek = dateObj.getDay();
+    const dateObj = new Date(`${dateStr}T${startTime}:00Z`);
+    const dayOfWeek = dateObj.getUTCDay();
 
     // 1. Check working hours
     if (businessHours.length > 0) {

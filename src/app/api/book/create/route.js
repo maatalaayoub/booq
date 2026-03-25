@@ -90,11 +90,11 @@ export async function POST(request) {
     const totalPrice = services.reduce((sum, s) => sum + (s.price || 0), 0);
     const combinedName = services.map(s => s.name).join(' + ');
 
-    // Calculate start and end times
+    // Calculate start and end times (force UTC to avoid timezone drift)
     const [startH, startM] = startTime.split(':').map(Number);
-    const startDate = new Date(`${date}T${startTime}:00`);
+    const startDate = new Date(`${date}T${startTime}:00Z`);
     const endDate = new Date(startDate.getTime() + totalDuration * 60 * 1000);
-    const endHHMM = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+    const endHHMM = `${String(endDate.getUTCHours()).padStart(2, '0')}:${String(endDate.getUTCMinutes()).padStart(2, '0')}`;
 
     // Don't allow booking in the past
     if (startDate < new Date()) {
@@ -114,7 +114,7 @@ export async function POST(request) {
       businessHours = data?.business_hours || [];
     }
 
-    const dayOfWeek = startDate.getDay();
+    const dayOfWeek = startDate.getUTCDay();
     const daySchedule = businessHours.find(h => h.dayOfWeek === dayOfWeek);
     if (!daySchedule || !daySchedule.isOpen) {
       return NextResponse.json({ error: 'Business is closed on this day' }, { status: 400 });
@@ -187,7 +187,7 @@ export async function POST(request) {
 
     if (userConflicts && userConflicts.length > 0) {
       const existingStatus = userConflicts[0].status;
-      const existingTime = new Date(userConflicts[0].start_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const existingTime = new Date(userConflicts[0].start_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
       return NextResponse.json({
         error: `You already have a ${existingStatus} booking at ${existingTime}. You cannot book the same time slot twice.`,
       }, { status: 409 });

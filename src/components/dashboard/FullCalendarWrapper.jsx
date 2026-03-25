@@ -155,6 +155,7 @@ const FullCalendarWrapper = forwardRef(function FullCalendarWrapper(
         initialView="timeGridWeek"
         headerToolbar={false}
         events={events}
+        timeZone="UTC"
         editable={true}
         droppable={true}
         selectable={true}

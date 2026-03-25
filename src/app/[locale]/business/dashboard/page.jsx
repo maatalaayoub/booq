@@ -207,8 +207,8 @@ export default function BusinessDashboard() {
     if (!conflictDialog || conflictDialog.rescheduleIndex == null) return;
     const conflict = conflictDialog.conflicts[conflictDialog.rescheduleIndex];
     const date = new Date(conflict.start_time).toISOString().split('T')[0];
-    const newStart = `${date}T${slot.start}:00`;
-    const newEnd = `${date}T${slot.end}:00`;
+    const newStart = `${date}T${slot.start}:00Z`;
+    const newEnd = `${date}T${slot.end}:00Z`;
     try {
       await fetch('/api/business/appointments', {
         method: 'PUT',
@@ -691,11 +691,13 @@ export default function BusinessDashboard() {
               const timeStr = startDate.toLocaleTimeString(locale === 'ar' ? 'ar-MA' : locale === 'fr' ? 'fr-FR' : 'en-US', {
                 hour: '2-digit',
                 minute: '2-digit',
+                timeZone: 'UTC',
               });
               const dateStr = startDate.toLocaleDateString(locale === 'ar' ? 'ar-MA' : locale === 'fr' ? 'fr-FR' : 'en-US', {
                 weekday: 'short',
                 month: 'short',
                 day: 'numeric',
+                timeZone: 'UTC',
               });
               return (
                 <div key={booking.id} className="flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setSelectedBooking(booking)}>

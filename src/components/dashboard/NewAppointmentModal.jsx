@@ -43,8 +43,8 @@ function parseDateAndTime(dateStr) {
       time: '09:00',
     };
   }
-  const hours = d.getHours().toString().padStart(2, '0');
-  const minutes = d.getMinutes().toString().padStart(2, '0');
+  const hours = d.getUTCHours().toString().padStart(2, '0');
+  const minutes = d.getUTCMinutes().toString().padStart(2, '0');
   // If time is midnight (00:00), it's likely just a date click — use default 09:00
   const time = (hours === '00' && minutes === '00') ? '09:00' : `${hours}:${minutes}`;
   return {
@@ -185,9 +185,9 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
     const svc = services.find((s) => s.name === formData.service);
     const durationMinutes = svc ? svc.duration_minutes : 30;
 
-    const start = new Date(`${formData.date}T${formData.time}:00`);
+    const start = new Date(`${formData.date}T${formData.time}:00Z`);
     const end = formData.endTime
-      ? new Date(`${formData.date}T${formData.endTime}:00`)
+      ? new Date(`${formData.date}T${formData.endTime}:00Z`)
       : new Date(start.getTime() + durationMinutes * 60000);
 
     const statusColors = {
