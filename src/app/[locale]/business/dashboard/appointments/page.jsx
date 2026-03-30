@@ -104,6 +104,9 @@ function toCalendarEvent(apt) {
       business_info_id: apt.business_info_id,
       start_time: apt.start_time,
       end_time: apt.end_time,
+      previous_start_time: apt.previous_start_time || null,
+      previous_end_time: apt.previous_end_time || null,
+      rescheduled_by: apt.rescheduled_by || null,
     },
   };
 }
@@ -643,7 +646,7 @@ export default function AppointmentsPage() {
               backgroundColor: STATUS_COLORS.confirmed.bg,
               borderColor: STATUS_COLORS.confirmed.border,
               editable: false,
-              extendedProps: { ...e.extendedProps, status: 'confirmed' },
+              extendedProps: { ...e.extendedProps, status: 'confirmed', rescheduled_by: null, previous_start_time: null, previous_end_time: null },
             }
           : e
       )
@@ -652,7 +655,7 @@ export default function AppointmentsPage() {
       await fetch('/api/business/appointments', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: eventId, status: 'confirmed' }),
+        body: JSON.stringify({ id: eventId, status: 'confirmed', rescheduled_by: null, previous_start_time: null, previous_end_time: null }),
       });
     } catch (err) {
       console.error('[Appointments] Confirm update failed:', err);
@@ -812,7 +815,7 @@ export default function AppointmentsPage() {
       const confirmRes = await fetch('/api/business/appointments', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: conflictDialog.approvedId, status: 'confirmed' }),
+        body: JSON.stringify({ id: conflictDialog.approvedId, status: 'confirmed', rescheduled_by: null, previous_start_time: null, previous_end_time: null }),
       });
       if (!confirmRes.ok) throw new Error('Failed to confirm appointment');
 

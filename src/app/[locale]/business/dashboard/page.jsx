@@ -120,6 +120,9 @@ export default function BusinessDashboard() {
       price: booking.price,
       clientAddress: booking.client_address,
       businessInfoId: booking.business_info_id,
+      rescheduled_by: booking.rescheduled_by,
+      previous_start_time: booking.previous_start_time,
+      previous_end_time: booking.previous_end_time,
     },
   });
 
@@ -911,6 +914,12 @@ export default function BusinessDashboard() {
                     <p className="text-xs text-gray-500">{booking.service}</p>
                     {bookedAtStr && (
                       <p className="text-[11px] text-gray-400 mt-0.5">{t?.('dashboard.bookedAt') || 'Booked'}: {bookedAtStr}</p>
+                    )}
+                    {booking.rescheduled_by === 'client' && (
+                      <p className="text-[10px] text-amber-600 font-medium mt-0.5 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+                        {t?.('appointmentDetail.modifiedByClient') || 'Modified by client'}
+                      </p>
                     )}
                   </div>
                   <div className="text-right shrink-0">

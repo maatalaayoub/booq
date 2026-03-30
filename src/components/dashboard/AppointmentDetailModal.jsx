@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function AppointmentDetailModal({
@@ -355,6 +356,32 @@ export default function AppointmentDetailModal({
                         {appointment.extendedProps?.price && (
                           <span className="text-[13px] font-bold text-amber-600">{appointment.extendedProps.price} MAD</span>
                         )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Modified by client banner */}
+                  {appointment.extendedProps?.rescheduled_by === 'client' && (
+                    <div className="border border-amber-300 bg-amber-50 rounded-xl overflow-hidden">
+                      <div className="px-4 py-3 flex items-start gap-3">
+                        <RefreshCw className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-amber-700">{t('appointmentDetail.modifiedByClient')}</p>
+                          {appointment.extendedProps?.previous_start_time && (
+                            <div className="mt-1.5 text-[12px] text-amber-600 space-y-0.5">
+                              <p>
+                                <span className="line-through opacity-70">
+                                  {formatDate(appointment.extendedProps.previous_start_time)} · {formatTime(appointment.extendedProps.previous_start_time)}
+                                  {appointment.extendedProps.previous_end_time && ` – ${formatTime(appointment.extendedProps.previous_end_time)}`}
+                                </span>
+                              </p>
+                              <p className="font-medium text-amber-800">
+                                → {formatDate(appointment.start)} · {formatTime(appointment.start)}
+                                {appointment.end && ` – ${formatTime(appointment.end)}`}
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

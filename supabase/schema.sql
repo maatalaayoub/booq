@@ -739,6 +739,9 @@ CREATE TABLE IF NOT EXISTS appointments (
   end_time TIMESTAMP WITH TIME ZONE NOT NULL,
   status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'pending', 'completed', 'cancelled')),
   notes TEXT,
+  previous_start_time TIMESTAMP WITH TIME ZONE,
+  previous_end_time TIMESTAMP WITH TIME ZONE,
+  rescheduled_by TEXT CHECK (rescheduled_by IN ('client', 'business')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

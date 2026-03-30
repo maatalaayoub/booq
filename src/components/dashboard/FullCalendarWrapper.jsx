@@ -147,6 +147,23 @@ const FullCalendarWrapper = forwardRef(function FullCalendarWrapper(
     };
   }, []);
 
+  // Custom event rendering to show "modified by client" indicator
+  const renderEventContent = useCallback((eventInfo) => {
+    const { rescheduled_by } = eventInfo.event.extendedProps || {};
+    return (
+      <div className="fc-event-main-inner" style={{ overflow: 'hidden', height: '100%' }}>
+        <div className="fc-event-time">{eventInfo.timeText}</div>
+        <div className="fc-event-title">{eventInfo.event.title}</div>
+        {rescheduled_by === 'client' && (
+          <div style={{ fontSize: '10px', marginTop: '2px', opacity: 0.9, display: 'flex', alignItems: 'center', gap: '3px' }}>
+            <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#fff', flexShrink: 0 }} />
+            Modified by client
+          </div>
+        )}
+      </div>
+    );
+  }, []);
+
   return (
     <div ref={containerRef}>
       <FullCalendar
@@ -172,6 +189,7 @@ const FullCalendarWrapper = forwardRef(function FullCalendarWrapper(
         datesSet={onDatesSet}
         eventDragStart={handleDragStart}
         eventDragStop={handleDragStop}
+        eventContent={renderEventContent}
         slotMinTime="08:00:00"
         slotMaxTime="21:00:00"
         allDaySlot={false}
