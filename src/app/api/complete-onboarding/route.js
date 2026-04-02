@@ -26,7 +26,6 @@ export async function POST(request) {
       return apiError('Failed to update onboarding status', 500, error.message);
     }
 
-    console.log('[complete-onboarding] User onboarding completed:', data);
     return apiSuccess({ user: data });
   } catch (error) {
     console.error('[complete-onboarding] Unexpected error:', error);

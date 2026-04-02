@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUserId } from '@/lib/auth';
+import { getBusinessContext } from '@/lib/business';
 import { apiError, apiData } from '@/lib/api-response';
 
 export async function GET(request) {
@@ -12,30 +12,13 @@ export async function GET(request) {
 
     const supabase = createServerSupabaseClient();
 
-    // Get user
-    const { data: user } = await supabase
-      .from('users')
-      .select('id, role')
-      .eq('clerk_id', clerkId)
-      .single();
-
-    if (!user || user.role !== 'business') {
-      return apiError('Not a business user', 403);
+    const ctx = await getBusinessContext(supabase, clerkId);
+    if (!ctx) {
+      return apiError('Business not found', 404);
     }
 
-    // Get business info
-    const { data: businessInfo } = await supabase
-      .from('business_info')
-      .select('id, business_category')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!businessInfo) {
-      return apiError('Business info not found', 404);
-    }
-
-    const businessInfoId = businessInfo.id;
-    const category = businessInfo.business_category;
+    const businessInfoId = ctx.businessInfoId;
+    const category = ctx.category;
 
     // ── Today's bookings ────────────────────────────────
     const todayStart = new Date();

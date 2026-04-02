@@ -1,43 +1,8 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { validCoord } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
+import { getBusinessContext } from '@/lib/business';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
-
-async function getMobileServiceContext(supabase, clerkUserId) {
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('id, role')
-    .eq('clerk_id', clerkUserId)
-    .single();
-
-  if (userError || !userData) {
-    return { error: 'User not found', status: 404 };
-  }
-  if (userData.role !== 'business') {
-    return { error: 'Not a business user', status: 403 };
-  }
-
-  const { data: businessInfo, error: biError } = await supabase
-    .from('business_info')
-    .select('id, business_category')
-    .eq('user_id', userData.id)
-    .single();
-
-  if (biError || !businessInfo) {
-    return { error: 'Business info not found', status: 404 };
-  }
-  if (businessInfo.business_category !== 'mobile_service') {
-    return { error: 'Service area is only available for mobile service providers', status: 403 };
-  }
-
-  const { data: mobileInfo } = await supabase
-    .from('mobile_service_info')
-    .select('*')
-    .eq('business_info_id', businessInfo.id)
-    .single();
-
-  return { userData, businessInfo, mobileInfo };
-}
 
 // GET - Fetch service area data
 export async function GET(request) {
@@ -48,13 +13,20 @@ export async function GET(request) {
     }
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getMobileServiceContext(supabase, userId);
+    const ctx = await getBusinessContext(supabase, userId);
 
-    if (ctx.error) {
-      return apiError(ctx.error, ctx.status);
+    if (!ctx) {
+      return apiError('Business not found', 404);
+    }
+    if (ctx.category !== 'mobile_service') {
+      return apiError('Service area is only available for mobile service providers', 403);
     }
 
-    const { mobileInfo } = ctx;
+    const { data: mobileInfo } = await supabase
+      .from('mobile_service_info')
+      .select('*')
+      .eq('business_info_id', ctx.businessInfoId)
+      .single();
 
     return apiData({
       baseLocation: mobileInfo?.address || '',
@@ -98,13 +70,14 @@ export async function PUT(request) {
     }
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getMobileServiceContext(supabase, userId);
+    const ctx = await getBusinessContext(supabase, userId);
 
-    if (ctx.error) {
-      return apiError(ctx.error, ctx.status);
+    if (!ctx) {
+      return apiError('Business not found', 404);
     }
-
-    const { businessInfo } = ctx;
+    if (ctx.category !== 'mobile_service') {
+      return apiError('Service area is only available for mobile service providers', 403);
+    }
 
     const updateData = {
       address: baseLocation || null,
@@ -119,7 +92,7 @@ export async function PUT(request) {
     const { error: updateError } = await supabase
       .from('mobile_service_info')
       .update(updateData)
-      .eq('business_info_id', businessInfo.id);
+      .eq('business_info_id', ctx.businessInfoId);
 
     if (updateError) {
       console.error('[service-area PUT] Update error:', updateError);

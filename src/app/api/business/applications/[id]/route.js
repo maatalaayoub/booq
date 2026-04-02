@@ -1,4 +1,4 @@
-import { getUserId } from '@/lib/auth';
+import { getUserId, getInternalUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
@@ -20,13 +20,8 @@ export async function PATCH(request, { params }) {
 
     const supabase = createServerSupabaseClient();
 
-    const { data: user } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (!user) {
+    const internalId = await getInternalUserId(supabase, userId);
+    if (!internalId) {
       return apiError('User not found', 404);
     }
 
@@ -34,7 +29,7 @@ export async function PATCH(request, { params }) {
       .from('job_applications')
       .update({ status })
       .eq('id', id)
-      .eq('applicant_id', user.id)
+      .eq('applicant_id', internalId)
       .select()
       .single();
 
@@ -65,13 +60,8 @@ export async function DELETE(request, { params }) {
     const { id } = await params;
     const supabase = createServerSupabaseClient();
 
-    const { data: user } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (!user) {
+    const internalId = await getInternalUserId(supabase, userId);
+    if (!internalId) {
       return apiError('User not found', 404);
     }
 
@@ -79,7 +69,7 @@ export async function DELETE(request, { params }) {
       .from('job_applications')
       .delete()
       .eq('id', id)
-      .eq('applicant_id', user.id);
+      .eq('applicant_id', internalId);
 
     if (error) {
       console.error('[applications] DELETE error:', error);

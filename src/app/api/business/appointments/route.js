@@ -1,27 +1,8 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sanitizeText, sanitizePhone } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
-import { getCategoryTableName } from '@/lib/business';
+import { getCategoryTableName, getBusinessContext } from '@/lib/business';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
-
-// Helper: get business_info_id for the current user
-async function getBusinessInfoId(supabase, clerkId) {
-  const { data: user } = await supabase
-    .from('users')
-    .select('id, role')
-    .eq('clerk_id', clerkId)
-    .single();
-
-  if (!user || user.role !== 'business') return null;
-
-  const { data: businessInfo } = await supabase
-    .from('business_info')
-    .select('id')
-    .eq('user_id', user.id)
-    .single();
-
-  return businessInfo?.id || null;
-}
 
 // Helper: validate appointment time against working hours and schedule exceptions
 async function validateAgainstSchedule(supabase, businessInfoId, startTimeISO, endTimeISO) {
@@ -118,8 +99,8 @@ export async function GET(request) {
     }
 
     const supabase = createServerSupabaseClient();
-    const businessInfoId = await getBusinessInfoId(supabase, clerkId);
-    if (!businessInfoId) {
+    const ctx = await getBusinessContext(supabase, clerkId);
+    if (!ctx) {
       // No business profile yet — return empty list instead of 404
       return apiData({ appointments: [] });
     }
@@ -127,7 +108,7 @@ export async function GET(request) {
     const { data: appointments, error } = await supabase
       .from('appointments')
       .select('*')
-      .eq('business_info_id', businessInfoId)
+      .eq('business_info_id', ctx.businessInfoId)
       .order('start_time', { ascending: true });
 
     if (error) {
@@ -151,10 +132,11 @@ export async function POST(request) {
     }
 
     const supabase = createServerSupabaseClient();
-    const businessInfoId = await getBusinessInfoId(supabase, clerkId);
-    if (!businessInfoId) {
+    const ctx = await getBusinessContext(supabase, clerkId);
+    if (!ctx) {
       return apiError('Business not found', 404);
     }
+    const businessInfoId = ctx.businessInfoId;
 
     const body = await request.json();
     const { client_name, client_phone, client_address, service, price, start_time, end_time, status, notes } = body;
@@ -213,10 +195,11 @@ export async function PUT(request) {
     }
 
     const supabase = createServerSupabaseClient();
-    const businessInfoId = await getBusinessInfoId(supabase, clerkId);
-    if (!businessInfoId) {
+    const ctx = await getBusinessContext(supabase, clerkId);
+    if (!ctx) {
       return apiError('Business not found', 404);
     }
+    const businessInfoId = ctx.businessInfoId;
 
     const body = await request.json();
     const { id, ...updateFields } = body;
@@ -269,6 +252,9 @@ export async function PUT(request) {
       .single();
 
     if (error) {
+      if (error.code === 'PGRST116') {
+        return apiError('Appointment not found', 404);
+      }
       console.error('[appointments PUT] Error:', error);
       return apiError('Failed to update appointment');
     }
@@ -289,10 +275,11 @@ export async function DELETE(request) {
     }
 
     const supabase = createServerSupabaseClient();
-    const businessInfoId = await getBusinessInfoId(supabase, clerkId);
-    if (!businessInfoId) {
+    const ctx = await getBusinessContext(supabase, clerkId);
+    if (!ctx) {
       return apiError('Business not found', 404);
     }
+    const businessInfoId = ctx.businessInfoId;
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');

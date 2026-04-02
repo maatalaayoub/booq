@@ -29,7 +29,7 @@ export default function DashboardHeader() {
           }
         }
       } catch (e) {
-        // Ignore
+        console.error('Failed to fetch avatar:', e);
       }
     }
     fetchAvatar();

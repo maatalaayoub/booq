@@ -1,4 +1,4 @@
-import { getUserId } from '@/lib/auth';
+import { getUserId, getInternalUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { apiError, apiData } from '@/lib/api-response';
 
@@ -12,13 +12,8 @@ export async function GET(request) {
 
     const supabase = createServerSupabaseClient();
 
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (userError || !user) {
+    const internalId = await getInternalUserId(supabase, userId);
+    if (!internalId) {
       return apiError('User not found', 404);
     }
 
@@ -36,7 +31,7 @@ export async function GET(request) {
           )
         )
       `)
-      .eq('applicant_id', user.id)
+      .eq('applicant_id', internalId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -45,7 +40,7 @@ export async function GET(request) {
       const { data: simpleApps, error: simpleError } = await supabase
         .from('job_applications')
         .select('id, status, cover_letter, notes, created_at, updated_at, business_info_id')
-        .eq('applicant_id', user.id)
+        .eq('applicant_id', internalId)
         .order('created_at', { ascending: false });
 
       if (simpleError) {
@@ -157,20 +152,15 @@ export async function POST(request) {
 
     const supabase = createServerSupabaseClient();
 
-    const { data: user } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (!user) {
+    const internalId = await getInternalUserId(supabase, userId);
+    if (!internalId) {
       return apiError('User not found', 404);
     }
 
     const { data, error } = await supabase
       .from('job_applications')
       .insert({
-        applicant_id: user.id,
+        applicant_id: internalId,
         business_info_id: businessInfoId,
         cover_letter: coverLetter || null,
         status: 'pending',

@@ -81,18 +81,14 @@ export async function GET(request) {
 
 // POST - Save onboarding data
 export async function POST(request) {
-  console.log('[onboarding POST] ====== START ======');
-  
   try {
     const userId = await getUserId(request);
-    console.log('[onboarding POST] Clerk userId:', userId);
     
     if (!userId) {
       return apiError('Unauthorized', 401);
     }
 
     const body = await request.json();
-    console.log('[onboarding POST] Request body:', body);
     const { 
       businessCategory, 
       professionalType,
@@ -133,7 +129,6 @@ export async function POST(request) {
     // Validate professional type against DB if possible, fallback to known types
     if (specialtyId) {
       // If specialtyId is provided, we trust it was selected from DB
-      console.log('[onboarding POST] specialtyId provided, skipping hardcoded validation');
     } else {
       const validProfessionalTypes = ['barber', 'hairdresser', 'makeup', 'nails', 'massage'];
       if (!validProfessionalTypes.includes(professionalType)) {
@@ -175,8 +170,6 @@ export async function POST(request) {
       .eq('clerk_id', userId)
       .single();
 
-    console.log('[onboarding POST] User lookup:', { user, userError });
-
     if (userError || !user) {
       console.error('[onboarding POST] User not found:', userError);
       return apiError('User not found', 404, userError?.message);
@@ -200,8 +193,6 @@ export async function POST(request) {
     if (specialtyId) businessInfoData.specialty_id = specialtyId;
     if (serviceMode) businessInfoData.service_mode = serviceMode;
 
-    console.log('[onboarding POST] Upserting business_info:', businessInfoData);
-    
     const { data: businessInfoResult, error: infoError } = await supabase
       .from('business_info')
       .upsert(businessInfoData, { onConflict: 'user_id' })
@@ -213,7 +204,6 @@ export async function POST(request) {
       return apiError('Failed to save business info', 500, infoError.message);
     }
 
-    console.log('[onboarding POST] Business info saved:', businessInfoResult);
     const businessInfoId = businessInfoResult.id;
 
     // Step 2: Upsert category-specific data
@@ -234,8 +224,6 @@ export async function POST(request) {
         business_hours: businessHours || [],
       };
 
-      console.log('[onboarding POST] Upserting shop_salon_info:', shopSalonData);
-      
       const { data, error } = await supabase
         .from('shop_salon_info')
         .upsert(shopSalonData, { onConflict: 'business_info_id' })
@@ -260,8 +248,6 @@ export async function POST(request) {
         business_hours: businessHours || [],
       };
 
-      console.log('[onboarding POST] Upserting mobile_service_info:', mobileServiceData);
-      
       const { data, error } = await supabase
         .from('mobile_service_info')
         .upsert(mobileServiceData, { onConflict: 'business_info_id' })
@@ -280,8 +266,6 @@ export async function POST(request) {
         bio: bio || null,
       };
 
-      console.log('[onboarding POST] Upserting job_seeker_info:', jobSeekerData);
-      
       const { data, error } = await supabase
         .from('job_seeker_info')
         .upsert(jobSeekerData, { onConflict: 'business_info_id' })
@@ -296,8 +280,6 @@ export async function POST(request) {
       return apiError('Failed to save category data', 500, categoryError.message);
     }
 
-    console.log('[onboarding POST] Category data saved:', categoryResult);
-    
     return apiSuccess({ 
       businessInfo: businessInfoResult,
       categoryData: categoryResult 

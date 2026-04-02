@@ -53,6 +53,7 @@ export default function BookingsPage() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState(null);
+  const [fetchError, setFetchError] = useState(false);
 
   // Service editing state
   const [availableServices, setAvailableServices] = useState([]);
@@ -68,10 +69,11 @@ export default function BookingsPage() {
   }, []);
 
   const fetchBookings = useCallback(() => {
+    setFetchError(false);
     fetch('/api/bookings')
       .then(res => res.json())
       .then(data => setBookings(data.bookings || []))
-      .catch(() => {})
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -369,6 +371,18 @@ export default function BookingsPage() {
                 {t('signUp')}
               </Link>
             </div>
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <AlertCircle className="w-9 h-9 text-red-400" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">{t('bookings.errorTitle') || 'Something went wrong'}</h2>
+            <p className="text-[14px] text-gray-400 max-w-xs">{t('bookings.errorDesc') || 'Could not load your bookings. Please try again.'}</p>
+            <button onClick={() => { setLoading(true); fetchBookings(); }}
+              className="mt-6 px-6 py-2.5 bg-gray-900 text-white text-[14px] font-semibold rounded-xl hover:bg-gray-800 transition-colors">
+              {t('bookings.retry') || 'Retry'}
+            </button>
           </div>
         ) : filteredBookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">

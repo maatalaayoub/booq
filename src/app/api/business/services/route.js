@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sanitizeText } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
@@ -104,7 +103,12 @@ export async function PUT(request) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return apiError('Service not found', 404);
+      }
+      throw error;
+    }
     return apiData({ service: data });
   } catch (err) {
     console.error('[services PUT]', err);

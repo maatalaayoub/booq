@@ -23,6 +23,7 @@ export default function FavoritesPage() {
   const { user, isSignedIn, isLoaded } = useUser();
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
   const [removedIds, setRemovedIds] = useState(new Set());
   const [confirmRemoveId, setConfirmRemoveId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -54,7 +55,7 @@ export default function FavoritesPage() {
     })
       .then(res => res.json())
       .then(data => setBusinesses(data.businesses || []))
-      .catch(() => {})
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, [isLoaded, isSignedIn]);
 
@@ -111,6 +112,18 @@ export default function FavoritesPage() {
                 {t('signUp')}
               </Link>
             </div>
+          </div>
+        ) : fetchError ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center mb-4">
+              <Heart className="w-9 h-9 text-red-400" />
+            </div>
+            <h2 className="text-lg font-bold text-gray-800 mb-1">{t('favorites.errorTitle') || 'Something went wrong'}</h2>
+            <p className="text-[14px] text-gray-400 max-w-xs">{t('favorites.errorDesc') || 'Could not load your favorites. Please try again.'}</p>
+            <button onClick={() => window.location.reload()}
+              className="mt-6 px-6 py-2.5 bg-gray-900 text-white text-[14px] font-semibold rounded-xl hover:bg-gray-800 transition-colors">
+              {t('favorites.retry') || 'Retry'}
+            </button>
           </div>
         ) : visibleBusinesses.length === 0 ? (
           /* Empty state */

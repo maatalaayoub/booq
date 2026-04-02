@@ -97,3 +97,19 @@ export async function getUserId(request) {
   }
   return null;
 }
+
+/**
+ * Resolve a Clerk userId to the internal Supabase user ID.
+ * @param {object} supabase - Supabase client
+ * @param {string} clerkId  - Clerk userId
+ * @returns {Promise<string | null>} internal user.id or null
+ */
+export async function getInternalUserId(supabase, clerkId) {
+  const { data: user } = await supabase
+    .from('users')
+    .select('id')
+    .eq('clerk_id', clerkId)
+    .single();
+
+  return user?.id || null;
+}

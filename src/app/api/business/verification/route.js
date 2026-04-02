@@ -1,5 +1,6 @@
-import { getUserId } from '@/lib/auth';
+import { getUserId, getInternalUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getBusinessContext } from '@/lib/business';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 const BUCKET = 'verification-documents';
@@ -19,13 +20,8 @@ export async function GET(request) {
     const supabase = createServerSupabaseClient();
 
     // Get internal user id
-    const { data: dbUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_id', clerkId)
-      .single();
-
-    if (!dbUser) {
+    const internalId = await getInternalUserId(supabase, clerkId);
+    if (!internalId) {
       return apiError('User not found', 404);
     }
 
@@ -33,7 +29,7 @@ export async function GET(request) {
     const { data: verification, error } = await supabase
       .from('verification_requests')
       .select('*')
-      .eq('user_id', dbUser.id)
+      .eq('user_id', internalId)
       .maybeSingle();
 
     if (error) {
@@ -86,30 +82,10 @@ export async function POST(request) {
 
     const supabase = createServerSupabaseClient();
 
-    // Get internal user id and business_info
-    const { data: dbUser } = await supabase
-      .from('users')
-      .select('id, role')
-      .eq('clerk_id', clerkId)
-      .single();
-
-    if (!dbUser) {
-      return apiError('User not found', 404);
-    }
-
-    if (dbUser.role !== 'business') {
-      return apiError('Only business users can submit verification', 403);
-    }
-
-    // Get business_info
-    const { data: businessInfo } = await supabase
-      .from('business_info')
-      .select('id')
-      .eq('user_id', dbUser.id)
-      .single();
-
-    if (!businessInfo) {
-      return apiError('Business info not found. Complete onboarding first.', 400);
+    // Get business context
+    const ctx = await getBusinessContext(supabase, clerkId);
+    if (!ctx) {
+      return apiError('Business profile not found. Complete onboarding first.', 404);
     }
 
     // Ensure bucket exists
@@ -123,7 +99,7 @@ export async function POST(request) {
 
     // Upload identity document
     if (identityFile && identityFile.size > 0) {
-      const uploadResult = await uploadDocument(supabase, identityFile, dbUser.id, 'identity');
+      const uploadResult = await uploadDocument(supabase, identityFile, ctx.userId, 'identity');
       if (uploadResult.error) {
         return apiError(uploadResult.error, 400);
       }
@@ -132,7 +108,7 @@ export async function POST(request) {
 
     // Upload business document
     if (businessFile && businessFile.size > 0) {
-      const uploadResult = await uploadDocument(supabase, businessFile, dbUser.id, 'business');
+      const uploadResult = await uploadDocument(supabase, businessFile, ctx.userId, 'business');
       if (uploadResult.error) {
         return apiError(uploadResult.error, 400);
       }
@@ -143,7 +119,7 @@ export async function POST(request) {
     const { data: existingVerification } = await supabase
       .from('verification_requests')
       .select('id, identity_status, business_status')
-      .eq('user_id', dbUser.id)
+      .eq('user_id', ctx.userId)
       .maybeSingle();
 
     if (existingVerification) {
@@ -180,8 +156,8 @@ export async function POST(request) {
     } else {
       // Create new verification request
       const insertData = {
-        user_id: dbUser.id,
-        business_info_id: businessInfo.id,
+        user_id: ctx.userId,
+        business_info_id: ctx.businessInfoId,
         identity_document_url: uploadResults.identity_document_url || null,
         business_document_url: uploadResults.business_document_url || null,
         identity_document_type: identityDocumentType,
@@ -204,7 +180,7 @@ export async function POST(request) {
     const { data: verification } = await supabase
       .from('verification_requests')
       .select('*')
-      .eq('user_id', dbUser.id)
+      .eq('user_id', ctx.userId)
       .single();
 
     return apiSuccess({ 

@@ -1,4 +1,4 @@
-import { getUserId } from '@/lib/auth';
+import { getUserId, getInternalUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { apiError, apiData } from '@/lib/api-response';
 
@@ -50,17 +50,12 @@ export async function POST(request) {
     }
 
     // Get internal user id
-    const { data: dbUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (!dbUser) {
+    const internalId = await getInternalUserId(supabase, userId);
+    if (!internalId) {
       return apiError('User not found', 404);
     }
 
-    const filePath = `resumes/${dbUser.id}-${Date.now()}.${ext}`;
+    const filePath = `resumes/${internalId}-${Date.now()}.${ext}`;
 
     // Upload
     const { error: uploadError } = await supabase.storage
@@ -86,7 +81,7 @@ export async function POST(request) {
     const { data: businessInfo } = await supabase
       .from('business_info')
       .select('id')
-      .eq('user_id', dbUser.id)
+      .eq('user_id', internalId)
       .single();
 
     if (businessInfo) {

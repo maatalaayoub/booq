@@ -1,4 +1,4 @@
-import { getUserId } from '@/lib/auth';
+import { getUserId, getInternalUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
@@ -13,13 +13,8 @@ export async function GET(request) {
     const supabase = createServerSupabaseClient();
 
     // Get internal user
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (userError || !user) {
+    const internalId = await getInternalUserId(supabase, userId);
+    if (!internalId) {
       return apiError('User not found', 404);
     }
 
@@ -27,14 +22,14 @@ export async function GET(request) {
     const { data: profile } = await supabase
       .from('user_profile')
       .select('first_name, last_name, phone, city, bio, profile_image_url')
-      .eq('user_id', user.id)
+      .eq('user_id', internalId)
       .single();
 
     // Fetch business_info to get the business_info id
     const { data: businessInfo } = await supabase
       .from('business_info')
       .select('id, professional_type')
-      .eq('user_id', user.id)
+      .eq('user_id', internalId)
       .single();
 
     let jobSeekerInfo = null;
@@ -87,13 +82,8 @@ export async function PUT(request) {
     const supabase = createServerSupabaseClient();
 
     // Get internal user
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (userError || !user) {
+    const internalId = await getInternalUserId(supabase, userId);
+    if (!internalId) {
       return apiError('User not found', 404);
     }
 
@@ -101,7 +91,7 @@ export async function PUT(request) {
     const { data: existingProfile } = await supabase
       .from('user_profile')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', internalId)
       .maybeSingle();
 
     const profileData = {
@@ -116,18 +106,18 @@ export async function PUT(request) {
       await supabase
         .from('user_profile')
         .update(profileData)
-        .eq('user_id', user.id);
+        .eq('user_id', internalId);
     } else {
       await supabase
         .from('user_profile')
-        .insert({ user_id: user.id, ...profileData });
+        .insert({ user_id: internalId, ...profileData });
     }
 
     // Get business_info
     const { data: businessInfo } = await supabase
       .from('business_info')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', internalId)
       .single();
 
     if (!businessInfo) {
