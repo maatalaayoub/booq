@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiData } from '@/lib/api-response';
 
 /**
  * GET /api/business/specialty
@@ -22,10 +22,10 @@ export async function GET(request) {
         .order('display_order', { ascending: true });
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return apiError(error.message);
       }
 
-      return NextResponse.json({ specialties: specialties || [] });
+      return apiData({ specialties: specialties || [] });
     }
 
     // Fetch all active service categories with their specialties
@@ -39,7 +39,7 @@ export async function GET(request) {
       .order('display_order', { ascending: true });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message);
     }
 
     // Sort specialties within each category
@@ -50,8 +50,8 @@ export async function GET(request) {
         .sort((a, b) => a.display_order - b.display_order),
     }));
 
-    return NextResponse.json({ categories: result });
+    return apiData({ categories: result });
   } catch (err) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

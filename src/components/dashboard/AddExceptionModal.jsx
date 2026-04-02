@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBusinessCategory } from '@/contexts/BusinessCategoryContext';
+import { sanitizeInput as sanitizeText } from '@/lib/sanitize';
 import {
   X,
   Plus,
@@ -52,13 +53,6 @@ export default function AddExceptionModal({ isOpen, onClose, onSave, defaultDate
   const { businessCategory } = useBusinessCategory();
   const today = new Date().toISOString().split('T')[0];
   const isEditMode = !!editException;
-
-  const sanitizeText = (val) => {
-    if (!val) return '';
-    return val
-      .replace(/<[^>]*>/g, '')
-      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-  };
 
   const filteredExceptionTypes = businessCategory === 'mobile_service'
     ? EXCEPTION_TYPES.filter(type => !['break', 'lunch_break', 'closure'].includes(type.value))

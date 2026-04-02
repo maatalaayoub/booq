@@ -1,27 +1,6 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-// Helper: get userId either from session or Bearer token
-async function getUserId(request) {
-  const { userId } = await auth();
-  if (userId) return userId;
-  
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      const { verifyToken } = await import('@clerk/backend');
-      const payload = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      if (payload?.sub) return payload.sub;
-    } catch (err) {
-      console.log('[complete-onboarding] Bearer token verification failed:', err.message);
-    }
-  }
-  return null;
-}
+import { getUserId } from '@/lib/auth';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 // POST - Mark onboarding as completed
 export async function POST(request) {
@@ -29,10 +8,7 @@ export async function POST(request) {
     const userId = await getUserId(request);
     
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
@@ -47,20 +23,14 @@ export async function POST(request) {
 
     if (error) {
       console.error('[complete-onboarding] Error:', error);
-      return NextResponse.json(
-        { error: 'Failed to update onboarding status', details: error.message },
-        { status: 500 }
-      );
+      return apiError('Failed to update onboarding status', 500, error.message);
     }
 
     console.log('[complete-onboarding] User onboarding completed:', data);
-    return NextResponse.json({ success: true, user: data });
+    return apiSuccess({ user: data });
   } catch (error) {
     console.error('[complete-onboarding] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 }
-    );
+    return apiError('Internal server error', 500, error.message);
   }
 }
 
@@ -70,10 +40,7 @@ export async function GET(request) {
     const userId = await getUserId(request);
     
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
@@ -86,20 +53,14 @@ export async function GET(request) {
 
     if (error) {
       console.error('[complete-onboarding] Error:', error);
-      return NextResponse.json(
-        { error: 'Failed to get onboarding status', details: error.message },
-        { status: 500 }
-      );
+      return apiError('Failed to get onboarding status', 500, error.message);
     }
 
-    return NextResponse.json({ 
+    return apiData({ 
       onboarding_completed: data?.onboarding_completed || false 
     });
   } catch (error) {
     console.error('[complete-onboarding] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
-      { status: 500 }
-    );
+    return apiError('Internal server error', 500, error.message);
   }
 }

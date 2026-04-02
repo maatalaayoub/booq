@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { sanitizeInput as sanitizeText, sanitizePhone } from '@/lib/sanitize';
 import {
   X,
   Clock,
@@ -21,11 +22,6 @@ import {
   Loader2,
   MapPin,
 } from 'lucide-react';
-
-const sanitizeText = (val) => {
-  if (typeof val !== 'string') return val;
-  return val.replace(/<[^>]*>/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-};
 
 function parseDateAndTime(dateStr) {
   if (!dateStr) {
@@ -297,8 +293,7 @@ export default function NewAppointmentModal({ isOpen, onClose, onSave, defaultDa
                   placeholder={t('newAppointment.phonePlaceholder')}
                   value={formData.phone}
                   onChange={(e) => {
-                    const val = e.target.value.replace(/[^0-9+\s\-()]/g, '');
-                    handleChange('phone', val);
+                    handleChange('phone', sanitizePhone(e.target.value));
                   }}
                   className={inputClass('phone')}
                 />

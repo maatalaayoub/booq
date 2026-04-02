@@ -1,17 +1,14 @@
-import { NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getUserId } from '@/lib/auth';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 // GET - Fetch user profile data based on role
-export async function GET() {
+export async function GET(request) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
     
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
@@ -25,17 +22,11 @@ export async function GET() {
 
     if (userError && userError.code !== 'PGRST116') {
       console.error('[user-profile] Error fetching user:', userError);
-      return NextResponse.json(
-        { error: 'Failed to fetch user' },
-        { status: 500 }
-      );
+      return apiError('Failed to fetch user');
     }
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return apiError('User not found', 404);
     }
 
     // Fetch from user_profile table (used for all users regardless of role)
@@ -49,7 +40,7 @@ export async function GET() {
       console.error('[user-profile] Error fetching profile:', profileError);
     }
 
-    return NextResponse.json({
+    return apiData({
       firstName: profile?.first_name || null,
       lastName: profile?.last_name || null,
       username: user.username,
@@ -65,23 +56,17 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[user-profile] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiError('Internal server error');
   }
 }
 
 // PUT - Update user profile data based on role
 export async function PUT(request) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
     
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return apiError('Unauthorized', 401);
     }
 
     const body = await request.json();
@@ -98,10 +83,7 @@ export async function PUT(request) {
 
     if (userError || !user) {
       console.error('[user-profile] Error fetching user:', userError);
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return apiError('User not found', 404);
     }
 
     // Update username in users table if provided and changed
@@ -109,7 +91,7 @@ export async function PUT(request) {
       const normalizedUsername = username.trim().toLowerCase();
 
       if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) {
-        return NextResponse.json({ error: 'Invalid username format' }, { status: 400 });
+        return apiError('Invalid username format', 400);
       }
 
       const { data: taken } = await supabase
@@ -119,7 +101,7 @@ export async function PUT(request) {
         .maybeSingle();
 
       if (taken) {
-        return NextResponse.json({ error: 'Username already taken' }, { status: 409 });
+        return apiError('Username already taken', 409);
       }
 
       const { error: usernameError } = await supabase
@@ -129,7 +111,7 @@ export async function PUT(request) {
 
       if (usernameError) {
         console.error('[user-profile] Error updating username:', usernameError);
-        return NextResponse.json({ error: 'Failed to update username' }, { status: 500 });
+        return apiError('Failed to update username');
       }
     }
 
@@ -161,10 +143,7 @@ export async function PUT(request) {
 
         if (updateProfileError) {
           console.error('[user-profile] Error updating profile:', updateProfileError);
-          return NextResponse.json(
-            { error: 'Failed to update profile' },
-            { status: 500 }
-          );
+          return apiError('Failed to update profile');
         }
       } else {
         // Create new profile
@@ -177,20 +156,14 @@ export async function PUT(request) {
 
         if (createProfileError) {
           console.error('[user-profile] Error creating profile:', createProfileError);
-          return NextResponse.json(
-            { error: 'Failed to create profile' },
-            { status: 500 }
-          );
+          return apiError('Failed to create profile');
         }
       }
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess();
   } catch (error) {
     console.error('[user-profile] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiError('Internal server error');
   }
 }

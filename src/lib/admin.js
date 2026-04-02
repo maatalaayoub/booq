@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError } from '@/lib/api-response';
 
 /**
  * Verify the current request is from an admin.
@@ -10,7 +10,7 @@ export async function requireAdmin() {
   const { userId } = await auth();
 
   if (!userId) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+    return { error: apiError('Unauthorized', 401) };
   }
 
   const supabase = createServerSupabaseClient();
@@ -22,7 +22,7 @@ export async function requireAdmin() {
     .single();
 
   if (error || !user || user.role !== 'admin') {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
+    return { error: apiError('Forbidden', 403) };
   }
 
   return { supabase, adminUser: user };

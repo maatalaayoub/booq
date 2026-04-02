@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiData } from '@/lib/api-response';
 
 const BUCKET = 'profile-images';
 const MAX_SIZE_MB = 10;
@@ -12,28 +12,28 @@ const ALLOWED_TYPES = [
 
 export async function POST(request) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const formData = await request.formData();
     const file = formData.get('file');
 
     if (!file) {
-      return NextResponse.json({ error: 'Missing file' }, { status: 400 });
+      return apiError('Missing file', 400);
     }
 
     // Validate file size
     const bytes = await file.arrayBuffer();
     if (bytes.byteLength > MAX_SIZE_MB * 1024 * 1024) {
-      return NextResponse.json({ error: `File too large. Max ${MAX_SIZE_MB}MB allowed.` }, { status: 400 });
+      return apiError(`File too large. Max ${MAX_SIZE_MB}MB allowed.`, 400);
     }
 
     // Validate file type
     const mimeType = file.type;
     if (!ALLOWED_TYPES.includes(mimeType)) {
-      return NextResponse.json({ error: 'Invalid file type. Use PDF, DOC, or DOCX.' }, { status: 400 });
+      return apiError('Invalid file type. Use PDF, DOC, or DOCX.', 400);
     }
 
     const ext = mimeType === 'application/pdf' ? 'pdf'
@@ -57,7 +57,7 @@ export async function POST(request) {
       .single();
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     const filePath = `resumes/${dbUser.id}-${Date.now()}.${ext}`;
@@ -72,7 +72,7 @@ export async function POST(request) {
 
     if (uploadError) {
       console.error('[upload-cv] Upload error:', uploadError);
-      return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+      return apiError('Upload failed');
     }
 
     // Get public URL
@@ -108,9 +108,9 @@ export async function POST(request) {
       }
     }
 
-    return NextResponse.json({ url });
+    return apiData({ url });
   } catch (error) {
     console.error('[upload-cv] Unexpected error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

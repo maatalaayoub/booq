@@ -1,14 +1,6 @@
-import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-function validCoord(lat, lng) {
-  const la = Number(lat);
-  const lo = Number(lng);
-  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-  if (la === 0 && lo === 0) return null;
-  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
-  return { latitude: la, longitude: lo };
-}
+import { validCoord } from '@/lib/sanitize';
+import { apiError, apiData } from '@/lib/api-response';
 
 /**
  * POST /api/businesses/favorites
@@ -20,7 +12,7 @@ export async function POST(request) {
     const { ids } = await request.json();
 
     if (!Array.isArray(ids) || ids.length === 0) {
-      return NextResponse.json({ businesses: [] });
+      return apiData({ businesses: [] });
     }
 
     // Validate UUID format for each id
@@ -28,7 +20,7 @@ export async function POST(request) {
     const validIds = ids.filter(id => uuidRe.test(id));
 
     if (validIds.length === 0) {
-      return NextResponse.json({ businesses: [] });
+      return apiData({ businesses: [] });
     }
 
     const supabase = createServerSupabaseClient();
@@ -46,7 +38,7 @@ export async function POST(request) {
       .in('id', validIds);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message);
     }
 
     const results = (businesses || [])
@@ -92,8 +84,8 @@ export async function POST(request) {
         };
       });
 
-    return NextResponse.json({ businesses: results });
+    return apiData({ businesses: results });
   } catch (err) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

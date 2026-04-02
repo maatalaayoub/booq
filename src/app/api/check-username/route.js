@@ -1,26 +1,26 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiData } from '@/lib/api-response';
 
 // GET /api/check-username?username=foo
 export async function GET(request) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const { searchParams } = new URL(request.url);
     const username = searchParams.get('username')?.trim().toLowerCase();
 
     if (!username) {
-      return NextResponse.json({ error: 'Username is required' }, { status: 400 });
+      return apiError('Username is required', 400);
     }
 
     // Validate format: 3-20 chars, alphanumeric + underscores only
     if (!/^[a-z0-9_]{3,20}$/.test(username)) {
-      return NextResponse.json({
+      return apiData({
         available: false,
         error: 'Username must be 3–20 characters and contain only letters, numbers, or underscores.',
       });
@@ -37,7 +37,7 @@ export async function GET(request) {
 
     // If they're checking their own current username it's "available"
     if (currentUser?.username?.toLowerCase() === username) {
-      return NextResponse.json({ available: true, self: true });
+      return apiData({ available: true, self: true });
     }
 
     const { data: existing } = await supabase
@@ -46,9 +46,9 @@ export async function GET(request) {
       .eq('username', username)
       .maybeSingle();
 
-    return NextResponse.json({ available: !existing });
+    return apiData({ available: !existing });
   } catch (error) {
     console.error('[check-username] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

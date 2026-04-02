@@ -1,5 +1,4 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 /**
@@ -10,21 +9,15 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
  * Uses SELECT ... FOR UPDATE to prevent double-booking race conditions.
  */
 
-function sanitizeText(value) {
-  if (!value || typeof value !== 'string') return value;
-  return value.replace(/<[^>]*>/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, 500);
-}
-
-function sanitizePhone(value) {
-  if (!value || typeof value !== 'string') return value;
-  return value.replace(/[^0-9+\-\s()]/g, '').trim().slice(0, 30);
-}
+import { sanitizeText, sanitizePhone } from '@/lib/sanitize';
+import { getCategoryTableName } from '@/lib/business';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 export async function POST(request) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Please sign in to book an appointment' }, { status: 401 });
+      return apiError('Please sign in to book an appointment', 401);
     }
 
     const body = await request.json();
@@ -38,22 +31,22 @@ export async function POST(request) {
     // Validate required fields
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!businessId || !uuidRe.test(businessId)) {
-      return NextResponse.json({ error: 'Invalid businessId' }, { status: 400 });
+      return apiError('Invalid businessId', 400);
     }
     if (resolvedIds.length === 0 || !resolvedIds.every(id => uuidRe.test(id))) {
-      return NextResponse.json({ error: 'Invalid service selection' }, { status: 400 });
+      return apiError('Invalid service selection', 400);
     }
     if (resolvedIds.length > 10) {
-      return NextResponse.json({ error: 'Too many services selected' }, { status: 400 });
+      return apiError('Too many services selected', 400);
     }
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
+      return apiError('Invalid date', 400);
     }
     if (!startTime || !/^\d{2}:\d{2}$/.test(startTime)) {
-      return NextResponse.json({ error: 'Invalid startTime format (HH:MM)' }, { status: 400 });
+      return apiError('Invalid startTime format (HH:MM)', 400);
     }
     if (!clientName || clientName.trim().length < 2) {
-      return NextResponse.json({ error: 'Client name is required' }, { status: 400 });
+      return apiError('Client name is required', 400);
     }
 
     const supabase = createServerSupabaseClient();
@@ -67,11 +60,11 @@ export async function POST(request) {
       .single();
 
     if (!bizInfo) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      return apiError('Business not found', 404);
     }
 
     if (bizInfo.service_mode === 'walkin') {
-      return NextResponse.json({ error: 'This business only accepts walk-in customers' }, { status: 400 });
+      return apiError('This business only accepts walk-in customers', 400);
     }
 
     // Get service details (all selected)
@@ -82,7 +75,7 @@ export async function POST(request) {
       .eq('business_info_id', businessId);
 
     if (!services || services.length !== resolvedIds.length || services.some(s => !s.is_active)) {
-      return NextResponse.json({ error: 'One or more services not found or inactive' }, { status: 404 });
+      return apiError('One or more services not found or inactive', 404);
     }
 
     // Compute combined duration and total price
@@ -98,12 +91,11 @@ export async function POST(request) {
 
     // Don't allow booking in the past
     if (startDate < new Date()) {
-      return NextResponse.json({ error: 'Cannot book in the past' }, { status: 400 });
+      return apiError('Cannot book in the past', 400);
     }
 
     // Check business hours
-    const tableMap = { salon_owner: 'shop_salon_info', mobile_service: 'mobile_service_info' };
-    const tableName = tableMap[bizInfo.business_category];
+    const tableName = getCategoryTableName(bizInfo.business_category);
     let businessHours = [];
     if (tableName) {
       const { data } = await supabase
@@ -117,10 +109,10 @@ export async function POST(request) {
     const dayOfWeek = startDate.getUTCDay();
     const daySchedule = businessHours.find(h => h.dayOfWeek === dayOfWeek);
     if (!daySchedule || !daySchedule.isOpen) {
-      return NextResponse.json({ error: 'Business is closed on this day' }, { status: 400 });
+      return apiError('Business is closed on this day', 400);
     }
     if (startTime < daySchedule.openTime || endHHMM > daySchedule.closeTime) {
-      return NextResponse.json({ error: `Appointment must be between ${daySchedule.openTime} and ${daySchedule.closeTime}` }, { status: 400 });
+      return apiError(`Appointment must be between ${daySchedule.openTime} and ${daySchedule.closeTime}`, 400);
     }
 
     // Check schedule exceptions
@@ -132,13 +124,13 @@ export async function POST(request) {
     for (const ex of (exceptions || [])) {
       if (ex.recurring && ex.recurring_day === dayOfWeek) {
         if (ex.is_full_day) {
-          return NextResponse.json({ error: `Closed: ${ex.title}` }, { status: 400 });
+          return apiError(`Closed: ${ex.title}`, 400);
         }
         if (ex.start_time && ex.end_time) {
           const exStart = ex.start_time.substring(0, 5);
           const exEnd = ex.end_time.substring(0, 5);
           if (startTime < exEnd && endHHMM > exStart) {
-            return NextResponse.json({ error: `Time conflicts with: ${ex.title}` }, { status: 400 });
+            return apiError(`Time conflicts with: ${ex.title}`, 400);
           }
         }
         continue;
@@ -147,13 +139,13 @@ export async function POST(request) {
       const exEndDate = ex.end_date || exDate;
       if (date >= exDate && date <= exEndDate) {
         if (ex.is_full_day) {
-          return NextResponse.json({ error: `Closed: ${ex.title}` }, { status: 400 });
+          return apiError(`Closed: ${ex.title}`, 400);
         }
         if (ex.start_time && ex.end_time) {
           const exStart = ex.start_time.substring(0, 5);
           const exEnd = ex.end_time.substring(0, 5);
           if (startTime < exEnd && endHHMM > exStart) {
-            return NextResponse.json({ error: `Time conflicts with: ${ex.title}` }, { status: 400 });
+            return apiError(`Time conflicts with: ${ex.title}`, 400);
           }
         }
       }
@@ -172,7 +164,7 @@ export async function POST(request) {
       .gt('end_time', startISO);
 
     if (conflicts && conflicts.length > 0) {
-      return NextResponse.json({ error: 'This time slot is no longer available. Please choose another time.' }, { status: 409 });
+      return apiError('This time slot is no longer available. Please choose another time.', 409);
     }
 
     // Check if this user already has a pending or confirmed booking that overlaps (same business)
@@ -188,9 +180,10 @@ export async function POST(request) {
     if (userConflicts && userConflicts.length > 0) {
       const existingStatus = userConflicts[0].status;
       const existingTime = new Date(userConflicts[0].start_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
-      return NextResponse.json({
-        error: `You already have a ${existingStatus} booking at ${existingTime}. You cannot book the same time slot twice.`,
-      }, { status: 409 });
+      return apiError(
+        `You already have a ${existingStatus} booking at ${existingTime}. You cannot book the same time slot twice.`,
+        409
+      );
     }
 
     // Check if this user has a confirmed booking at a DIFFERENT business that overlaps
@@ -206,10 +199,10 @@ export async function POST(request) {
     if (crossBizConflicts && crossBizConflicts.length > 0) {
       const conflictTime = new Date(crossBizConflicts[0].start_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
       const conflictEndTime = new Date(crossBizConflicts[0].end_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
-      return NextResponse.json({
+      return apiData({
         error: `You already have a confirmed booking from ${conflictTime} to ${conflictEndTime} with another provider. Please choose a different time.`,
         code: 'CROSS_BUSINESS_CONFLICT',
-      }, { status: 409 });
+      }, 409);
     }
 
     // Get the booking user's info
@@ -239,10 +232,10 @@ export async function POST(request) {
 
     if (insertError) {
       console.error('[book/create] Insert error:', insertError);
-      return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 });
+      return apiError('Failed to create booking');
     }
 
-    return NextResponse.json({
+    return apiData({
       success: true,
       appointment: {
         id: appointment.id,
@@ -252,9 +245,9 @@ export async function POST(request) {
         endTime: appointment.end_time,
         status: appointment.status,
       },
-    }, { status: 201 });
+    }, 201);
   } catch (err) {
     console.error('[book/create POST]', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

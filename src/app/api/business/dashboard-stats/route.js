@@ -1,32 +1,13 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-async function getUserId(request) {
-  const { userId } = await auth();
-  if (userId) return userId;
-
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      const { verifyToken } = await import('@clerk/backend');
-      const payload = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      if (payload?.sub) return payload.sub;
-    } catch (err) {
-      console.log('[dashboard-stats] Bearer verify failed:', err.message);
-    }
-  }
-  return null;
-}
+import { getUserId } from '@/lib/auth';
+import { apiError, apiData } from '@/lib/api-response';
 
 export async function GET(request) {
   try {
     const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
@@ -39,7 +20,7 @@ export async function GET(request) {
       .single();
 
     if (!user || user.role !== 'business') {
-      return NextResponse.json({ error: 'Not a business user' }, { status: 403 });
+      return apiError('Not a business user', 403);
     }
 
     // Get business info
@@ -50,7 +31,7 @@ export async function GET(request) {
       .single();
 
     if (!businessInfo) {
-      return NextResponse.json({ error: 'Business info not found' }, { status: 404 });
+      return apiError('Business info not found', 404);
     }
 
     const businessInfoId = businessInfo.id;
@@ -168,7 +149,7 @@ export async function GET(request) {
       };
     }
 
-    return NextResponse.json({
+    return apiData({
       todayBookings: todayBookings || 0,
       weeklyRevenue,
       upcomingBookings: upcomingBookings || [],
@@ -177,6 +158,6 @@ export async function GET(request) {
     });
   } catch (err) {
     console.error('[dashboard-stats] Error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

@@ -1,93 +1,29 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { sanitizeText, sanitizePhone, validCoord } from '@/lib/sanitize';
+import { getUserId } from '@/lib/auth';
+import { getCategoryTableName, getBusinessContext } from '@/lib/business';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
-function validCoord(lat, lng) {
-  const la = Number(lat);
-  const lo = Number(lng);
-  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-  if (la === 0 && lo === 0) return null;
-  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
-  return { latitude: la, longitude: lo };
-}
+// Extend base context with full business_info, category data, and specialty names
+async function getDetailedBusinessContext(supabase, clerkUserId) {
+  const base = await getBusinessContext(supabase, clerkUserId);
+  if (!base) return { error: 'Business not found', status: 404 };
 
-// ─── SANITIZATION HELPERS ──────────────────────────────────
-function sanitizeText(value) {
-  if (!value || typeof value !== 'string') return value;
-  return value
-    .replace(/<[^>]*>/g, '')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .trim()
-    .slice(0, 500);
-}
-
-function sanitizePhone(value) {
-  if (!value || typeof value !== 'string') return value;
-  return value.replace(/[^0-9+\-\s()]/g, '').trim().slice(0, 30);
-}
-
-// Helper: get userId either from session or Bearer token
-async function getUserId(request) {
-  const { userId } = await auth();
-  if (userId) return userId;
-  
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      const { verifyToken } = await import('@clerk/backend');
-      const payload = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      if (payload?.sub) return payload.sub;
-    } catch (err) {
-      console.log('[business/details] Bearer token verification failed:', err.message);
-    }
-  }
-  return null;
-}
-
-// Helper: get business context (business_info + category-specific table)
-async function getBusinessContext(supabase, clerkUserId) {
-  // Get user from users table
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('id, role')
-    .eq('clerk_id', clerkUserId)
-    .single();
-
-  if (userError || !userData) {
-    return { error: 'User not found', status: 404 };
-  }
-
-  if (userData.role !== 'business') {
-    return { error: 'Not a business user', status: 403 };
-  }
-
-  // Get business_info
-  const { data: businessInfo, error: biError } = await supabase
+  // Fetch full business_info row
+  const { data: businessInfo } = await supabase
     .from('business_info')
     .select('*')
-    .eq('user_id', userData.id)
+    .eq('id', base.businessInfoId)
     .single();
 
-  if (biError || !businessInfo) {
-    return { error: 'Business info not found', status: 404 };
-  }
-
   // Get category-specific data
-  const tableMap = {
-    'salon_owner': 'shop_salon_info',
-    'mobile_service': 'mobile_service_info',
-  };
-  const tableName = tableMap[businessInfo.business_category];
-  
+  const tableName = getCategoryTableName(base.category);
   let categoryData = null;
   if (tableName) {
     const { data } = await supabase
       .from(tableName)
       .select('*')
-      .eq('business_info_id', businessInfo.id)
+      .eq('business_info_id', base.businessInfoId)
       .single();
     categoryData = data;
   }
@@ -95,7 +31,7 @@ async function getBusinessContext(supabase, clerkUserId) {
   // Get specialty and service category names
   let specialtyName = null;
   let serviceCategoryName = null;
-  if (businessInfo.specialty_id) {
+  if (businessInfo?.specialty_id) {
     const { data: specialty } = await supabase
       .from('specialties')
       .select('name, service_category_id, service_categories(name)')
@@ -108,7 +44,7 @@ async function getBusinessContext(supabase, clerkUserId) {
   }
 
   return {
-    userData,
+    ...base,
     businessInfo,
     categoryData,
     tableName,
@@ -122,19 +58,19 @@ export async function GET(request) {
   try {
     const userId = await getUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, userId);
+    const ctx = await getDetailedBusinessContext(supabase, userId);
 
     if (ctx.error) {
-      return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+      return apiError(ctx.error, ctx.status);
     }
 
     const { businessInfo, categoryData, specialtyName, serviceCategoryName } = ctx;
 
-    return NextResponse.json({
+    return apiData({
       businessCategory: businessInfo.business_category,
       professionalType: businessInfo.professional_type,
       specialtyName: specialtyName || '',
@@ -151,7 +87,7 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error('[business/details GET] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -160,7 +96,7 @@ export async function PUT(request) {
   try {
     const userId = await getUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const body = await request.json();
@@ -188,7 +124,7 @@ export async function PUT(request) {
     const ctx = await getBusinessContext(supabase, userId);
 
     if (ctx.error) {
-      return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+      return apiError(ctx.error, ctx.status);
     }
 
     const { businessInfo, tableName } = ctx;
@@ -230,13 +166,13 @@ export async function PUT(request) {
 
       if (catUpdateError) {
         console.error('[business/details PUT] Error updating category table:', catUpdateError);
-        return NextResponse.json({ error: 'Failed to update business details' }, { status: 500 });
+        return apiError('Failed to update business details');
       }
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess();
   } catch (error) {
     console.error('[business/details PUT] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

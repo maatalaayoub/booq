@@ -1,15 +1,6 @@
-import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-// Validate that lat/lng are real-world coordinates (not 0,0 "null island")
-function validCoord(lat, lng) {
-  const la = Number(lat);
-  const lo = Number(lng);
-  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-  if (la === 0 && lo === 0) return null; // null island
-  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
-  return { latitude: la, longitude: lo };
-}
+import { validCoord } from '@/lib/sanitize';
+import { apiError, apiData } from '@/lib/api-response';
 
 /**
  * GET /api/businesses
@@ -43,7 +34,7 @@ export async function GET(request) {
     const { data: businesses, error } = await query;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message);
     }
 
     // Filter to only businesses with public page enabled
@@ -95,8 +86,8 @@ export async function GET(request) {
       });
     }
 
-    return NextResponse.json({ businesses: grouped });
+    return apiData({ businesses: grouped });
   } catch (err) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

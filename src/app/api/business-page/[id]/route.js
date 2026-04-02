@@ -1,14 +1,6 @@
-import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-function validCoord(lat, lng) {
-  const la = Number(lat);
-  const lo = Number(lng);
-  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-  if (la === 0 && lo === 0) return null;
-  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
-  return { latitude: la, longitude: lo };
-}
+import { validCoord } from '@/lib/sanitize';
+import { apiError, apiData } from '@/lib/api-response';
 
 /**
  * GET /api/business-page/[id]
@@ -22,7 +14,7 @@ export async function GET(_request, { params }) {
     // Validate UUID format
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!id || !uuidRe.test(id)) {
-      return NextResponse.json({ error: 'Invalid business ID' }, { status: 400 });
+      return apiError('Invalid business ID', 400);
     }
 
     const supabase = createServerSupabaseClient();
@@ -43,12 +35,12 @@ export async function GET(_request, { params }) {
       .single();
 
     if (error || !biz) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      return apiError('Business not found', 404);
     }
 
     const settings = biz.business_card_settings?.settings || {};
     if (!settings.pageEnabled) {
-      return NextResponse.json({ error: 'Business page is not active' }, { status: 404 });
+      return apiError('Business page is not active', 404);
     }
 
     const details = biz.shop_salon_info || biz.mobile_service_info || {};
@@ -116,9 +108,9 @@ export async function GET(_request, { params }) {
       })),
     };
 
-    return NextResponse.json(response);
+    return apiData(response);
   } catch (err) {
     console.error('[business-page GET]', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

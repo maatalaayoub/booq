@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 const BUCKET = 'verification-documents';
 const MAX_SIZE_MB = 10;
@@ -9,11 +9,11 @@ const MAX_SIZE_MB = 10;
  * GET /api/business/verification
  * Fetch the current user's verification status
  */
-export async function GET() {
+export async function GET(request) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
@@ -26,7 +26,7 @@ export async function GET() {
       .single();
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     // Get verification request
@@ -38,12 +38,12 @@ export async function GET() {
 
     if (error) {
       console.error('[verification] Error fetching verification:', error);
-      return NextResponse.json({ error: 'Failed to fetch verification' }, { status: 500 });
+      return apiError('Failed to fetch verification');
     }
 
     if (!verification) {
       // No verification request yet
-      return NextResponse.json({
+      return apiData({
         verification: {
           identity_status: 'not_submitted',
           business_status: 'not_submitted',
@@ -55,10 +55,10 @@ export async function GET() {
       });
     }
 
-    return NextResponse.json({ verification });
+    return apiData({ verification });
   } catch (error) {
     console.error('[verification] Unexpected error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -69,9 +69,9 @@ export async function GET() {
  */
 export async function POST(request) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const formData = await request.formData();
@@ -81,7 +81,7 @@ export async function POST(request) {
     const businessDocumentType = formData.get('businessDocumentType') || null;
 
     if (!identityFile && !businessFile) {
-      return NextResponse.json({ error: 'At least one file is required' }, { status: 400 });
+      return apiError('At least one file is required', 400);
     }
 
     const supabase = createServerSupabaseClient();
@@ -94,11 +94,11 @@ export async function POST(request) {
       .single();
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     if (dbUser.role !== 'business') {
-      return NextResponse.json({ error: 'Only business users can submit verification' }, { status: 403 });
+      return apiError('Only business users can submit verification', 403);
     }
 
     // Get business_info
@@ -109,7 +109,7 @@ export async function POST(request) {
       .single();
 
     if (!businessInfo) {
-      return NextResponse.json({ error: 'Business info not found. Complete onboarding first.' }, { status: 400 });
+      return apiError('Business info not found. Complete onboarding first.', 400);
     }
 
     // Ensure bucket exists
@@ -125,7 +125,7 @@ export async function POST(request) {
     if (identityFile && identityFile.size > 0) {
       const uploadResult = await uploadDocument(supabase, identityFile, dbUser.id, 'identity');
       if (uploadResult.error) {
-        return NextResponse.json({ error: uploadResult.error }, { status: 400 });
+        return apiError(uploadResult.error, 400);
       }
       uploadResults.identity_document_url = uploadResult.url;
     }
@@ -134,7 +134,7 @@ export async function POST(request) {
     if (businessFile && businessFile.size > 0) {
       const uploadResult = await uploadDocument(supabase, businessFile, dbUser.id, 'business');
       if (uploadResult.error) {
-        return NextResponse.json({ error: uploadResult.error }, { status: 400 });
+        return apiError(uploadResult.error, 400);
       }
       uploadResults.business_document_url = uploadResult.url;
     }
@@ -175,7 +175,7 @@ export async function POST(request) {
 
       if (updateError) {
         console.error('[verification] Update error:', updateError);
-        return NextResponse.json({ error: 'Failed to update verification' }, { status: 500 });
+        return apiError('Failed to update verification');
       }
     } else {
       // Create new verification request
@@ -196,7 +196,7 @@ export async function POST(request) {
 
       if (insertError) {
         console.error('[verification] Insert error:', insertError);
-        return NextResponse.json({ error: 'Failed to create verification' }, { status: 500 });
+        return apiError('Failed to create verification');
       }
     }
 
@@ -207,14 +207,13 @@ export async function POST(request) {
       .eq('user_id', dbUser.id)
       .single();
 
-    return NextResponse.json({ 
-      success: true, 
+    return apiSuccess({ 
       verification,
       message: 'Documents submitted successfully' 
     });
   } catch (error) {
     console.error('[verification] Unexpected error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 

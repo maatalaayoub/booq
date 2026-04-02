@@ -1,58 +1,37 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getCategoryTableName, getBusinessContext } from '@/lib/business';
+import { apiError, apiData } from '@/lib/api-response';
 
-async function getBusinessContext(supabase, clerkId) {
-  const { data: user } = await supabase
-    .from('users')
-    .select('id, role')
-    .eq('clerk_id', clerkId)
-    .single();
+// Extend base context with business name from category table
+async function getBusinessPageContext(supabase, clerkId) {
+  const ctx = await getBusinessContext(supabase, clerkId);
+  if (!ctx) return null;
 
-  if (!user || user.role !== 'business') return null;
-
-  const { data: businessInfo } = await supabase
-    .from('business_info')
-    .select('id, business_category')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!businessInfo) return null;
-  
-  // Get business name from category-specific table
   let businessName = null;
-  const tableName = businessInfo.business_category === 'salon_owner' 
-    ? 'shop_salon_info' 
-    : businessInfo.business_category === 'mobile_service' 
-      ? 'mobile_service_info' 
-      : null;
-  
+  const tableName = getCategoryTableName(ctx.category);
+
   if (tableName) {
     const { data } = await supabase
       .from(tableName)
       .select('business_name')
-      .eq('business_info_id', businessInfo.id)
+      .eq('business_info_id', ctx.businessInfoId)
       .single();
     businessName = data?.business_name;
   }
-  
-  return { 
-    businessInfoId: businessInfo.id, 
-    businessName, 
-    businessCategory: businessInfo.business_category,
-    tableName 
-  };
+
+  return { ...ctx, businessName, tableName };
 }
 
 // ─── GET: fetch saved settings ─────────────────────────────
-export async function GET() {
+export async function GET(request) {
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = await getUserId(request);
+    if (!userId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, userId);
-    if (!ctx) return NextResponse.json({ settings: null, fallbackBusinessName: null });
+    const ctx = await getBusinessPageContext(supabase, userId);
+    if (!ctx) return apiData({ settings: null, fallbackBusinessName: null });
 
     const { data, error } = await supabase
       .from('business_card_settings')
@@ -63,30 +42,30 @@ export async function GET() {
     if (error) {
       // Table missing or no row — return null gracefully with fallback
       if (error.code === '42P01' || error.code === 'PGRST116') {
-        return NextResponse.json({ settings: null, fallbackBusinessName: ctx.businessName || null });
+        return apiData({ settings: null, fallbackBusinessName: ctx.businessName || null });
       }
       throw error;
     }
 
-    return NextResponse.json({ 
+    return apiData({ 
       settings: data?.settings || null,
       fallbackBusinessName: ctx.businessName || null 
     });
   } catch (err) {
     console.error('[card-settings GET]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return apiError(err.message);
   }
 }
 
 // ─── POST: save settings ───────────────────────────────────
 export async function POST(request) {
   try {
-    const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userId = await getUserId(request);
+    if (!userId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, userId);
-    if (!ctx) return NextResponse.json({ error: 'Business profile not found. Please complete onboarding first.' }, { status: 404 });
+    const ctx = await getBusinessPageContext(supabase, userId);
+    if (!ctx) return apiError('Business profile not found. Please complete onboarding first.', 404);
 
     const body = await request.json();
     const { settings } = body;
@@ -118,14 +97,14 @@ export async function POST(request) {
     if (error) {
       // Table not created yet — still return 200 so the UI doesn't break
       if (error.code === '42P01') {
-        return NextResponse.json({ ok: true, note: 'settings table not yet created' });
+        return apiData({ ok: true, note: 'settings table not yet created' });
       }
       throw error;
     }
 
-    return NextResponse.json({ ok: true });
+    return apiData({ ok: true });
   } catch (err) {
     console.error('[card-settings POST]', err);
-    return NextResponse.json({ error: err?.message || 'Failed to save settings' }, { status: 500 });
+    return apiError(err?.message || 'Failed to save settings');
   }
 }

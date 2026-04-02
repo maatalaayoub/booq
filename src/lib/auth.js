@@ -71,3 +71,29 @@ export async function isAdminRole() {
   const { role } = await getServerRole();
   return role === 'admin';
 }
+
+/**
+ * Get userId from Clerk session or Bearer token (for API routes).
+ * Supports both Next.js session auth and mobile/external Bearer tokens.
+ * @param {Request} request - The incoming request
+ * @returns {Promise<string | null>} Clerk userId or null
+ */
+export async function getUserId(request) {
+  const { userId } = await auth();
+  if (userId) return userId;
+
+  const authHeader = request.headers.get('Authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const { verifyToken } = await import('@clerk/backend');
+      const payload = await verifyToken(token, {
+        secretKey: process.env.CLERK_SECRET_KEY,
+      });
+      if (payload?.sub) return payload.sub;
+    } catch (err) {
+      console.log('[auth] Bearer token verification failed:', err.message);
+    }
+  }
+  return null;
+}

@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 // PATCH - Update application (withdraw)
 export async function PATCH(request, { params }) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const { id } = await params;
@@ -15,7 +15,7 @@ export async function PATCH(request, { params }) {
     const { status } = body;
 
     if (!['withdrawn'].includes(status)) {
-      return NextResponse.json({ error: 'Invalid status update' }, { status: 400 });
+      return apiError('Invalid status update', 400);
     }
 
     const supabase = createServerSupabaseClient();
@@ -27,7 +27,7 @@ export async function PATCH(request, { params }) {
       .single();
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     const { data, error } = await supabase
@@ -40,26 +40,26 @@ export async function PATCH(request, { params }) {
 
     if (error) {
       console.error('[applications] PATCH error:', error);
-      return NextResponse.json({ error: 'Failed to update application' }, { status: 500 });
+      return apiError('Failed to update application');
     }
 
     if (!data) {
-      return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+      return apiError('Application not found', 404);
     }
 
-    return NextResponse.json(data);
+    return apiData(data);
   } catch (error) {
     console.error('[applications] PATCH error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
 // DELETE - Delete application
 export async function DELETE(request, { params }) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const { id } = await params;
@@ -72,7 +72,7 @@ export async function DELETE(request, { params }) {
       .single();
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     const { error } = await supabase
@@ -83,12 +83,12 @@ export async function DELETE(request, { params }) {
 
     if (error) {
       console.error('[applications] DELETE error:', error);
-      return NextResponse.json({ error: 'Failed to delete application' }, { status: 500 });
+      return apiError('Failed to delete application');
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess();
   } catch (error) {
     console.error('[applications] DELETE error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
+import { apiError, apiData } from '@/lib/api-response';
 
 /**
  * GET /api/admin/businesses/[id]
@@ -32,7 +32,7 @@ export async function GET(_request, { params }) {
     .single();
 
   if (error || !user) {
-    return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    return apiError('Business not found', 404);
   }
 
   const businessInfoId = user.business_info?.id;
@@ -79,7 +79,7 @@ export async function GET(_request, { params }) {
     };
   }
 
-  return NextResponse.json({
+  return apiData({
     business: user,
     appointments,
     scheduleExceptions,

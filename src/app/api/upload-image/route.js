@@ -1,16 +1,16 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiData } from '@/lib/api-response';
 
 const BUCKET = 'profile-images';
 const MAX_SIZE_MB = 5;
 
 export async function POST(request) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
 
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const formData = await request.formData();
@@ -18,23 +18,23 @@ export async function POST(request) {
     const type = formData.get('type'); // 'avatar' | 'cover'
 
     if (!file || !type) {
-      return NextResponse.json({ error: 'Missing file or type' }, { status: 400 });
+      return apiError('Missing file or type', 400);
     }
 
     if (!['avatar', 'cover', 'gallery_cover', 'business_avatar'].includes(type)) {
-      return NextResponse.json({ error: 'Invalid type. Must be avatar, cover, gallery_cover, or business_avatar.' }, { status: 400 });
+      return apiError('Invalid type. Must be avatar, cover, gallery_cover, or business_avatar.', 400);
     }
 
     // Validate file size
     const bytes = await file.arrayBuffer();
     if (bytes.byteLength > MAX_SIZE_MB * 1024 * 1024) {
-      return NextResponse.json({ error: `File too large. Max ${MAX_SIZE_MB}MB allowed.` }, { status: 400 });
+      return apiError(`File too large. Max ${MAX_SIZE_MB}MB allowed.`, 400);
     }
 
     // Validate file type
     const mimeType = file.type;
     if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(mimeType)) {
-      return NextResponse.json({ error: 'Invalid file type. Use JPEG, PNG, or WebP.' }, { status: 400 });
+      return apiError('Invalid file type. Use JPEG, PNG, or WebP.', 400);
     }
 
     const ext = mimeType.split('/')[1].replace('jpeg', 'jpg');
@@ -55,7 +55,7 @@ export async function POST(request) {
       .single();
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     const filePath = type === 'gallery_cover'
@@ -74,7 +74,7 @@ export async function POST(request) {
 
     if (uploadError) {
       console.error('[upload-image] Upload error:', uploadError);
-      return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+      return apiError('Upload failed');
     }
 
     // Get public URL
@@ -87,7 +87,7 @@ export async function POST(request) {
 
     // For gallery covers and business avatars, just return the URL — caller saves it in settings
     if (type === 'gallery_cover' || type === 'business_avatar') {
-      return NextResponse.json({ url });
+      return apiData({ url });
     }
 
     // Save URL to user_profile
@@ -110,9 +110,9 @@ export async function POST(request) {
         .insert({ user_id: dbUser.id, [column]: url });
     }
 
-    return NextResponse.json({ url });
+    return apiData({ url });
   } catch (error) {
     console.error('[upload-image] Unexpected error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

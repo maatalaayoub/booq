@@ -1,72 +1,21 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-// ─── SANITIZATION HELPERS ──────────────────────────────────
-function sanitizeText(value) {
-  if (!value || typeof value !== 'string') return value;
-  return value
-    .replace(/<[^>]*>/g, '')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .trim()
-    .slice(0, 500);
-}
-
-// Helper: get userId from session or Bearer token
-async function getUserId(request) {
-  const { userId } = await auth();
-  if (userId) return userId;
-
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      const { verifyToken } = await import('@clerk/backend');
-      const payload = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      if (payload?.sub) return payload.sub;
-    } catch (err) {
-      console.log('[schedule] Bearer verify failed:', err.message);
-    }
-  }
-  return null;
-}
-
-// Helper: get the business user + business_info + category info
-async function getBusinessContext(supabase, clerkId) {
-  const { data: user } = await supabase
-    .from('users')
-    .select('id, role')
-    .eq('clerk_id', clerkId)
-    .single();
-
-  if (!user || user.role !== 'business') return null;
-
-  const { data: businessInfo } = await supabase
-    .from('business_info')
-    .select('id, business_category')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!businessInfo) return null;
-
-  return { userId: user.id, businessInfoId: businessInfo.id, category: businessInfo.business_category };
-}
+import { sanitizeText } from '@/lib/sanitize';
+import { getUserId } from '@/lib/auth';
+import { getCategoryTableName, getBusinessContext } from '@/lib/business';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 // ─── GET: Fetch working hours + schedule exceptions ─────────
 export async function GET(request) {
   try {
     const clerkId = await getUserId(request);
-    if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!clerkId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
-    if (!ctx) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    if (!ctx) return apiError('Business not found', 404);
 
     // Get business hours from the category table
-    const tableMap = { salon_owner: 'shop_salon_info', mobile_service: 'mobile_service_info' };
-    const tableName = tableMap[ctx.category];
+    const tableName = getCategoryTableName(ctx.category);
 
     let businessHours = [];
     if (tableName) {
@@ -85,14 +34,14 @@ export async function GET(request) {
       .eq('business_info_id', ctx.businessInfoId)
       .order('date', { ascending: true });
 
-    return NextResponse.json({
+    return apiData({
       businessHours,
       exceptions: exceptions || [],
       category: ctx.category,
     });
   } catch (error) {
     console.error('[schedule GET] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -100,21 +49,20 @@ export async function GET(request) {
 export async function PUT(request) {
   try {
     const clerkId = await getUserId(request);
-    if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!clerkId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
-    if (!ctx) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    if (!ctx) return apiError('Business not found', 404);
 
     const { businessHours } = await request.json();
 
     if (!Array.isArray(businessHours)) {
-      return NextResponse.json({ error: 'businessHours must be an array' }, { status: 400 });
+      return apiError('businessHours must be an array', 400);
     }
 
-    const tableMap = { salon_owner: 'shop_salon_info', mobile_service: 'mobile_service_info' };
-    const tableName = tableMap[ctx.category];
-    if (!tableName) return NextResponse.json({ error: 'Cannot update hours for this category' }, { status: 400 });
+    const tableName = getCategoryTableName(ctx.category);
+    if (!tableName) return apiError('Cannot update hours for this category', 400);
 
     const { error } = await supabase
       .from(tableName)
@@ -123,13 +71,13 @@ export async function PUT(request) {
 
     if (error) {
       console.error('[schedule PUT] Error:', error);
-      return NextResponse.json({ error: 'Failed to update', details: error.message }, { status: 500 });
+      return apiError('Failed to update', 500, error.message);
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess();
   } catch (error) {
     console.error('[schedule PUT] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -137,22 +85,22 @@ export async function PUT(request) {
 export async function POST(request) {
   try {
     const clerkId = await getUserId(request);
-    if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!clerkId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
-    if (!ctx) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
     const { title, type, date, endDate, startTime, endTime, isFullDay, recurring, recurringDay, notes } = body;
 
     if (!title || !type || !date) {
-      return NextResponse.json({ error: 'title, type, and date are required' }, { status: 400 });
+      return apiError('title, type, and date are required', 400);
     }
 
     const validTypes = ['break', 'lunch_break', 'closure', 'holiday', 'vacation', 'other'];
     if (!validTypes.includes(type)) {
-      return NextResponse.json({ error: 'Invalid type', validTypes }, { status: 400 });
+      return apiData({ error: 'Invalid type', validTypes }, 400);
     }
 
     const fullDay = isFullDay === true || (!startTime && !endTime);
@@ -179,13 +127,13 @@ export async function POST(request) {
 
     if (error) {
       console.error('[schedule POST] Error:', error);
-      return NextResponse.json({ error: 'Failed to create exception', details: error.message }, { status: 500 });
+      return apiError('Failed to create exception', 500, error.message);
     }
 
-    return NextResponse.json({ success: true, exception: data });
+    return apiSuccess({ exception: data });
   } catch (error) {
     console.error('[schedule POST] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -193,15 +141,15 @@ export async function POST(request) {
 export async function DELETE(request) {
   try {
     const clerkId = await getUserId(request);
-    if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!clerkId) return apiError('Unauthorized', 401);
 
     const { searchParams } = new URL(request.url);
     const exceptionId = searchParams.get('id');
-    if (!exceptionId) return NextResponse.json({ error: 'Exception id is required' }, { status: 400 });
+    if (!exceptionId) return apiError('Exception id is required', 400);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
-    if (!ctx) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    if (!ctx) return apiError('Business not found', 404);
 
     const { error } = await supabase
       .from('schedule_exceptions')
@@ -211,13 +159,13 @@ export async function DELETE(request) {
 
     if (error) {
       console.error('[schedule DELETE] Error:', error);
-      return NextResponse.json({ error: 'Failed to delete', details: error.message }, { status: 500 });
+      return apiError('Failed to delete', 500, error.message);
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess();
   } catch (error) {
     console.error('[schedule DELETE] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -225,25 +173,25 @@ export async function DELETE(request) {
 export async function PATCH(request) {
   try {
     const clerkId = await getUserId(request);
-    if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!clerkId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
-    if (!ctx) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
     const { id, title, type, date, endDate, startTime, endTime, isFullDay, recurring, recurringDay, notes } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Exception id is required' }, { status: 400 });
+      return apiError('Exception id is required', 400);
     }
     if (!title || !type || !date) {
-      return NextResponse.json({ error: 'title, type, and date are required' }, { status: 400 });
+      return apiError('title, type, and date are required', 400);
     }
 
     const validTypes = ['break', 'lunch_break', 'closure', 'holiday', 'vacation', 'other'];
     if (!validTypes.includes(type)) {
-      return NextResponse.json({ error: 'Invalid type', validTypes }, { status: 400 });
+      return apiData({ error: 'Invalid type', validTypes }, 400);
     }
 
     const fullDay = isFullDay === true || (!startTime && !endTime);
@@ -272,12 +220,12 @@ export async function PATCH(request) {
 
     if (error) {
       console.error('[schedule PATCH] Error:', error);
-      return NextResponse.json({ error: 'Failed to update exception', details: error.message }, { status: 500 });
+      return apiError('Failed to update exception', 500, error.message);
     }
 
-    return NextResponse.json({ success: true, exception: data });
+    return apiSuccess({ exception: data });
   } catch (error) {
     console.error('[schedule PATCH] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

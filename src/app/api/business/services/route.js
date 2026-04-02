@@ -1,64 +1,20 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-// ─── SANITIZATION HELPERS ──────────────────────────────────
-function sanitizeText(value) {
-  if (!value || typeof value !== 'string') return value;
-  return value
-    .replace(/<[^>]*>/g, '')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .trim()
-    .slice(0, 500);
-}
-
-async function getUserId(request) {
-  const { userId } = await auth();
-  if (userId) return userId;
-
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      const { verifyToken } = await import('@clerk/backend');
-      const payload = await verifyToken(token, { secretKey: process.env.CLERK_SECRET_KEY });
-      if (payload?.sub) return payload.sub;
-    } catch (err) {
-      console.log('[services] Bearer verify failed:', err.message);
-    }
-  }
-  return null;
-}
-
-async function getBusinessContext(supabase, clerkId) {
-  const { data: user } = await supabase
-    .from('users')
-    .select('id, role')
-    .eq('clerk_id', clerkId)
-    .single();
-
-  if (!user || user.role !== 'business') return null;
-
-  const { data: businessInfo } = await supabase
-    .from('business_info')
-    .select('id, professional_type')
-    .eq('user_id', user.id)
-    .single();
-
-  if (!businessInfo) return null;
-  return { businessInfoId: businessInfo.id, specialty: businessInfo.professional_type };
-}
+import { sanitizeText } from '@/lib/sanitize';
+import { getUserId } from '@/lib/auth';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
+import { getBusinessContext } from '@/lib/business';
 
 // ─── GET: list all services ────────────────────────────────
 export async function GET(request) {
   try {
     const clerkId = await getUserId(request);
-    if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!clerkId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
     // No business profile yet — return empty instead of 404
-    if (!ctx) return NextResponse.json({ services: [], specialty: null });
+    if (!ctx) return apiData({ services: [], specialty: null });
 
     const { data, error } = await supabase
       .from('business_services')
@@ -68,13 +24,13 @@ export async function GET(request) {
 
     // Table doesn't exist yet — return empty list gracefully
     if (error) {
-      if (error.code === '42P01') return NextResponse.json({ services: [] });
+      if (error.code === '42P01') return apiData({ services: [] });
       throw error;
     }
-    return NextResponse.json({ services: data || [], specialty: ctx.specialty });
+    return apiData({ services: data || [], specialty: ctx.professionalType });
   } catch (err) {
     console.error('[services GET]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return apiError(err.message);
   }
 }
 
@@ -82,17 +38,17 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const clerkId = await getUserId(request);
-    if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!clerkId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
-    if (!ctx) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
     const { name, description, duration_minutes, price, currency, is_active } = body;
 
     if (!name || price === undefined || price === null) {
-      return NextResponse.json({ error: 'name and price are required' }, { status: 400 });
+      return apiError('name and price are required', 400);
     }
 
     const { data, error } = await supabase
@@ -110,10 +66,10 @@ export async function POST(request) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ service: data }, { status: 201 });
+    return apiData({ service: data }, 201);
   } catch (err) {
     console.error('[services POST]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return apiError(err.message);
   }
 }
 
@@ -121,16 +77,16 @@ export async function POST(request) {
 export async function PUT(request) {
   try {
     const clerkId = await getUserId(request);
-    if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!clerkId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
-    if (!ctx) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
     const { id, name, description, duration_minutes, price, currency, is_active } = body;
 
-    if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    if (!id) return apiError('id is required', 400);
 
     const { data, error } = await supabase
       .from('business_services')
@@ -149,10 +105,10 @@ export async function PUT(request) {
       .single();
 
     if (error) throw error;
-    return NextResponse.json({ service: data });
+    return apiData({ service: data });
   } catch (err) {
     console.error('[services PUT]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return apiError(err.message);
   }
 }
 
@@ -160,15 +116,15 @@ export async function PUT(request) {
 export async function DELETE(request) {
   try {
     const clerkId = await getUserId(request);
-    if (!clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!clerkId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
-    if (!ctx) return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    if (!ctx) return apiError('Business not found', 404);
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+    if (!id) return apiError('id is required', 400);
 
     const { error } = await supabase
       .from('business_services')
@@ -177,9 +133,9 @@ export async function DELETE(request) {
       .eq('business_info_id', ctx.businessInfoId);
 
     if (error) throw error;
-    return NextResponse.json({ success: true });
+    return apiSuccess();
   } catch (err) {
     console.error('[services DELETE]', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return apiError(err.message);
   }
 }

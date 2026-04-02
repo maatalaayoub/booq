@@ -3,19 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-// ─── SANITIZATION HELPERS ──────────────────────────────────
-function sanitizeText(value) {
-  if (!value) return '';
-  return value
-    .replace(/<[^>]*>/g, '')          // strip HTML tags
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ''); // strip control chars
-}
-
-function sanitizePhone(value) {
-  if (!value) return '';
-  return value.replace(/[^0-9+\-\s()]/g, ''); // keep digits, +, -, spaces, parens
-}
+import { sanitizeInput as sanitizeText, sanitizePhone } from '@/lib/sanitize';
 
 import { 
   Store, 

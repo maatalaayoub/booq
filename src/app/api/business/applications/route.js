@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiData } from '@/lib/api-response';
 
 // GET - Fetch all applications for the current job seeker
-export async function GET() {
+export async function GET(request) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
@@ -19,7 +19,7 @@ export async function GET() {
       .single();
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     const { data: applications, error } = await supabase
@@ -49,7 +49,7 @@ export async function GET() {
         .order('created_at', { ascending: false });
 
       if (simpleError) {
-        return NextResponse.json({ error: 'Failed to fetch applications' }, { status: 500 });
+        return apiError('Failed to fetch applications');
       }
 
       // Enrich with business info
@@ -106,7 +106,7 @@ export async function GET() {
         });
       }
 
-      return NextResponse.json(enriched);
+      return apiData(enriched);
     }
 
     // Format the joined data
@@ -133,26 +133,26 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json(formatted);
+    return apiData(formatted);
   } catch (error) {
     console.error('[applications] GET error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
 // POST - Create a new application
 export async function POST(request) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const body = await request.json();
     const { businessInfoId, coverLetter } = body;
 
     if (!businessInfoId) {
-      return NextResponse.json({ error: 'Business info ID is required' }, { status: 400 });
+      return apiError('Business info ID is required', 400);
     }
 
     const supabase = createServerSupabaseClient();
@@ -164,7 +164,7 @@ export async function POST(request) {
       .single();
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     const { data, error } = await supabase
@@ -180,15 +180,15 @@ export async function POST(request) {
 
     if (error) {
       if (error.code === '23505') {
-        return NextResponse.json({ error: 'You have already applied to this business' }, { status: 409 });
+        return apiError('You have already applied to this business', 409);
       }
       console.error('[applications] POST error:', error);
-      return NextResponse.json({ error: 'Failed to create application' }, { status: 500 });
+      return apiError('Failed to create application');
     }
 
-    return NextResponse.json(data);
+    return apiData(data);
   } catch (error) {
     console.error('[applications] POST error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

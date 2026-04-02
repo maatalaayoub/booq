@@ -1,63 +1,14 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-// ─── SANITIZATION HELPERS ──────────────────────────────────
-function sanitizeText(value) {
-  if (!value || typeof value !== 'string') return value;
-  return value
-    .replace(/<[^>]*>/g, '')
-    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-    .trim()
-    .slice(0, 500);
-}
-
-function sanitizePhone(value) {
-  if (!value || typeof value !== 'string') return value;
-  return value.replace(/[^0-9+\-\s()]/g, '').trim().slice(0, 30);
-}
-
-function validCoord(lat, lng) {
-  const la = Number(lat);
-  const lo = Number(lng);
-  if (!Number.isFinite(la) || !Number.isFinite(lo)) return null;
-  if (la === 0 && lo === 0) return null;
-  if (la < -90 || la > 90 || lo < -180 || lo > 180) return null;
-  return { latitude: la, longitude: lo };
-}
-
-// Helper: get userId either from session or Bearer token
-async function getUserId(request) {
-  const { userId } = await auth();
-  if (userId) return userId;
-  
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      const { verifyToken } = await import('@clerk/backend');
-      const payload = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      if (payload?.sub) return payload.sub;
-    } catch (err) {
-      console.log('[business/onboarding] Bearer token verification failed:', err.message);
-    }
-  }
-  return null;
-}
+import { sanitizeText, sanitizePhone, validCoord } from '@/lib/sanitize';
+import { getUserId } from '@/lib/auth';
+import { getCategoryTableName } from '@/lib/business';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 // Helper to get category-specific data
 async function getCategoryData(supabase, businessInfoId, category) {
   if (!businessInfoId || !category) return null;
   
-  const tableMap = {
-    'salon_owner': 'shop_salon_info',
-    'mobile_service': 'mobile_service_info',
-    'job_seeker': 'job_seeker_info'
-  };
-  
-  const tableName = tableMap[category];
+  const tableName = getCategoryTableName(category);
   if (!tableName) return null;
   
   const { data } = await supabase
@@ -75,7 +26,7 @@ export async function GET(request) {
     const userId = await getUserId(request);
     
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
@@ -88,11 +39,11 @@ export async function GET(request) {
       .single();
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     if (user.role !== 'business') {
-      return NextResponse.json({ error: 'Not a business user' }, { status: 403 });
+      return apiError('Not a business user', 403);
     }
 
     // Get business info
@@ -115,7 +66,7 @@ export async function GET(request) {
       }
     }
 
-    return NextResponse.json({
+    return apiData({
       onboardingCompleted: businessInfo?.onboarding_completed || false,
       businessInfo: businessInfo || null,
       businessCategory: businessInfo?.business_category || null,
@@ -124,7 +75,7 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error('[onboarding GET] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -137,7 +88,7 @@ export async function POST(request) {
     console.log('[onboarding POST] Clerk userId:', userId);
     
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const body = await request.json();
@@ -171,12 +122,12 @@ export async function POST(request) {
     // Validate required fields
     if (!professionalType) {
       console.error('[onboarding POST] Missing professionalType');
-      return NextResponse.json({ error: 'Professional type is required' }, { status: 400 });
+      return apiError('Professional type is required', 400);
     }
 
     if (!businessCategory) {
       console.error('[onboarding POST] Missing businessCategory');
-      return NextResponse.json({ error: 'Business category is required' }, { status: 400 });
+      return apiError('Business category is required', 400);
     }
 
     // Validate professional type against DB if possible, fallback to known types
@@ -187,20 +138,20 @@ export async function POST(request) {
       const validProfessionalTypes = ['barber', 'hairdresser', 'makeup', 'nails', 'massage'];
       if (!validProfessionalTypes.includes(professionalType)) {
         console.error('[onboarding POST] Invalid professionalType:', professionalType);
-        return NextResponse.json({ 
+        return apiData({ 
           error: 'Invalid professional type',
           validTypes: validProfessionalTypes 
-        }, { status: 400 });
+        }, 400);
       }
     }
 
     const validBusinessCategories = ['salon_owner', 'mobile_service', 'job_seeker'];
     if (!validBusinessCategories.includes(businessCategory)) {
       console.error('[onboarding POST] Invalid businessCategory:', businessCategory);
-      return NextResponse.json({ 
+      return apiData({ 
         error: 'Invalid business category',
         validCategories: validBusinessCategories 
-      }, { status: 400 });
+      }, 400);
     }
 
     // Validate service mode (required for salon_owner and mobile_service)
@@ -208,10 +159,10 @@ export async function POST(request) {
       const validServiceModes = ['booking', 'walkin', 'both'];
       if (serviceMode && !validServiceModes.includes(serviceMode)) {
         console.error('[onboarding POST] Invalid serviceMode:', serviceMode);
-        return NextResponse.json({ 
+        return apiData({ 
           error: 'Invalid service mode',
           validModes: validServiceModes 
-        }, { status: 400 });
+        }, 400);
       }
     }
 
@@ -228,12 +179,12 @@ export async function POST(request) {
 
     if (userError || !user) {
       console.error('[onboarding POST] User not found:', userError);
-      return NextResponse.json({ error: 'User not found', details: userError?.message }, { status: 404 });
+      return apiError('User not found', 404, userError?.message);
     }
 
     if (user.role !== 'business') {
       console.error('[onboarding POST] User role is not business:', user.role);
-      return NextResponse.json({ error: 'Not a business user', role: user.role }, { status: 403 });
+      return apiData({ error: 'Not a business user', role: user.role }, 403);
     }
 
     // Step 1: Upsert business_info (base table)
@@ -259,10 +210,7 @@ export async function POST(request) {
 
     if (infoError) {
       console.error('[onboarding POST] Business info error:', infoError);
-      return NextResponse.json({ 
-        error: 'Failed to save business info',
-        details: infoError.message,
-      }, { status: 500 });
+      return apiError('Failed to save business info', 500, infoError.message);
     }
 
     console.log('[onboarding POST] Business info saved:', businessInfoResult);
@@ -345,21 +293,17 @@ export async function POST(request) {
 
     if (categoryError) {
       console.error('[onboarding POST] Category data error:', categoryError);
-      return NextResponse.json({ 
-        error: 'Failed to save category data',
-        details: categoryError.message,
-      }, { status: 500 });
+      return apiError('Failed to save category data', 500, categoryError.message);
     }
 
     console.log('[onboarding POST] Category data saved:', categoryResult);
     
-    return NextResponse.json({ 
-      success: true, 
+    return apiSuccess({ 
       businessInfo: businessInfoResult,
       categoryData: categoryResult 
     });
   } catch (error) {
     console.error('[onboarding POST] Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

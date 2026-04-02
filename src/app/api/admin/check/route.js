@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
+import { apiData } from '@/lib/api-response';
 
 /**
  * GET /api/admin/check
@@ -9,5 +9,5 @@ export async function GET() {
   const result = await requireAdmin();
   if (result.error) return result.error;
 
-  return NextResponse.json({ isAdmin: true, adminId: result.adminUser.id });
+  return apiData({ isAdmin: true, adminId: result.adminUser.id });
 }

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 /**
  * GET /api/admin/verifications
@@ -41,10 +41,10 @@ export async function GET(request) {
   const { data, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError(error.message);
   }
 
-  return NextResponse.json({ verifications: data || [] });
+  return apiData({ verifications: data || [] });
 }
 
 /**
@@ -61,7 +61,7 @@ export async function PUT(request) {
   const { verificationId, field, action, reason } = body;
 
   if (!verificationId || !['identity', 'business'].includes(field) || !['approve', 'reject'].includes(action)) {
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+    return apiError('Invalid request', 400);
   }
 
   const newStatus = action === 'approve' ? 'verified' : 'rejected';
@@ -82,7 +82,7 @@ export async function PUT(request) {
     .eq('id', verificationId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError(error.message);
   }
 
   // Fetch the verification to get target user id for audit
@@ -99,5 +99,5 @@ export async function PUT(request) {
     details: { verificationId, reason: reason || null },
   });
 
-  return NextResponse.json({ success: true });
+  return apiSuccess();
 }

@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiData } from '@/lib/api-response';
 
 // GET - Fetch public user profile by username or ID
 export async function GET(request, { params }) {
@@ -7,10 +7,7 @@ export async function GET(request, { params }) {
     const { username } = await params;
     
     if (!username) {
-      return NextResponse.json(
-        { error: 'Username is required' },
-        { status: 400 }
-      );
+      return apiError('Username is required', 400);
     }
 
     const supabase = createServerSupabaseClient();
@@ -41,10 +38,7 @@ export async function GET(request, { params }) {
     }
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return apiError('User not found', 404);
     }
 
     // Fetch user profile data
@@ -70,7 +64,7 @@ export async function GET(request, { params }) {
       businessInfo = business;
     }
 
-    return NextResponse.json({
+    return apiData({
       id: user.id,
       username: user.username,
       role: user.role,
@@ -85,9 +79,6 @@ export async function GET(request, { params }) {
     });
   } catch (error) {
     console.error('[user-profile/username] Unexpected error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return apiError('Internal server error');
   }
 }

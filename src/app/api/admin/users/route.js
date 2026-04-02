@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 /**
  * GET /api/admin/users
@@ -32,10 +32,10 @@ export async function GET(request) {
   const { data: users, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError(error.message);
   }
 
-  return NextResponse.json({ users: users || [] });
+  return apiData({ users: users || [] });
 }
 
 /**
@@ -51,7 +51,7 @@ export async function PUT(request) {
   const { userId, account_status, reason } = body;
 
   if (!userId || !['active', 'suspended', 'restricted'].includes(account_status)) {
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+    return apiError('Invalid request', 400);
   }
 
   const { error } = await supabase
@@ -60,7 +60,7 @@ export async function PUT(request) {
     .eq('id', userId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError(error.message);
   }
 
   // Log the action
@@ -71,7 +71,7 @@ export async function PUT(request) {
     details: { reason: reason || null },
   });
 
-  return NextResponse.json({ success: true });
+  return apiSuccess();
 }
 
 /**
@@ -87,7 +87,7 @@ export async function DELETE(request) {
   const { userId, reason } = body;
 
   if (!userId) {
-    return NextResponse.json({ error: 'userId is required' }, { status: 400 });
+    return apiError('userId is required', 400);
   }
 
   // Prevent deleting other admins
@@ -98,7 +98,7 @@ export async function DELETE(request) {
     .single();
 
   if (targetUser?.role === 'admin') {
-    return NextResponse.json({ error: 'Cannot delete admin accounts' }, { status: 403 });
+    return apiError('Cannot delete admin accounts', 403);
   }
 
   // Log before delete (cascade will remove the user)
@@ -112,8 +112,8 @@ export async function DELETE(request) {
   const { error } = await supabase.from('users').delete().eq('id', userId);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError(error.message);
   }
 
-  return NextResponse.json({ success: true });
+  return apiSuccess();
 }

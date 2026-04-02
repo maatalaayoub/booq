@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
+import { apiData } from '@/lib/api-response';
 
 /**
  * GET /api/admin/stats
@@ -29,7 +29,7 @@ export async function GET() {
     safeCount(() => supabase.from('users').select('*', { count: 'exact', head: true }).eq('account_status', 'suspended')),
   ]);
 
-  return NextResponse.json({
+  return apiData({
     totalUsers,
     totalBusiness,
     pendingVerifications,

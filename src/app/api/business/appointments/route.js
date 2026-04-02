@@ -1,37 +1,8 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-const sanitizeText = (value) => {
-  if (typeof value !== 'string') return value;
-  return value.replace(/<[^>]*>/g, '').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim().slice(0, 500);
-};
-
-const sanitizePhone = (value) => {
-  if (typeof value !== 'string') return value;
-  return value.replace(/[^0-9+\-\s()]/g, '').trim().slice(0, 30);
-};
-
-// Helper: get userId from session or Bearer token
-async function getUserId(request) {
-  const { userId } = await auth();
-  if (userId) return userId;
-
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      const { verifyToken } = await import('@clerk/backend');
-      const payload = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      if (payload?.sub) return payload.sub;
-    } catch (err) {
-      console.log('[appointments] Bearer verify failed:', err.message);
-    }
-  }
-  return null;
-}
+import { sanitizeText, sanitizePhone } from '@/lib/sanitize';
+import { getUserId } from '@/lib/auth';
+import { getCategoryTableName } from '@/lib/business';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 // Helper: get business_info_id for the current user
 async function getBusinessInfoId(supabase, clerkId) {
@@ -70,8 +41,7 @@ async function validateAgainstSchedule(supabase, businessInfoId, startTimeISO, e
 
   if (!businessInfo) return { code: 'NO_BUSINESS', message: 'Business info not found' };
 
-  const tableMap = { salon_owner: 'shop_salon_info', mobile_service: 'mobile_service_info' };
-  const tableName = tableMap[businessInfo.business_category];
+  const tableName = getCategoryTableName(businessInfo.business_category);
 
   let businessHours = [];
   if (tableName) {
@@ -144,14 +114,14 @@ export async function GET(request) {
   try {
     const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
     const businessInfoId = await getBusinessInfoId(supabase, clerkId);
     if (!businessInfoId) {
       // No business profile yet — return empty list instead of 404
-      return NextResponse.json({ appointments: [] });
+      return apiData({ appointments: [] });
     }
 
     const { data: appointments, error } = await supabase
@@ -162,13 +132,13 @@ export async function GET(request) {
 
     if (error) {
       console.error('[appointments GET] Error:', error);
-      return NextResponse.json({ error: 'Failed to fetch appointments' }, { status: 500 });
+      return apiError('Failed to fetch appointments');
     }
 
-    return NextResponse.json({ appointments });
+    return apiData({ appointments });
   } catch (err) {
     console.error('[appointments GET] Unexpected error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -177,13 +147,13 @@ export async function POST(request) {
   try {
     const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
     const businessInfoId = await getBusinessInfoId(supabase, clerkId);
     if (!businessInfoId) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      return apiError('Business not found', 404);
     }
 
     const body = await request.json();
@@ -196,13 +166,13 @@ export async function POST(request) {
     const cleanNotes = notes ? sanitizeText(notes) : null;
 
     if (!cleanClientName || !cleanService || !start_time || !end_time) {
-      return NextResponse.json({ error: 'Missing required fields: client_name, service, start_time, end_time' }, { status: 400 });
+      return apiError('Missing required fields: client_name, service, start_time, end_time', 400);
     }
 
     // ── Validate against working hours and schedule exceptions ──
     const scheduleError = await validateAgainstSchedule(supabase, businessInfoId, start_time, end_time);
     if (scheduleError) {
-      return NextResponse.json({ error: scheduleError.message, code: scheduleError.code }, { status: 400 });
+      return apiData({ error: scheduleError.message, code: scheduleError.code }, 400);
     }
 
     const { data: appointment, error } = await supabase
@@ -224,13 +194,13 @@ export async function POST(request) {
 
     if (error) {
       console.error('[appointments POST] Supabase error:', error);
-      return NextResponse.json({ error: error.message || 'Failed to create appointment', details: error }, { status: 500 });
+      return apiError(error.message || 'Failed to create appointment', 500, error);
     }
 
-    return NextResponse.json({ appointment }, { status: 201 });
+    return apiData({ appointment }, 201);
   } catch (err) {
     console.error('[appointments POST] Unexpected error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -239,20 +209,20 @@ export async function PUT(request) {
   try {
     const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
     const businessInfoId = await getBusinessInfoId(supabase, clerkId);
     if (!businessInfoId) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      return apiError('Business not found', 404);
     }
 
     const body = await request.json();
     const { id, ...updateFields } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing appointment id' }, { status: 400 });
+      return apiError('Missing appointment id', 400);
     }
 
     // Sanitize text fields in update
@@ -267,7 +237,7 @@ export async function PUT(request) {
     if (sanitizedFields.start_time && sanitizedFields.end_time) {
       const scheduleError = await validateAgainstSchedule(supabase, businessInfoId, sanitizedFields.start_time, sanitizedFields.end_time);
       if (scheduleError) {
-        return NextResponse.json({ error: scheduleError.message, code: scheduleError.code }, { status: 400 });
+        return apiData({ error: scheduleError.message, code: scheduleError.code }, 400);
       }
 
       // Check for overlapping confirmed appointments (exclude the appointment being updated)
@@ -282,10 +252,10 @@ export async function PUT(request) {
 
       if (conflicts && conflicts.length > 0) {
         const conflictTime = new Date(conflicts[0].start_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
-        return NextResponse.json({
+        return apiData({
           error: `This time overlaps with a confirmed appointment at ${conflictTime} (${conflicts[0].client_name} - ${conflicts[0].service}). Please choose a different time.`,
           code: 'APPOINTMENT_CONFLICT',
-        }, { status: 409 });
+        }, 409);
       }
     }
 
@@ -300,13 +270,13 @@ export async function PUT(request) {
 
     if (error) {
       console.error('[appointments PUT] Error:', error);
-      return NextResponse.json({ error: 'Failed to update appointment' }, { status: 500 });
+      return apiError('Failed to update appointment');
     }
 
-    return NextResponse.json({ appointment });
+    return apiData({ appointment });
   } catch (err) {
     console.error('[appointments PUT] Unexpected error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -315,20 +285,20 @@ export async function DELETE(request) {
   try {
     const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
     const businessInfoId = await getBusinessInfoId(supabase, clerkId);
     if (!businessInfoId) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      return apiError('Business not found', 404);
     }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing appointment id' }, { status: 400 });
+      return apiError('Missing appointment id', 400);
     }
 
     const { error } = await supabase
@@ -339,12 +309,12 @@ export async function DELETE(request) {
 
     if (error) {
       console.error('[appointments DELETE] Error:', error);
-      return NextResponse.json({ error: 'Failed to delete appointment' }, { status: 500 });
+      return apiError('Failed to delete appointment');
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess();
   } catch (err) {
     console.error('[appointments DELETE] Unexpected error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

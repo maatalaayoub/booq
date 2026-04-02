@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getCategoryTableName } from '@/lib/business';
+import { apiError, apiData } from '@/lib/api-response';
 
 /**
  * GET /api/book/available-slots?businessId=UUID&date=YYYY-MM-DD&duration=30
@@ -17,13 +18,13 @@ export async function GET(request) {
     // Validate inputs
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!businessId || !uuidRe.test(businessId)) {
-      return NextResponse.json({ error: 'Invalid businessId' }, { status: 400 });
+      return apiError('Invalid businessId', 400);
     }
     if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      return NextResponse.json({ error: 'Invalid date format (YYYY-MM-DD)' }, { status: 400 });
+      return apiError('Invalid date format (YYYY-MM-DD)', 400);
     }
     if (isNaN(duration) || duration < 5 || duration > 480) {
-      return NextResponse.json({ error: 'Invalid duration' }, { status: 400 });
+      return apiError('Invalid duration', 400);
     }
 
     // Don't allow booking in the past
@@ -31,7 +32,7 @@ export async function GET(request) {
     today.setUTCHours(0, 0, 0, 0);
     const requestedDate = new Date(dateStr + 'T00:00:00Z');
     if (requestedDate < today) {
-      return NextResponse.json({ slots: [], message: 'Cannot book in the past' });
+      return apiData({ slots: [], message: 'Cannot book in the past' });
     }
 
     const supabase = createServerSupabaseClient();
@@ -44,12 +45,11 @@ export async function GET(request) {
       .single();
 
     if (!bizInfo) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      return apiError('Business not found', 404);
     }
 
     // Get business hours
-    const tableMap = { salon_owner: 'shop_salon_info', mobile_service: 'mobile_service_info' };
-    const tableName = tableMap[bizInfo.business_category];
+    const tableName = getCategoryTableName(bizInfo.business_category);
     let businessHours = [];
 
     if (tableName) {
@@ -69,7 +69,7 @@ export async function GET(request) {
     // Check if business is open this day
     const daySchedule = businessHours.find(h => h.dayOfWeek === dayOfWeek);
     if (!daySchedule || !daySchedule.isOpen || !daySchedule.openTime || !daySchedule.closeTime) {
-      return NextResponse.json({ slots: [], closed: true, message: 'Business is closed on this day' });
+      return apiData({ slots: [], closed: true, message: 'Business is closed on this day' });
     }
 
     const openTime = daySchedule.openTime; // "09:00"
@@ -88,7 +88,7 @@ export async function GET(request) {
       // Recurring exception (e.g. every Monday break)
       if (ex.recurring && ex.recurring_day === dayOfWeek) {
         if (ex.is_full_day) {
-          return NextResponse.json({ slots: [], closed: true, message: `Closed: ${ex.title}` });
+          return apiData({ slots: [], closed: true, message: `Closed: ${ex.title}` });
         }
         if (ex.start_time && ex.end_time) {
           blockedRanges.push({ start: ex.start_time.substring(0, 5), end: ex.end_time.substring(0, 5) });
@@ -101,7 +101,7 @@ export async function GET(request) {
       const exEndDate = ex.end_date || exDate;
       if (dateStr >= exDate && dateStr <= exEndDate) {
         if (ex.is_full_day) {
-          return NextResponse.json({ slots: [], closed: true, message: `Closed: ${ex.title}` });
+          return apiData({ slots: [], closed: true, message: `Closed: ${ex.title}` });
         }
         if (ex.start_time && ex.end_time) {
           blockedRanges.push({ start: ex.start_time.substring(0, 5), end: ex.end_time.substring(0, 5) });
@@ -169,7 +169,7 @@ export async function GET(request) {
     let userBookings = [];
     let crossBusinessBookings = [];
     try {
-      const { userId: clerkId } = await auth();
+      const clerkId = await getUserId(request);
       if (clerkId) {
         const { data: myBookings } = await supabase
           .from('appointments')
@@ -215,7 +215,7 @@ export async function GET(request) {
       // Auth not available — public access, skip user bookings
     }
 
-    return NextResponse.json({ 
+    return apiData({ 
       slots, 
       closed: false, 
       openTime, 
@@ -226,6 +226,6 @@ export async function GET(request) {
     });
   } catch (err) {
     console.error('[available-slots GET]', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

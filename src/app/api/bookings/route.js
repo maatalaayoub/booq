@@ -1,17 +1,17 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 /**
  * GET /api/bookings
  * Fetch all appointments for the currently signed-in user.
  * Returns appointments with business info (name, avatar, accent color).
  */
-export async function GET() {
+export async function GET(request) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
@@ -34,7 +34,7 @@ export async function GET() {
       .order('start_time', { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return apiError(error.message);
     }
 
     const results = (appointments || []).map(apt => {
@@ -63,9 +63,9 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ bookings: results });
+    return apiData({ bookings: results });
   } catch (err) {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -78,9 +78,9 @@ export async function GET() {
  */
 export async function PATCH(request) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const body = await request.json();
@@ -88,28 +88,28 @@ export async function PATCH(request) {
 
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!id || !uuidRe.test(id)) {
-      return NextResponse.json({ error: 'Invalid appointment id' }, { status: 400 });
+      return apiError('Invalid appointment id', 400);
     }
 
     const hasTimeChange = date && startTime;
     const hasServiceChange = Array.isArray(serviceIds) && serviceIds.length > 0;
 
     if (!hasTimeChange && !hasServiceChange) {
-      return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
+      return apiError('Nothing to update', 400);
     }
 
     if (hasTimeChange) {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
+        return apiError('Invalid date', 400);
       }
       if (!/^\d{2}:\d{2}$/.test(startTime)) {
-        return NextResponse.json({ error: 'Invalid startTime format (HH:MM)' }, { status: 400 });
+        return apiError('Invalid startTime format (HH:MM)', 400);
       }
     }
 
     if (hasServiceChange) {
       if (!serviceIds.every(sid => uuidRe.test(sid))) {
-        return NextResponse.json({ error: 'Invalid service ID format' }, { status: 400 });
+        return apiError('Invalid service ID format', 400);
       }
     }
 
@@ -124,11 +124,11 @@ export async function PATCH(request) {
       .single();
 
     if (fetchErr || !apt) {
-      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
+      return apiError('Appointment not found', 404);
     }
 
     if (apt.status === 'cancelled' || apt.status === 'completed') {
-      return NextResponse.json({ error: 'Cannot edit a cancelled or completed appointment' }, { status: 400 });
+      return apiError('Cannot edit a cancelled or completed appointment', 400);
     }
 
     const updateFields = {
@@ -147,7 +147,7 @@ export async function PATCH(request) {
         .in('id', serviceIds);
 
       if (svcErr || !services || services.length === 0) {
-        return NextResponse.json({ error: 'Invalid services selected' }, { status: 400 });
+        return apiError('Invalid services selected', 400);
       }
 
       // Preserve order from serviceIds
@@ -171,7 +171,7 @@ export async function PATCH(request) {
       const newEnd = new Date(newStart.getTime() + durationMs);
 
       if (newStart < new Date()) {
-        return NextResponse.json({ error: 'Cannot schedule in the past' }, { status: 400 });
+        return apiError('Cannot schedule in the past', 400);
       }
 
       const newStartISO = newStart.toISOString();
@@ -188,7 +188,7 @@ export async function PATCH(request) {
         .gt('end_time', newStartISO);
 
       if (conflicts && conflicts.length > 0) {
-        return NextResponse.json({ error: 'This time slot is no longer available' }, { status: 409 });
+        return apiError('This time slot is no longer available', 409);
       }
 
       updateFields.previous_start_time = apt.start_time;
@@ -213,13 +213,13 @@ export async function PATCH(request) {
     if (updateErr) {
       console.error('[bookings PATCH] Update error:', updateErr);
       console.error('[bookings PATCH] Update fields:', JSON.stringify(updateFields));
-      return NextResponse.json({ error: updateErr.message || 'Failed to update booking' }, { status: 500 });
+      return apiError(updateErr.message || 'Failed to update booking');
     }
 
-    return NextResponse.json({ success: true, appointment: updated });
+    return apiSuccess({ appointment: updated });
   } catch (err) {
     console.error('[bookings PATCH] Error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
@@ -229,9 +229,9 @@ export async function PATCH(request) {
  */
 export async function DELETE(request) {
   try {
-    const { userId: clerkId } = await auth();
+    const clerkId = await getUserId(request);
     if (!clerkId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const { searchParams } = new URL(request.url);
@@ -239,7 +239,7 @@ export async function DELETE(request) {
 
     const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!id || !uuidRe.test(id)) {
-      return NextResponse.json({ error: 'Invalid appointment id' }, { status: 400 });
+      return apiError('Invalid appointment id', 400);
     }
 
     const supabase = createServerSupabaseClient();
@@ -253,15 +253,15 @@ export async function DELETE(request) {
       .single();
 
     if (!apt) {
-      return NextResponse.json({ error: 'Appointment not found' }, { status: 404 });
+      return apiError('Appointment not found', 404);
     }
 
     if (apt.status === 'cancelled') {
-      return NextResponse.json({ error: 'Already cancelled' }, { status: 400 });
+      return apiError('Already cancelled', 400);
     }
 
     if (apt.status === 'completed') {
-      return NextResponse.json({ error: 'Cannot cancel a completed appointment' }, { status: 400 });
+      return apiError('Cannot cancel a completed appointment', 400);
     }
 
     const { error: updateErr } = await supabase
@@ -272,12 +272,12 @@ export async function DELETE(request) {
 
     if (updateErr) {
       console.error('[bookings DELETE] Error:', updateErr);
-      return NextResponse.json({ error: 'Failed to cancel' }, { status: 500 });
+      return apiError('Failed to cancel');
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess();
   } catch (err) {
     console.error('[bookings DELETE] Error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

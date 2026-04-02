@@ -1,13 +1,13 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 // GET - Fetch job seeker profile (combines user_profile + job_seeker_info)
-export async function GET() {
+export async function GET(request) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
@@ -20,7 +20,7 @@ export async function GET() {
       .single();
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     // Fetch user_profile
@@ -47,7 +47,7 @@ export async function GET() {
       jobSeekerInfo = data;
     }
 
-    return NextResponse.json({
+    return apiData({
       firstName: profile?.first_name || null,
       lastName: profile?.last_name || null,
       phone: profile?.phone || null,
@@ -64,16 +64,16 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[job-seeker-profile] GET error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }
 
 // PUT - Update job seeker profile
 export async function PUT(request) {
   try {
-    const { userId } = await auth();
+    const userId = await getUserId(request);
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', 401);
     }
 
     const body = await request.json();
@@ -94,7 +94,7 @@ export async function PUT(request) {
       .single();
 
     if (userError || !user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return apiError('User not found', 404);
     }
 
     // Update user_profile
@@ -131,7 +131,7 @@ export async function PUT(request) {
       .single();
 
     if (!businessInfo) {
-      return NextResponse.json({ error: 'Business info not found' }, { status: 404 });
+      return apiError('Business info not found', 404);
     }
 
     // Update job_seeker_info
@@ -158,7 +158,7 @@ export async function PUT(request) {
 
       if (updateError) {
         console.error('[job-seeker-profile] Update error:', updateError);
-        return NextResponse.json({ error: 'Failed to update profile', details: updateError.message }, { status: 500 });
+        return apiError('Failed to update profile', 500, updateError.message);
       }
     } else {
       const { error: insertError } = await supabase
@@ -167,13 +167,13 @@ export async function PUT(request) {
 
       if (insertError) {
         console.error('[job-seeker-profile] Insert error:', insertError);
-        return NextResponse.json({ error: 'Failed to create profile', details: insertError.message }, { status: 500 });
+        return apiError('Failed to create profile', 500, insertError.message);
       }
     }
 
-    return NextResponse.json({ success: true });
+    return apiSuccess();
   } catch (error) {
     console.error('[job-seeker-profile] PUT error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error');
   }
 }

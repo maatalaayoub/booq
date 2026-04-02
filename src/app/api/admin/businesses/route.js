@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/admin';
+import { apiError, apiData } from '@/lib/api-response';
 
 /**
  * GET /api/admin/businesses
@@ -39,7 +39,7 @@ export async function GET(request) {
   const { data: businesses, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return apiError(error.message);
   }
 
   // Post-filter by category if needed (nested filtering not supported)
@@ -48,5 +48,5 @@ export async function GET(request) {
     filtered = filtered.filter(b => b.business_info?.business_category === category);
   }
 
-  return NextResponse.json({ businesses: filtered });
+  return apiData({ businesses: filtered });
 }
