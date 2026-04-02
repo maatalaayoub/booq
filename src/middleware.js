@@ -37,13 +37,7 @@ function getPreferredLocale(request) {
 export default clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname;
   const searchParams = req.nextUrl.searchParams;
-  
-  // Debug logging
-  console.log('[Middleware] Path:', pathname, 'Search:', searchParams.toString());
-  
-  // Check for setup flag (allows passing role setup parameter)
-  const setupRole = searchParams.get('setup');
-  
+
   // Skip static files
   if (
     pathname.startsWith('/_next') ||
@@ -108,28 +102,22 @@ export default clerkMiddleware(async (auth, req) => {
 
   // User routes - redirect to home (users don't have dashboard)
   if (isUserRoute(req)) {
-    console.log('[Middleware] User route, redirecting to home');
     return NextResponse.redirect(new URL(`/${locale}`, req.url));
   }
 
   // Admin routes - require authentication (role verified on page level via API)
   if (isAdminRoute(req)) {
-    console.log('[Middleware] Admin route, userId:', userId ? 'present' : 'missing');
     if (!userId) {
       return NextResponse.redirect(new URL(`/${locale}/auth/business/sign-in`, req.url));
     }
   }
 
-  // Business routes - require authentication only
+  // Business routes - require authentication
   // Role verification is done on the page level via useRole hook
   if (isBusinessRoute(req)) {
-    console.log('[Middleware] Business route, userId:', userId ? 'present' : 'missing');
     if (!userId) {
-      console.log('[Middleware] No userId, redirecting to sign-in');
       return NextResponse.redirect(new URL(`/${locale}/auth/business/sign-in`, req.url));
     }
-    console.log('[Middleware] Business route allowed');
-    // Allow access - role check done client-side in dashboard
   }
 
   return NextResponse.next();
