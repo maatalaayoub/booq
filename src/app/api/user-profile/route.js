@@ -1,46 +1,26 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUserId } from '@/lib/auth';
-import { apiError, apiSuccess, apiData } from '@/lib/api-response';
+import { apiError, apiSuccess, apiData, validationResponse } from '@/lib/api-response';
 import { parseBody } from '@/lib/validate';
 import { updateProfileSchema } from '@/schemas/user-profile';
+import { findUserByClerkId, isUsernameTaken, updateUser, findUserProfile, upsertUserProfile } from '@/repositories/user';
 
 // GET - Fetch user profile data based on role
 export async function GET(request) {
   try {
     const userId = await getUserId(request);
-    
     if (!userId) {
       return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
 
-    // Get user from users table including role
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, username, role')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (userError && userError.code !== 'PGRST116') {
-      console.error('[user-profile] Error fetching user:', userError);
-      return apiError('Failed to fetch user');
-    }
-
+    const user = await findUserByClerkId(supabase, userId, 'id, username, role');
     if (!user) {
       return apiError('User not found', 404);
     }
 
-    // Fetch from user_profile table (used for all users regardless of role)
-    const { data: profile, error: profileError } = await supabase
-      .from('user_profile')
-      .select('first_name, last_name, birthday, gender, phone, address, city, cover_image_url, profile_image_url, cover_image_position')
-      .eq('user_id', user.id)
-      .single();
-
-    if (profileError && profileError.code !== 'PGRST116') {
-      console.error('[user-profile] Error fetching profile:', profileError);
-    }
+    const profile = await findUserProfile(supabase, user.id);
 
     return apiData({
       firstName: profile?.first_name || null,
@@ -66,62 +46,32 @@ export async function GET(request) {
 export async function PUT(request) {
   try {
     const userId = await getUserId(request);
-    
     if (!userId) {
       return apiError('Unauthorized', 401);
     }
 
     const body = await request.json();
     const { error: validationError, data: validated } = parseBody(updateProfileSchema, body);
-    if (validationError) return validationError;
+    if (validationError) return validationResponse(validationError);
 
     const { firstName, lastName, birthday, gender, username, coverImageUrl, coverImagePosition, city, phone } = validated;
 
     const supabase = createServerSupabaseClient();
 
-    // Get user from users table including role
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, role, username')
-      .eq('clerk_id', userId)
-      .single();
-
-    if (userError || !user) {
-      console.error('[user-profile] Error fetching user:', userError);
+    const user = await findUserByClerkId(supabase, userId, 'id, role, username');
+    if (!user) {
       return apiError('User not found', 404);
     }
 
-    // Update username in users table if provided and changed
+    // Update username if changed
     if (username !== undefined && username !== user.username) {
-      const { data: taken } = await supabase
-        .from('users')
-        .select('id')
-        .eq('username', username)
-        .maybeSingle();
-
-      if (taken) {
+      if (await isUsernameTaken(supabase, username)) {
         return apiError('Username already taken', 409);
       }
-
-      const { error: usernameError } = await supabase
-        .from('users')
-        .update({ username })
-        .eq('id', user.id);
-
-      if (usernameError) {
-        console.error('[user-profile] Error updating username:', usernameError);
-        return apiError('Failed to update username');
-      }
+      await updateUser(supabase, user.id, { username });
     }
 
-    // Check if profile exists
-    const { data: existingProfile, error: profileCheckError } = await supabase
-      .from('user_profile')
-      .select('id')
-      .eq('user_id', user.id)
-      .single();
-
-    // Build profile update data (first_name, last_name, birthday, gender all go to user_profile)
+    // Build profile data
     const profileData = {};
     if (firstName !== undefined) profileData.first_name = firstName;
     if (lastName !== undefined) profileData.last_name = lastName;
@@ -129,35 +79,11 @@ export async function PUT(request) {
     if (gender !== undefined) profileData.gender = gender || null;
     if (city !== undefined) profileData.city = city || null;
     if (phone !== undefined) profileData.phone = phone || null;
-    if (coverImageUrl !== undefined) profileData.cover_image_url = coverImageUrl; // null = delete
+    if (coverImageUrl !== undefined) profileData.cover_image_url = coverImageUrl;
     if (coverImagePosition !== undefined) profileData.cover_image_position = coverImagePosition;
 
     if (Object.keys(profileData).length > 0) {
-      if (existingProfile) {
-        // Update existing profile
-        const { error: updateProfileError } = await supabase
-          .from('user_profile')
-          .update(profileData)
-          .eq('user_id', user.id);
-
-        if (updateProfileError) {
-          console.error('[user-profile] Error updating profile:', updateProfileError);
-          return apiError('Failed to update profile');
-        }
-      } else {
-        // Create new profile
-        const { error: createProfileError } = await supabase
-          .from('user_profile')
-          .insert({
-            user_id: user.id,
-            ...profileData,
-          });
-
-        if (createProfileError) {
-          console.error('[user-profile] Error creating profile:', createProfileError);
-          return apiError('Failed to create profile');
-        }
-      }
+      await upsertUserProfile(supabase, user.id, profileData);
     }
 
     return apiSuccess();

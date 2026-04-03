@@ -28,7 +28,9 @@ export const updateAppointmentSchema = z.object({
   end_time: z.string().optional(),
   status: z.enum(['pending', 'confirmed', 'cancelled', 'completed']).optional(),
   notes: z.string().optional(),
-  rescheduled_by: z.enum(['business', 'client']).optional(),
+  rescheduled_by: z.enum(['business', 'client']).nullable().optional(),
+  previous_start_time: z.string().nullable().optional(),
+  previous_end_time: z.string().nullable().optional(),
 });
 
 // ─── DELETE APPOINTMENT ─────────────────────────────────────────────────

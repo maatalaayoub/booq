@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sanitizeText, sanitizePhone, validCoord } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
 import { getCategoryTableName } from '@/lib/business';
-import { apiError, apiSuccess, apiData } from '@/lib/api-response';
+import { apiError, apiSuccess, apiData, validationResponse } from '@/lib/api-response';
 import { parseBody } from '@/lib/validate';
 import { onboardingSchema } from '@/schemas/onboarding';
 
@@ -92,7 +92,7 @@ export async function POST(request) {
 
     const body = await request.json();
     const { error: validationError, data: validated } = parseBody(onboardingSchema, body);
-    if (validationError) return validationError;
+    if (validationError) return validationResponse(validationError);
 
     const { 
       businessCategory, 

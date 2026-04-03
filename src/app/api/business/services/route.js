@@ -1,10 +1,11 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sanitizeText } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
-import { apiError, apiSuccess, apiData } from '@/lib/api-response';
+import { apiError, apiSuccess, apiData, validationResponse } from '@/lib/api-response';
 import { getBusinessContext } from '@/lib/business';
 import { parseBody, parseQuery } from '@/lib/validate';
 import { createServiceSchema, updateServiceSchema, deleteServiceSchema } from '@/schemas/business-service';
+import { findServicesByBusiness, createService, updateService, deleteService } from '@/repositories/service';
 
 // ─── GET: list all services ────────────────────────────────
 export async function GET(request) {
@@ -14,21 +15,10 @@ export async function GET(request) {
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
-    // No business profile yet — return empty instead of 404
     if (!ctx) return apiData({ services: [], specialty: null });
 
-    const { data, error } = await supabase
-      .from('business_services')
-      .select('*')
-      .eq('business_info_id', ctx.businessInfoId)
-      .order('created_at', { ascending: true });
-
-    // Table doesn't exist yet — return empty list gracefully
-    if (error) {
-      if (error.code === '42P01') return apiData({ services: [] });
-      throw error;
-    }
-    return apiData({ services: data || [], specialty: ctx.professionalType });
+    const services = await findServicesByBusiness(supabase, ctx.businessInfoId);
+    return apiData({ services, specialty: ctx.professionalType });
   } catch (err) {
     console.error('[services GET]', err);
     return apiError(err.message);
@@ -47,23 +37,18 @@ export async function POST(request) {
 
     const body = await request.json();
     const { error: validationError, data: validated } = parseBody(createServiceSchema, body);
-    if (validationError) return validationError;
+    if (validationError) return validationResponse(validationError);
 
-    const { data, error } = await supabase
-      .from('business_services')
-      .insert({
-        business_info_id: ctx.businessInfoId,
-        name: sanitizeText(validated.name),
-        description: validated.description ? sanitizeText(validated.description.trim()) : null,
-        duration_minutes: validated.duration_minutes,
-        price: validated.price,
-        currency: validated.currency,
-        is_active: validated.is_active,
-      })
-      .select()
-      .single();
+    const data = await createService(supabase, {
+      business_info_id: ctx.businessInfoId,
+      name: sanitizeText(validated.name),
+      description: validated.description ? sanitizeText(validated.description.trim()) : null,
+      duration_minutes: validated.duration_minutes,
+      price: validated.price,
+      currency: validated.currency,
+      is_active: validated.is_active,
+    });
 
-    if (error) throw error;
     return apiData({ service: data }, 201);
   } catch (err) {
     console.error('[services POST]', err);
@@ -83,7 +68,7 @@ export async function PUT(request) {
 
     const body = await request.json();
     const { error: validationError, data: validated } = parseBody(updateServiceSchema, body);
-    if (validationError) return validationError;
+    if (validationError) return validationResponse(validationError);
 
     const { id, ...fields } = validated;
     const updateData = { updated_at: new Date().toISOString() };
@@ -94,22 +79,12 @@ export async function PUT(request) {
     if (fields.currency !== undefined) updateData.currency = fields.currency;
     if (fields.is_active !== undefined) updateData.is_active = fields.is_active;
 
-    const { data, error } = await supabase
-      .from('business_services')
-      .update(updateData)
-      .eq('id', id)
-      .eq('business_info_id', ctx.businessInfoId)
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return apiError('Service not found', 404);
-      }
-      throw error;
-    }
+    const data = await updateService(supabase, id, ctx.businessInfoId, updateData);
     return apiData({ service: data });
   } catch (err) {
+    if (err?.code === 'PGRST116') {
+      return apiError('Service not found', 404);
+    }
     console.error('[services PUT]', err);
     return apiError(err.message);
   }
@@ -127,16 +102,9 @@ export async function DELETE(request) {
 
     const { searchParams } = new URL(request.url);
     const { error: validationError, data: validated } = parseQuery(deleteServiceSchema, searchParams);
-    if (validationError) return validationError;
-    const { id } = validated;
+    if (validationError) return validationResponse(validationError);
 
-    const { error } = await supabase
-      .from('business_services')
-      .delete()
-      .eq('id', id)
-      .eq('business_info_id', ctx.businessInfoId);
-
-    if (error) throw error;
+    await deleteService(supabase, validated.id, ctx.businessInfoId);
     return apiSuccess();
   } catch (err) {
     console.error('[services DELETE]', err);

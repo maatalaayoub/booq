@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { ValidationError } from './validate';
 
 // ─── STANDARDIZED API RESPONSE HELPERS ──────────────────────────────────
 // These produce the same JSON shapes already used across the app,
@@ -28,4 +29,17 @@ export function apiSuccess(data = {}) {
  */
 export function apiData(data, status = 200) {
   return NextResponse.json(data, { status });
+}
+
+/**
+ * Convert a ValidationError (from parseBody/parseQuery) to a NextResponse.
+ * Usage in API routes:
+ *   const { error, data } = parseBody(schema, body);
+ *   if (error) return validationResponse(error);
+ */
+export function validationResponse(validationError) {
+  if (validationError instanceof ValidationError) {
+    return apiError(validationError.message, validationError.status);
+  }
+  return apiError('Validation failed', 400);
 }

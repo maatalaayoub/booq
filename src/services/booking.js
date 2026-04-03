@@ -148,6 +148,7 @@ export async function validateAgainstSchedule(supabase, businessId, startTimeISO
 
 /**
  * Check for overlapping confirmed appointments at a business.
+ * Only confirmed appointments block — pending ones do not.
  * @param {string|null} excludeId - appointment ID to exclude (for edits)
  * @returns {Array} conflicting appointment rows (empty = no conflicts).
  */
@@ -156,7 +157,7 @@ export async function checkBusinessConflicts(supabase, businessId, startISO, end
     .from('appointments')
     .select('id')
     .eq('business_info_id', businessId)
-    .in('status', ['confirmed', 'pending'])
+    .eq('status', 'confirmed')
     .lt('start_time', endISO)
     .gt('end_time', startISO);
 
@@ -169,7 +170,7 @@ export async function checkBusinessConflicts(supabase, businessId, startISO, end
 }
 
 /**
- * Check if a user has overlapping bookings at the same business.
+ * Check if a user has overlapping confirmed bookings at the same business.
  * @returns {{ conflict: boolean, status?: string, time?: string }}
  */
 export async function checkUserConflicts(supabase, clerkId, businessId, startISO, endISO, excludeId = null) {
@@ -178,7 +179,7 @@ export async function checkUserConflicts(supabase, clerkId, businessId, startISO
     .select('id, status, start_time')
     .eq('clerk_id', clerkId)
     .eq('business_info_id', businessId)
-    .in('status', ['pending', 'confirmed'])
+    .eq('status', 'confirmed')
     .lt('start_time', endISO)
     .gt('end_time', startISO);
 

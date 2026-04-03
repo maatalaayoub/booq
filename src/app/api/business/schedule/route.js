@@ -2,9 +2,11 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sanitizeText } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
 import { getCategoryTableName, getBusinessContext } from '@/lib/business';
-import { apiError, apiSuccess, apiData } from '@/lib/api-response';
+import { apiError, apiSuccess, apiData, validationResponse } from '@/lib/api-response';
 import { parseBody, parseQuery } from '@/lib/validate';
 import { updateBusinessHoursSchema, createExceptionSchema, updateExceptionSchema, deleteExceptionSchema } from '@/schemas/schedule';
+import { getBusinessHours, updateBusinessHours } from '@/repositories/business';
+import { findExceptionsByBusiness, createException, updateException, deleteException } from '@/repositories/schedule';
 
 // ─── GET: Fetch working hours + schedule exceptions ─────────
 export async function GET(request) {
@@ -16,29 +18,12 @@ export async function GET(request) {
     const ctx = await getBusinessContext(supabase, clerkId);
     if (!ctx) return apiError('Business not found', 404);
 
-    // Get business hours from the category table
-    const tableName = getCategoryTableName(ctx.category);
-
-    let businessHours = [];
-    if (tableName) {
-      const { data: catData } = await supabase
-        .from(tableName)
-        .select('business_hours')
-        .eq('business_info_id', ctx.businessInfoId)
-        .single();
-      businessHours = catData?.business_hours || [];
-    }
-
-    // Get schedule exceptions (breaks, closures, holidays)
-    const { data: exceptions } = await supabase
-      .from('schedule_exceptions')
-      .select('*')
-      .eq('business_info_id', ctx.businessInfoId)
-      .order('date', { ascending: true });
+    const businessHours = await getBusinessHours(supabase, ctx.businessInfoId, ctx.category);
+    const exceptions = await findExceptionsByBusiness(supabase, ctx.businessInfoId);
 
     return apiData({
       businessHours,
-      exceptions: exceptions || [],
+      exceptions,
       category: ctx.category,
     });
   } catch (error) {
@@ -59,22 +44,12 @@ export async function PUT(request) {
 
     const body = await request.json();
     const { error: validationError, data: validated } = parseBody(updateBusinessHoursSchema, body);
-    if (validationError) return validationError;
-
-    const { businessHours } = validated;
+    if (validationError) return validationResponse(validationError);
 
     const tableName = getCategoryTableName(ctx.category);
     if (!tableName) return apiError('Cannot update hours for this category', 400);
 
-    const { error } = await supabase
-      .from(tableName)
-      .update({ business_hours: businessHours })
-      .eq('business_info_id', ctx.businessInfoId);
-
-    if (error) {
-      console.error('[schedule PUT] Error:', error);
-      return apiError('Failed to update', 500, error.message);
-    }
+    await updateBusinessHours(supabase, ctx.businessInfoId, ctx.category, validated.businessHours);
 
     return apiSuccess();
   } catch (error) {
@@ -83,7 +58,7 @@ export async function PUT(request) {
   }
 }
 
-// ─── POST: Add a schedule exception (break, closure, holiday, etc.) ──
+// ─── POST: Add a schedule exception ──────────────────────────
 export async function POST(request) {
   try {
     const clerkId = await getUserId(request);
@@ -95,11 +70,11 @@ export async function POST(request) {
 
     const body = await request.json();
     const { error: validationError, data: validated } = parseBody(createExceptionSchema, body);
-    if (validationError) return validationError;
+    if (validationError) return validationResponse(validationError);
 
     const fullDay = validated.isFullDay === true || (!validated.startTime && !validated.endTime);
 
-    const exceptionData = {
+    const data = await createException(supabase, {
       business_info_id: ctx.businessInfoId,
       title: sanitizeText(validated.title),
       type: validated.type,
@@ -111,18 +86,7 @@ export async function POST(request) {
       recurring: validated.recurring,
       recurring_day: validated.recurring ? validated.recurringDay : null,
       notes: sanitizeText(validated.notes) || null,
-    };
-
-    const { data, error } = await supabase
-      .from('schedule_exceptions')
-      .insert(exceptionData)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[schedule POST] Error:', error);
-      return apiError('Failed to create exception', 500, error.message);
-    }
+    });
 
     return apiSuccess({ exception: data });
   } catch (error) {
@@ -139,23 +103,13 @@ export async function DELETE(request) {
 
     const { searchParams } = new URL(request.url);
     const { error: validationError, data: validated } = parseQuery(deleteExceptionSchema, searchParams);
-    if (validationError) return validationError;
-    const exceptionId = validated.id;
+    if (validationError) return validationResponse(validationError);
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
     if (!ctx) return apiError('Business not found', 404);
 
-    const { error } = await supabase
-      .from('schedule_exceptions')
-      .delete()
-      .eq('id', exceptionId)
-      .eq('business_info_id', ctx.businessInfoId);
-
-    if (error) {
-      console.error('[schedule DELETE] Error:', error);
-      return apiError('Failed to delete', 500, error.message);
-    }
+    await deleteException(supabase, validated.id, ctx.businessInfoId);
 
     return apiSuccess();
   } catch (error) {
@@ -176,11 +130,11 @@ export async function PATCH(request) {
 
     const body = await request.json();
     const { error: validationError, data: validated } = parseBody(updateExceptionSchema, body);
-    if (validationError) return validationError;
+    if (validationError) return validationResponse(validationError);
 
     const fullDay = validated.isFullDay === true || (!validated.startTime && !validated.endTime);
 
-    const updateData = {
+    const data = await updateException(supabase, validated.id, ctx.businessInfoId, {
       title: sanitizeText(validated.title),
       type: validated.type,
       date: validated.date,
@@ -192,20 +146,7 @@ export async function PATCH(request) {
       recurring_day: validated.recurring ? validated.recurringDay : null,
       notes: sanitizeText(validated.notes) || null,
       updated_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from('schedule_exceptions')
-      .update(updateData)
-      .eq('id', validated.id)
-      .eq('business_info_id', ctx.businessInfoId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[schedule PATCH] Error:', error);
-      return apiError('Failed to update exception', 500, error.message);
-    }
+    });
 
     return apiSuccess({ exception: data });
   } catch (error) {
