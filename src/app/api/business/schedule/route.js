@@ -3,6 +3,8 @@ import { sanitizeText } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
 import { getCategoryTableName, getBusinessContext } from '@/lib/business';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
+import { parseBody, parseQuery } from '@/lib/validate';
+import { updateBusinessHoursSchema, createExceptionSchema, updateExceptionSchema, deleteExceptionSchema } from '@/schemas/schedule';
 
 // ─── GET: Fetch working hours + schedule exceptions ─────────
 export async function GET(request) {
@@ -55,11 +57,11 @@ export async function PUT(request) {
     const ctx = await getBusinessContext(supabase, clerkId);
     if (!ctx) return apiError('Business not found', 404);
 
-    const { businessHours } = await request.json();
+    const body = await request.json();
+    const { error: validationError, data: validated } = parseBody(updateBusinessHoursSchema, body);
+    if (validationError) return validationError;
 
-    if (!Array.isArray(businessHours)) {
-      return apiError('businessHours must be an array', 400);
-    }
+    const { businessHours } = validated;
 
     const tableName = getCategoryTableName(ctx.category);
     if (!tableName) return apiError('Cannot update hours for this category', 400);
@@ -92,31 +94,23 @@ export async function POST(request) {
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
-    const { title, type, date, endDate, startTime, endTime, isFullDay, recurring, recurringDay, notes } = body;
+    const { error: validationError, data: validated } = parseBody(createExceptionSchema, body);
+    if (validationError) return validationError;
 
-    if (!title || !type || !date) {
-      return apiError('title, type, and date are required', 400);
-    }
-
-    const validTypes = ['break', 'lunch_break', 'closure', 'holiday', 'vacation', 'other'];
-    if (!validTypes.includes(type)) {
-      return apiData({ error: 'Invalid type', validTypes }, 400);
-    }
-
-    const fullDay = isFullDay === true || (!startTime && !endTime);
+    const fullDay = validated.isFullDay === true || (!validated.startTime && !validated.endTime);
 
     const exceptionData = {
       business_info_id: ctx.businessInfoId,
-      title: sanitizeText(title),
-      type,
-      date,
-      end_date: fullDay && endDate ? endDate : null,
-      start_time: fullDay ? null : (startTime || null),
-      end_time: fullDay ? null : (endTime || null),
+      title: sanitizeText(validated.title),
+      type: validated.type,
+      date: validated.date,
+      end_date: fullDay && validated.endDate ? validated.endDate : null,
+      start_time: fullDay ? null : (validated.startTime || null),
+      end_time: fullDay ? null : (validated.endTime || null),
       is_full_day: fullDay,
-      recurring: recurring || false,
-      recurring_day: recurring ? recurringDay : null,
-      notes: sanitizeText(notes) || null,
+      recurring: validated.recurring,
+      recurring_day: validated.recurring ? validated.recurringDay : null,
+      notes: sanitizeText(validated.notes) || null,
     };
 
     const { data, error } = await supabase
@@ -144,8 +138,9 @@ export async function DELETE(request) {
     if (!clerkId) return apiError('Unauthorized', 401);
 
     const { searchParams } = new URL(request.url);
-    const exceptionId = searchParams.get('id');
-    if (!exceptionId) return apiError('Exception id is required', 400);
+    const { error: validationError, data: validated } = parseQuery(deleteExceptionSchema, searchParams);
+    if (validationError) return validationError;
+    const exceptionId = validated.id;
 
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, clerkId);
@@ -180,40 +175,29 @@ export async function PATCH(request) {
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
-    const { id, title, type, date, endDate, startTime, endTime, isFullDay, recurring, recurringDay, notes } = body;
+    const { error: validationError, data: validated } = parseBody(updateExceptionSchema, body);
+    if (validationError) return validationError;
 
-    if (!id) {
-      return apiError('Exception id is required', 400);
-    }
-    if (!title || !type || !date) {
-      return apiError('title, type, and date are required', 400);
-    }
-
-    const validTypes = ['break', 'lunch_break', 'closure', 'holiday', 'vacation', 'other'];
-    if (!validTypes.includes(type)) {
-      return apiData({ error: 'Invalid type', validTypes }, 400);
-    }
-
-    const fullDay = isFullDay === true || (!startTime && !endTime);
+    const fullDay = validated.isFullDay === true || (!validated.startTime && !validated.endTime);
 
     const updateData = {
-      title: sanitizeText(title),
-      type,
-      date,
-      end_date: fullDay && endDate ? endDate : null,
-      start_time: fullDay ? null : (startTime || null),
-      end_time: fullDay ? null : (endTime || null),
+      title: sanitizeText(validated.title),
+      type: validated.type,
+      date: validated.date,
+      end_date: fullDay && validated.endDate ? validated.endDate : null,
+      start_time: fullDay ? null : (validated.startTime || null),
+      end_time: fullDay ? null : (validated.endTime || null),
       is_full_day: fullDay,
-      recurring: recurring || false,
-      recurring_day: recurring ? recurringDay : null,
-      notes: sanitizeText(notes) || null,
+      recurring: validated.recurring,
+      recurring_day: validated.recurring ? validated.recurringDay : null,
+      notes: sanitizeText(validated.notes) || null,
       updated_at: new Date().toISOString(),
     };
 
     const { data, error } = await supabase
       .from('schedule_exceptions')
       .update(updateData)
-      .eq('id', id)
+      .eq('id', validated.id)
       .eq('business_info_id', ctx.businessInfoId)
       .select()
       .single();

@@ -1,12 +1,11 @@
 'use client';
 
-import { useUser, useAuth } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 
 export function useRole({ requiredRole = null, redirectTo = '/' } = {}) {
-  const { user, isLoaded: isClerkLoaded, isSignedIn } = useUser();
-  const { getToken } = useAuth();
+  const { user, isLoaded: isClerkLoaded, isSignedIn, getToken } = useAuthUser();
   const router = useRouter();
   
   const [role, setRole] = useState(null);

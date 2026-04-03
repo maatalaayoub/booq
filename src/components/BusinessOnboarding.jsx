@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useUser, useAuth } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { sanitizeInput as sanitizeText, sanitizePhone } from '@/lib/sanitize';
 
@@ -182,8 +182,7 @@ const DEFAULT_HOURS = DAYS_OF_WEEK.map(day => ({
 }));
 
 export default function BusinessOnboarding({ userName, onComplete }) {
-  const { user } = useUser();
-  const { getToken } = useAuth();
+  const { user, getToken } = useAuthUser();
   const { t, isRTL } = useLanguage();
   
   // Helper to translate DB-sourced text with fallback to original value

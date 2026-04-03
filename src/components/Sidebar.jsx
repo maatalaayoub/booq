@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import ReactCountryFlag from 'react-country-flag';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useUser, SignOutButton } from '@clerk/nextjs';
+import { SignOutButton } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useParams, usePathname } from 'next/navigation';
 import { useRole } from '@/hooks/useRole';
 import Link from 'next/link';
@@ -23,7 +24,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
   const locale = params.locale || 'en';
   const { t, changeLanguage, isRTL } = useLanguage();
-  const { user, isSignedIn, isLoaded: isClerkLoaded } = useUser();
+  const { user, isSignedIn, isLoaded: isClerkLoaded } = useAuthUser();
   const { isBusiness, isLoaded: isRoleLoaded } = useRole();
   const sideMenuRef = useRef(null);
   

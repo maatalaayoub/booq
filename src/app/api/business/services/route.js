@@ -3,6 +3,8 @@ import { sanitizeText } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 import { getBusinessContext } from '@/lib/business';
+import { parseBody, parseQuery } from '@/lib/validate';
+import { createServiceSchema, updateServiceSchema, deleteServiceSchema } from '@/schemas/business-service';
 
 // ─── GET: list all services ────────────────────────────────
 export async function GET(request) {
@@ -44,22 +46,19 @@ export async function POST(request) {
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
-    const { name, description, duration_minutes, price, currency, is_active } = body;
-
-    if (!name || price === undefined || price === null) {
-      return apiError('name and price are required', 400);
-    }
+    const { error: validationError, data: validated } = parseBody(createServiceSchema, body);
+    if (validationError) return validationError;
 
     const { data, error } = await supabase
       .from('business_services')
       .insert({
         business_info_id: ctx.businessInfoId,
-        name: sanitizeText(name.trim()),
-        description: sanitizeText(description?.trim()) || null,
-        duration_minutes: duration_minutes || 30,
-        price: parseFloat(price),
-        currency: currency || 'MAD',
-        is_active: is_active !== undefined ? is_active : true,
+        name: sanitizeText(validated.name),
+        description: validated.description ? sanitizeText(validated.description.trim()) : null,
+        duration_minutes: validated.duration_minutes,
+        price: validated.price,
+        currency: validated.currency,
+        is_active: validated.is_active,
       })
       .select()
       .single();
@@ -83,21 +82,21 @@ export async function PUT(request) {
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
-    const { id, name, description, duration_minutes, price, currency, is_active } = body;
+    const { error: validationError, data: validated } = parseBody(updateServiceSchema, body);
+    if (validationError) return validationError;
 
-    if (!id) return apiError('id is required', 400);
+    const { id, ...fields } = validated;
+    const updateData = { updated_at: new Date().toISOString() };
+    if (fields.name !== undefined) updateData.name = sanitizeText(fields.name);
+    if (fields.description !== undefined) updateData.description = sanitizeText(fields.description.trim()) || null;
+    if (fields.duration_minutes !== undefined) updateData.duration_minutes = fields.duration_minutes;
+    if (fields.price !== undefined) updateData.price = fields.price;
+    if (fields.currency !== undefined) updateData.currency = fields.currency;
+    if (fields.is_active !== undefined) updateData.is_active = fields.is_active;
 
     const { data, error } = await supabase
       .from('business_services')
-      .update({
-        name: sanitizeText(name?.trim()),
-        description: sanitizeText(description?.trim()) || null,
-        duration_minutes,
-        price: parseFloat(price),
-        currency: currency || 'MAD',
-        is_active,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', id)
       .eq('business_info_id', ctx.businessInfoId)
       .select()
@@ -127,8 +126,9 @@ export async function DELETE(request) {
     if (!ctx) return apiError('Business not found', 404);
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    if (!id) return apiError('id is required', 400);
+    const { error: validationError, data: validated } = parseQuery(deleteServiceSchema, searchParams);
+    if (validationError) return validationError;
+    const { id } = validated;
 
     const { error } = await supabase
       .from('business_services')

@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 
 const BusinessCategoryContext = createContext({
   businessCategory: null,
@@ -10,7 +10,7 @@ const BusinessCategoryContext = createContext({
 });
 
 export function BusinessCategoryProvider({ children }) {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useAuthUser();
   const [businessCategory, setBusinessCategory] = useState(null);
   const [serviceMode, setServiceMode] = useState(null);
   const [isLoading, setIsLoading] = useState(true);

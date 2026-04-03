@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Link from 'next/link';
 import {
@@ -299,16 +299,6 @@ function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, u
     return (crossBusinessBookings || []).find(b => slotStart < b.end && slotEnd > b.start);
   };
 
-  // Determine if a slot falls within the selected appointment range
-  const isInSelectedRange = (slotStart) => {
-    if (!selectedSlot) return false;
-    const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-    const startMin = toMin(selectedSlot.start);
-    const endMin = toMin(selectedSlot.end);
-    const slotMin = toMin(slotStart);
-    return slotMin >= startMin && slotMin <= endMin;
-  };
-
   return (
     <div>
       <p className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('bp.selectTime')}</p>
@@ -324,7 +314,6 @@ function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, u
       <div className="grid grid-cols-3 sd:grid-cols-4 gap-2">
         {slots.map(slot => {
           const sel = selectedSlot?.start === slot.start;
-          const inRange = !sel && isInSelectedRange(slot.start);
           const matchedBooking = findUserBooking(slot.start, slot.end);
           const userBooked = matchedBooking?.status;
           const isBooked = !!matchedBooking;
@@ -338,7 +327,6 @@ function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, u
                   : crossConflict
                   ? 'bg-red-50 border-2 border-red-300 text-red-400 cursor-not-allowed'
                   : sel ? 'text-white shadow-lg scale-[1.02]'
-                  : inRange ? 'text-white/90 scale-[1.01]'
                   : slot.available ? 'bg-white text-gray-700 border border-gray-200 hover:border-gray-300 hover:shadow-sm'
                   : 'bg-gray-50 text-gray-300 cursor-not-allowed line-through'
               }`}
@@ -346,7 +334,6 @@ function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, u
                 isBooked
                   ? { borderColor: userBooked === 'confirmed' ? '#16a34a' : '#f59e0b', color: userBooked === 'confirmed' ? '#16a34a' : '#f59e0b' }
                   : sel ? { backgroundColor: accent.bg }
-                  : inRange ? { backgroundColor: accent.bg + 'B3' }
                   : undefined
               }
               title={crossConflict ? t('bp.crossBusinessConflict') : undefined}
@@ -385,7 +372,7 @@ function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, u
    BOOKING FORM MODAL
    ================================================================ */
 function BookingModal({ open, onClose, business, services, date, slot, accent, t, locale, onSuccess }) {
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const [step, setStep] = useState('form'); // 'form' | 'summary'
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
@@ -683,7 +670,7 @@ function SuccessModal({ appointment, onClose, accent, t, locale }) {
 export default function BusinessPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isSignedIn } = useUser();
+  const { user, isSignedIn } = useAuthUser();
   const { t, locale, isRTL } = useLanguage();
   const businessId = params.id;
 

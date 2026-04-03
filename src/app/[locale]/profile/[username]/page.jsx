@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useParams, useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ProfileHeader, ProfilePageNav } from '@/components/profile';
@@ -14,7 +14,7 @@ export default function ViewUserProfilePage() {
   const router = useRouter();
   const locale = params.locale || 'en';
   const username = params.username;
-  const { user: currentUser, isLoaded: isUserLoaded } = useUser();
+  const { user: currentUser, isLoaded: isUserLoaded } = useAuthUser();
   const { t, isRTL } = useLanguage();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

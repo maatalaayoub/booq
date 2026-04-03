@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import {
   User,
   MapPin,
@@ -233,7 +233,7 @@ function SectionCard({ title, icon: Icon, iconColor = 'text-[#364153]', iconBg =
 
 // ─── MAIN PAGE ──────────────────────────────────────────────
 export default function JobSeekerProfilePage() {
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const { t } = useLanguage();
 
   const [loading, setLoading] = useState(true);

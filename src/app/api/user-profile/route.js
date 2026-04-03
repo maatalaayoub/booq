@@ -1,6 +1,8 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getUserId } from '@/lib/auth';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
+import { parseBody } from '@/lib/validate';
+import { updateProfileSchema } from '@/schemas/user-profile';
 
 // GET - Fetch user profile data based on role
 export async function GET(request) {
@@ -70,7 +72,10 @@ export async function PUT(request) {
     }
 
     const body = await request.json();
-    const { firstName, lastName, birthday, gender, username, coverImageUrl, coverImagePosition, city, phone } = body;
+    const { error: validationError, data: validated } = parseBody(updateProfileSchema, body);
+    if (validationError) return validationError;
+
+    const { firstName, lastName, birthday, gender, username, coverImageUrl, coverImagePosition, city, phone } = validated;
 
     const supabase = createServerSupabaseClient();
 
@@ -88,16 +93,10 @@ export async function PUT(request) {
 
     // Update username in users table if provided and changed
     if (username !== undefined && username !== user.username) {
-      const normalizedUsername = username.trim().toLowerCase();
-
-      if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) {
-        return apiError('Invalid username format', 400);
-      }
-
       const { data: taken } = await supabase
         .from('users')
         .select('id')
-        .eq('username', normalizedUsername)
+        .eq('username', username)
         .maybeSingle();
 
       if (taken) {
@@ -106,7 +105,7 @@ export async function PUT(request) {
 
       const { error: usernameError } = await supabase
         .from('users')
-        .update({ username: normalizedUsername })
+        .update({ username })
         .eq('id', user.id);
 
       if (usernameError) {

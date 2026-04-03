@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 
 export function useVerificationStatus() {
-  const { isSignedIn, isLoaded: isClerkLoaded } = useUser();
+  const { isSignedIn, isLoaded: isClerkLoaded } = useAuthUser();
   const [isVerified, setIsVerified] = useState(false);
   const [identityStatus, setIdentityStatus] = useState('not_submitted');
   const [businessStatus, setBusinessStatus] = useState('not_submitted');

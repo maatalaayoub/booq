@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId } from '@/lib/auth/server-adapter';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { apiError } from '@/lib/api-response';
 
@@ -7,7 +7,7 @@ import { apiError } from '@/lib/api-response';
  * Returns { supabase, adminUser } on success, or a NextResponse error.
  */
 export async function requireAdmin() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
 
   if (!userId) {
     return { error: apiError('Unauthorized', 401) };

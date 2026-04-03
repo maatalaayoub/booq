@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Sidebar from '@/components/Sidebar';
 import {
@@ -31,7 +31,7 @@ const STATUS_CONFIG = {
 export default function BookingsPage() {
   const router = useRouter();
   const { t, locale, isRTL } = useLanguage();
-  const { isSignedIn, isLoaded } = useUser();
+  const { isSignedIn, isLoaded } = useAuthUser();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('all');

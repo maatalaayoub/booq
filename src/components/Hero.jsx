@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ReactCountryFlag from 'react-country-flag';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useRouter } from 'next/navigation';
 import { useRole } from '@/hooks/useRole';
 import Sidebar from '@/components/Sidebar';
@@ -20,7 +20,7 @@ const languages = [
 
 export default function Hero() {
   const { t, locale, changeLanguage } = useLanguage();
-  const { isSignedIn, user, isLoaded: isClerkLoaded } = useUser();
+  const { isSignedIn, user, isLoaded: isClerkLoaded } = useAuthUser();
   const { role: userRole, isBusiness, isLoaded: isRoleLoaded } = useRole();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

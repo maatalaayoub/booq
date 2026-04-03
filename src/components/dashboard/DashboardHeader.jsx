@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -10,7 +10,7 @@ import { useVerificationStatus } from '@/hooks/useVerificationStatus';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 export default function DashboardHeader() {
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const params = useParams();
   const locale = params.locale || 'en';
   const { t, isRTL } = useLanguage();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useRole } from '@/hooks/useRole';
@@ -15,7 +15,7 @@ export default function BusinessProfilePage() {
   const searchParams = useSearchParams();
   const locale = params.locale || 'en';
   const viewingUser = searchParams.get('user'); // Username or ID of user to view
-  const { user, isLoaded: isUserLoaded, isSignedIn } = useUser();
+  const { user, isLoaded: isUserLoaded, isSignedIn } = useAuthUser();
   const { isBusiness, isLoaded: isRoleLoaded } = useRole();
   const { t, isRTL } = useLanguage();
   

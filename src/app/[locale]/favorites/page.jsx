@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { Heart, ArrowLeft, MapPin, Star, Clock, Scissors, Sparkles, Hand, Palette, Phone, MessageCircle, Navigation, Briefcase, Loader2 } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
@@ -20,7 +20,7 @@ const ACCENT_COLORS = {
 export default function FavoritesPage() {
   const router = useRouter();
   const { t, locale, isRTL } = useLanguage();
-  const { user, isSignedIn, isLoaded } = useUser();
+  const { user, isSignedIn, isLoaded } = useAuthUser();
   const [businesses, setBusinesses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);

@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Check, User, Calendar, ChevronDown, Settings, AtSign, AlertCircle, MapPin, Search, Phone } from 'lucide-react';
-import { useUser, useClerk } from '@clerk/nextjs';
+import { useClerk } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 const genderOptions = [
@@ -127,7 +128,7 @@ const translations = {
 };
 
 export default function EditProfileDialog({ isOpen, onClose, initialProfile = null }) {
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const { openUserProfile } = useClerk();
   const { isRTL, locale: language } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);

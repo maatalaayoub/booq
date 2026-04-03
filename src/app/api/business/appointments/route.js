@@ -1,94 +1,11 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { sanitizeText, sanitizePhone } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
-import { getCategoryTableName, getBusinessContext } from '@/lib/business';
+import { getBusinessContext } from '@/lib/business';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
-
-// Helper: validate appointment time against working hours and schedule exceptions
-async function validateAgainstSchedule(supabase, businessInfoId, startTimeISO, endTimeISO) {
-  const startDate = new Date(startTimeISO);
-  const endDate = new Date(endTimeISO);
-  const dayOfWeek = startDate.getUTCDay(); // 0=Sunday
-  const dateStr = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
-  const startHHMM = `${String(startDate.getUTCHours()).padStart(2, '0')}:${String(startDate.getUTCMinutes()).padStart(2, '0')}`;
-  const endHHMM = `${String(endDate.getUTCHours()).padStart(2, '0')}:${String(endDate.getUTCMinutes()).padStart(2, '0')}`;
-
-  // Get business category to determine the correct table
-  const { data: businessInfo } = await supabase
-    .from('business_info')
-    .select('business_category')
-    .eq('id', businessInfoId)
-    .single();
-
-  if (!businessInfo) return { code: 'NO_BUSINESS', message: 'Business info not found' };
-
-  const tableName = getCategoryTableName(businessInfo.business_category);
-
-  let businessHours = [];
-  if (tableName) {
-    const { data: catData } = await supabase
-      .from(tableName)
-      .select('business_hours')
-      .eq('business_info_id', businessInfoId)
-      .single();
-    businessHours = catData?.business_hours || [];
-  }
-
-  // 1. Check working hours for the day
-  if (businessHours.length > 0) {
-    const daySchedule = businessHours.find(h => h.dayOfWeek === dayOfWeek);
-    if (!daySchedule || !daySchedule.isOpen) {
-      return { code: 'CLOSED_DAY', message: 'This day is not a working day' };
-    }
-    // Check if appointment is within working hours
-    if (startHHMM < daySchedule.openTime || endHHMM > daySchedule.closeTime) {
-      return { code: 'OUTSIDE_HOURS', message: `Appointment must be between ${daySchedule.openTime} and ${daySchedule.closeTime}` };
-    }
-  }
-
-  // 2. Check schedule exceptions for that date
-  const { data: exceptions } = await supabase
-    .from('schedule_exceptions')
-    .select('*')
-    .eq('business_info_id', businessInfoId);
-
-  if (exceptions && exceptions.length > 0) {
-    for (const ex of exceptions) {
-      // Check recurring exceptions (e.g. every Monday break)
-      if (ex.recurring && ex.recurring_day === dayOfWeek) {
-        if (ex.is_full_day) {
-          return { code: 'EXCEPTION_FULLDAY', message: `This day is blocked: ${ex.title}` };
-        }
-        if (ex.start_time && ex.end_time) {
-          const exStart = ex.start_time.substring(0, 5);
-          const exEnd = ex.end_time.substring(0, 5);
-          if (startHHMM < exEnd && endHHMM > exStart) {
-            return { code: 'EXCEPTION_TIME', message: `Time conflicts with: ${ex.title} (${exStart}–${exEnd})` };
-          }
-        }
-        continue;
-      }
-
-      // Check date-based exceptions
-      const exDate = ex.date; // YYYY-MM-DD
-      const exEndDate = ex.end_date || exDate;
-      if (dateStr >= exDate && dateStr <= exEndDate) {
-        if (ex.is_full_day) {
-          return { code: 'EXCEPTION_FULLDAY', message: `This day is blocked: ${ex.title}` };
-        }
-        if (ex.start_time && ex.end_time) {
-          const exStart = ex.start_time.substring(0, 5);
-          const exEnd = ex.end_time.substring(0, 5);
-          if (startHHMM < exEnd && endHHMM > exStart) {
-            return { code: 'EXCEPTION_TIME', message: `Time conflicts with: ${ex.title} (${exStart}–${exEnd})` };
-          }
-        }
-      }
-    }
-  }
-
-  return null; // No conflicts
-}
+import { parseBody, parseQuery } from '@/lib/validate';
+import { createAppointmentSchema, updateAppointmentSchema, deleteAppointmentSchema } from '@/schemas/appointment';
+import { validateAgainstSchedule, checkBusinessConflicts } from '@/services/booking';
 
 // ─── GET: Fetch all appointments for the business ───────────
 export async function GET(request) {
@@ -139,20 +56,17 @@ export async function POST(request) {
     const businessInfoId = ctx.businessInfoId;
 
     const body = await request.json();
-    const { client_name, client_phone, client_address, service, price, start_time, end_time, status, notes } = body;
+    const { error: validationError, data: validated } = parseBody(createAppointmentSchema, body);
+    if (validationError) return validationError;
 
-    const cleanClientName = sanitizeText(client_name);
-    const cleanPhone = client_phone ? sanitizePhone(client_phone) : null;
-    const cleanAddress = client_address ? sanitizeText(client_address) : null;
-    const cleanService = sanitizeText(service);
-    const cleanNotes = notes ? sanitizeText(notes) : null;
-
-    if (!cleanClientName || !cleanService || !start_time || !end_time) {
-      return apiError('Missing required fields: client_name, service, start_time, end_time', 400);
-    }
+    const cleanClientName = sanitizeText(validated.client_name);
+    const cleanPhone = validated.client_phone ? sanitizePhone(validated.client_phone) : null;
+    const cleanAddress = validated.client_address ? sanitizeText(validated.client_address) : null;
+    const cleanService = sanitizeText(validated.service);
+    const cleanNotes = validated.notes ? sanitizeText(validated.notes) : null;
 
     // ── Validate against working hours and schedule exceptions ──
-    const scheduleError = await validateAgainstSchedule(supabase, businessInfoId, start_time, end_time);
+    const scheduleError = await validateAgainstSchedule(supabase, businessInfoId, validated.start_time, validated.end_time);
     if (scheduleError) {
       return apiData({ error: scheduleError.message, code: scheduleError.code }, 400);
     }
@@ -165,10 +79,10 @@ export async function POST(request) {
         client_phone: cleanPhone,
         client_address: cleanAddress,
         service: cleanService,
-        price: price ? parseFloat(price) : null,
-        start_time,
-        end_time,
-        status: status || 'confirmed',
+        price: validated.price ?? null,
+        start_time: validated.start_time,
+        end_time: validated.end_time,
+        status: validated.status,
         notes: cleanNotes,
       })
       .select()
@@ -202,11 +116,10 @@ export async function PUT(request) {
     const businessInfoId = ctx.businessInfoId;
 
     const body = await request.json();
-    const { id, ...updateFields } = body;
+    const { error: validationError, data: validated } = parseBody(updateAppointmentSchema, body);
+    if (validationError) return validationError;
 
-    if (!id) {
-      return apiError('Missing appointment id', 400);
-    }
+    const { id, ...updateFields } = validated;
 
     // Sanitize text fields in update
     const sanitizedFields = { ...updateFields };
@@ -224,19 +137,11 @@ export async function PUT(request) {
       }
 
       // Check for overlapping confirmed appointments (exclude the appointment being updated)
-      const { data: conflicts } = await supabase
-        .from('appointments')
-        .select('id, start_time, end_time, client_name, service')
-        .eq('business_info_id', businessInfoId)
-        .eq('status', 'confirmed')
-        .neq('id', id)
-        .lt('start_time', sanitizedFields.end_time)
-        .gt('end_time', sanitizedFields.start_time);
+      const conflicts = await checkBusinessConflicts(supabase, businessInfoId, sanitizedFields.start_time, sanitizedFields.end_time, id);
 
-      if (conflicts && conflicts.length > 0) {
-        const conflictTime = new Date(conflicts[0].start_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+      if (conflicts.length > 0) {
         return apiData({
-          error: `This time overlaps with a confirmed appointment at ${conflictTime} (${conflicts[0].client_name} - ${conflicts[0].service}). Please choose a different time.`,
+          error: 'This time overlaps with a confirmed appointment. Please choose a different time.',
           code: 'APPOINTMENT_CONFLICT',
         }, 409);
       }
@@ -282,11 +187,9 @@ export async function DELETE(request) {
     const businessInfoId = ctx.businessInfoId;
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-
-    if (!id) {
-      return apiError('Missing appointment id', 400);
-    }
+    const { error: validationError, data: validated } = parseQuery(deleteAppointmentSchema, searchParams);
+    if (validationError) return validationError;
+    const { id } = validated;
 
     const { error } = await supabase
       .from('appointments')

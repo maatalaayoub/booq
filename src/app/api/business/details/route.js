@@ -123,18 +123,18 @@ export async function PUT(request) {
     const supabase = createServerSupabaseClient();
     const ctx = await getBusinessContext(supabase, userId);
 
-    if (ctx.error) {
-      return apiError(ctx.error, ctx.status);
+    if (!ctx) {
+      return apiError('Business not found', 404);
     }
 
-    const { businessInfo, tableName } = ctx;
+    const tableName = getCategoryTableName(ctx.category);
 
     // Update business_info (professional_type)
     if (professionalType) {
       const { error: biUpdateError } = await supabase
         .from('business_info')
         .update({ professional_type: professionalType })
-        .eq('id', businessInfo.id);
+        .eq('id', ctx.businessInfoId);
 
       if (biUpdateError) {
         console.error('[business/details PUT] Error updating business_info:', biUpdateError);
@@ -154,7 +154,7 @@ export async function PUT(request) {
       };
 
       // Add mobile-service specific fields
-      if (businessInfo.business_category === 'mobile_service') {
+      if (ctx.category === 'mobile_service') {
         updateData.service_area = cleanServiceArea || null;
         updateData.travel_radius_km = travelRadiusKm ? parseInt(travelRadiusKm) : null;
       }
@@ -162,7 +162,7 @@ export async function PUT(request) {
       const { error: catUpdateError } = await supabase
         .from(tableName)
         .update(updateData)
-        .eq('business_info_id', businessInfo.id);
+        .eq('business_info_id', ctx.businessInfoId);
 
       if (catUpdateError) {
         console.error('[business/details PUT] Error updating category table:', catUpdateError);

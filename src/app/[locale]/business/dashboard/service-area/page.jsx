@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import dynamic from 'next/dynamic';
 import {
   MapPin,
@@ -61,7 +61,7 @@ function DetailsSkeleton() {
 }
 
 export default function ServiceAreaPage() {
-  const { isLoaded, user } = useUser();
+  const { isLoaded, user } = useAuthUser();
   const { t, isRTL } = useLanguage();
 
   const [loading, setLoading] = useState(true);

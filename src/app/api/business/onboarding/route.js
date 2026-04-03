@@ -3,6 +3,8 @@ import { sanitizeText, sanitizePhone, validCoord } from '@/lib/sanitize';
 import { getUserId } from '@/lib/auth';
 import { getCategoryTableName } from '@/lib/business';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
+import { parseBody } from '@/lib/validate';
+import { onboardingSchema } from '@/schemas/onboarding';
 
 // Helper to get category-specific data
 async function getCategoryData(supabase, businessInfoId, category) {
@@ -89,6 +91,9 @@ export async function POST(request) {
     }
 
     const body = await request.json();
+    const { error: validationError, data: validated } = parseBody(onboardingSchema, body);
+    if (validationError) return validationError;
+
     const { 
       businessCategory, 
       professionalType,
@@ -99,67 +104,18 @@ export async function POST(request) {
       businessHours, 
       yearsOfExperience,
       hasCertificate,
-      // Shop/salon & mobile service shared
       businessName,
       address,
       city,
       phone,
       latitude,
       longitude,
-      // Mobile service specific
       serviceArea,
       travelRadiusKm,
-      // Job seeker specific
       preferredCity,
       bio,
       completeOnboarding 
-    } = body;
-
-    // Validate required fields
-    if (!professionalType) {
-      console.error('[onboarding POST] Missing professionalType');
-      return apiError('Professional type is required', 400);
-    }
-
-    if (!businessCategory) {
-      console.error('[onboarding POST] Missing businessCategory');
-      return apiError('Business category is required', 400);
-    }
-
-    // Validate professional type against DB if possible, fallback to known types
-    if (specialtyId) {
-      // If specialtyId is provided, we trust it was selected from DB
-    } else {
-      const validProfessionalTypes = ['barber', 'hairdresser', 'makeup', 'nails', 'massage'];
-      if (!validProfessionalTypes.includes(professionalType)) {
-        console.error('[onboarding POST] Invalid professionalType:', professionalType);
-        return apiData({ 
-          error: 'Invalid professional type',
-          validTypes: validProfessionalTypes 
-        }, 400);
-      }
-    }
-
-    const validBusinessCategories = ['salon_owner', 'mobile_service', 'job_seeker'];
-    if (!validBusinessCategories.includes(businessCategory)) {
-      console.error('[onboarding POST] Invalid businessCategory:', businessCategory);
-      return apiData({ 
-        error: 'Invalid business category',
-        validCategories: validBusinessCategories 
-      }, 400);
-    }
-
-    // Validate service mode (required for salon_owner and mobile_service)
-    if (businessCategory !== 'job_seeker') {
-      const validServiceModes = ['booking', 'walkin', 'both'];
-      if (serviceMode && !validServiceModes.includes(serviceMode)) {
-        console.error('[onboarding POST] Invalid serviceMode:', serviceMode);
-        return apiData({ 
-          error: 'Invalid service mode',
-          validModes: validServiceModes 
-        }, 400);
-      }
-    }
+    } = validated;
 
     const supabase = createServerSupabaseClient();
 

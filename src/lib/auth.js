@@ -1,8 +1,9 @@
-import { auth } from '@clerk/nextjs/server';
+import { getSessionUserId, getSessionRole, verifyBearerToken } from '@/lib/auth/server-adapter';
 import { redirect } from 'next/navigation';
 
 /**
- * Server-side role utility functions
+ * Server-side role utility functions.
+ * All Clerk-specific logic lives in @/lib/auth/server-adapter.
  */
 
 /**
@@ -10,10 +11,7 @@ import { redirect } from 'next/navigation';
  * @returns {Promise<{userId: string | null, role: string | null}>}
  */
 export async function getServerRole() {
-  const { userId, sessionClaims } = await auth();
-  const role = sessionClaims?.publicMetadata?.role || null;
-  
-  return { userId, role };
+  return getSessionRole();
 }
 
 /**
@@ -41,7 +39,7 @@ export async function requireRole(requiredRole, redirectTo = '/') {
  * @returns {Promise<boolean>}
  */
 export async function isAuthenticated() {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   return !!userId;
 }
 
@@ -73,27 +71,20 @@ export async function isAdminRole() {
 }
 
 /**
- * Get userId from Clerk session or Bearer token (for API routes).
+ * Get userId from session or Bearer token (for API routes).
  * Supports both Next.js session auth and mobile/external Bearer tokens.
  * @param {Request} request - The incoming request
- * @returns {Promise<string | null>} Clerk userId or null
+ * @returns {Promise<string | null>} User ID or null
  */
 export async function getUserId(request) {
-  const { userId } = await auth();
+  const userId = await getSessionUserId();
   if (userId) return userId;
 
   const authHeader = request.headers.get('Authorization');
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
-    try {
-      const { verifyToken } = await import('@clerk/backend');
-      const payload = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      if (payload?.sub) return payload.sub;
-    } catch (err) {
-      console.log('[auth] Bearer token verification failed:', err.message);
-    }
+    const tokenUserId = await verifyBearerToken(token);
+    if (tokenUserId) return tokenUserId;
   }
   return null;
 }

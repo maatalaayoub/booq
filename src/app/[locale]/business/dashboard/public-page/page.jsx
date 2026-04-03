@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Globe,
@@ -291,7 +291,7 @@ const DEFAULT_SETTINGS = {
 
 // ─── PAGE ────────────────────────────────────────────────────
 export default function PublicPageManager() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useAuthUser();
   const params = useParams();
   const locale = params.locale || 'en';
   const { t, isRTL } = useLanguage();

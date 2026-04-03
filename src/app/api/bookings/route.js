@@ -1,6 +1,9 @@
 import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
+import { parseBody, parseQuery } from '@/lib/validate';
+import { editBookingSchema, cancelBookingSchema } from '@/schemas/booking';
+import { checkBusinessConflicts } from '@/services/booking';
 
 /**
  * GET /api/bookings
@@ -84,34 +87,13 @@ export async function PATCH(request) {
     }
 
     const body = await request.json();
-    const { id, date, startTime, serviceIds } = body;
+    const { error: validationError, data: validated } = parseBody(editBookingSchema, body);
+    if (validationError) return validationError;
 
-    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!id || !uuidRe.test(id)) {
-      return apiError('Invalid appointment id', 400);
-    }
+    const { id, date, startTime, serviceIds } = validated;
 
-    const hasTimeChange = date && startTime;
-    const hasServiceChange = Array.isArray(serviceIds) && serviceIds.length > 0;
-
-    if (!hasTimeChange && !hasServiceChange) {
-      return apiError('Nothing to update', 400);
-    }
-
-    if (hasTimeChange) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        return apiError('Invalid date', 400);
-      }
-      if (!/^\d{2}:\d{2}$/.test(startTime)) {
-        return apiError('Invalid startTime format (HH:MM)', 400);
-      }
-    }
-
-    if (hasServiceChange) {
-      if (!serviceIds.every(sid => uuidRe.test(sid))) {
-        return apiError('Invalid service ID format', 400);
-      }
-    }
+    const hasTimeChange = !!(date && startTime);
+    const hasServiceChange = !!(serviceIds && serviceIds.length > 0);
 
     const supabase = createServerSupabaseClient();
 
@@ -178,16 +160,8 @@ export async function PATCH(request) {
       const newEndISO = newEnd.toISOString();
 
       // Check for conflicting confirmed appointments
-      const { data: conflicts } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('business_info_id', apt.business_info_id)
-        .eq('status', 'confirmed')
-        .neq('id', id)
-        .lt('start_time', newEndISO)
-        .gt('end_time', newStartISO);
-
-      if (conflicts && conflicts.length > 0) {
+      const conflicts = await checkBusinessConflicts(supabase, apt.business_info_id, newStartISO, newEndISO, id);
+      if (conflicts.length > 0) {
         return apiError('This time slot is no longer available', 409);
       }
 
@@ -235,12 +209,10 @@ export async function DELETE(request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const { error: validationError, data: validated } = parseQuery(cancelBookingSchema, searchParams);
+    if (validationError) return validationError;
 
-    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!id || !uuidRe.test(id)) {
-      return apiError('Invalid appointment id', 400);
-    }
+    const { id } = validated;
 
     const supabase = createServerSupabaseClient();
 

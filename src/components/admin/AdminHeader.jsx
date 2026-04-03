@@ -1,13 +1,13 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useParams } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminHeader() {
-  const { user } = useUser();
+  const { user } = useAuthUser();
   const params = useParams();
   const locale = params.locale || 'en';
   const { t, isRTL } = useLanguage();

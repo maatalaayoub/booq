@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import {
@@ -151,7 +151,7 @@ function SectionCard({ title, icon: Icon, iconColor = 'text-[#364153]', iconBg =
 
 // ─── PAGE ────────────────────────────────────────────────────
 export default function BusinessDetailsPage() {
-  const { user, isLoaded } = useUser();
+  const { user, isLoaded } = useAuthUser();
   const { t, isRTL } = useLanguage();
   const router = useRouter();
 

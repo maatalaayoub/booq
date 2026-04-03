@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuthUser } from '@/hooks/useAuthUser';
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -66,7 +66,7 @@ function DashboardSkeleton({ isRTL }) {
 }
 
 export default function DashboardLayout({ children }) {
-  const { isLoaded, user } = useUser();
+  const { isLoaded, user } = useAuthUser();
   const { isRTL } = useLanguage();
   const { isBusiness, isLoaded: isRoleLoaded, hasRole } = useRole();
   const router = useRouter();
