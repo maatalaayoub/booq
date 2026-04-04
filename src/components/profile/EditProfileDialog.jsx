@@ -58,6 +58,7 @@ const translations = {
     usernameInvalid: '3–20 characters: letters, numbers, or underscores only',
     usernameChecking: 'Checking availability...',
     usernameSelf: 'This is your current username',
+    usernameRequired: 'Username is required',
     phone: 'Phone Number',
     phoneHint: 'e.g. +212 6XX XXXXXX',
     city: 'City',
@@ -88,6 +89,7 @@ const translations = {
     usernameInvalid: '3–20 حرفًا: حروف وأرقام وشرطات سفلية فقط',
     usernameChecking: 'جاري التحقق من التوفر...',
     usernameSelf: 'هذا هو اسم مستخدمك الحالي',
+    usernameRequired: 'اسم المستخدم مطلوب',
     phone: 'رقم الهاتف',
     phoneHint: 'مثال: +212 6XX XXXXXX',
     city: 'المدينة',
@@ -118,6 +120,7 @@ const translations = {
     usernameInvalid: '3–20 caractères : lettres, chiffres ou underscores uniquement',
     usernameChecking: 'Vérification de la disponibilité...',
     usernameSelf: "C'est votre nom d'utilisateur actuel",
+    usernameRequired: "Le nom d'utilisateur est requis",
     phone: 'Numéro de téléphone',
     phoneHint: 'ex. +212 6XX XXXXXX',
     city: 'Ville',
@@ -231,7 +234,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
 
   const checkUsername = useCallback(async (value) => {
     const trimmed = value.trim().toLowerCase();
-    if (!trimmed) { setUsernameStatus(null); return; }
+    if (!trimmed) { setUsernameStatus('empty'); return; }
     if (!/^[a-z0-9_]{3,20}$/.test(trimmed)) { setUsernameStatus('invalid'); return; }
     setUsernameStatus('checking');
     try {
@@ -247,6 +250,11 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'phone') {
+      const filtered = value.replace(/[^0-9+]/g, '');
+      setFormData(prev => ({ ...prev, phone: filtered }));
+      return;
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
     if (name === 'username') {
       setUsernameStatus(null);
@@ -257,17 +265,35 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (usernameStatus === 'taken' || usernameStatus === 'invalid') return;
+    if (usernameStatus === 'taken' || usernameStatus === 'invalid' || usernameStatus === 'checking' || usernameStatus === 'empty' || !formData.username?.trim()) return;
     setIsLoading(true);
     setError('');
     setSuccess(false);
 
     try {
       // Update Clerk user (first name, last name)
-      await user.update({
+      try {
+        await user.update({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+        });
+      } catch (clerkErr) {
+        throw new Error(clerkErr?.errors?.[0]?.message || clerkErr?.message || 'Failed to update name');
+      }
+
+      // Build request body - only include username if it's non-empty and valid
+      const trimmedUsername = formData.username?.trim().toLowerCase();
+      const body = {
         firstName: formData.firstName,
         lastName: formData.lastName,
-      });
+        phone: formData.phone || null,
+        birthday: formData.birthday || null,
+        gender: formData.gender || null,
+        city: formData.city || null,
+      };
+      if (trimmedUsername) {
+        body.username = trimmedUsername;
+      }
 
       // Update database (all fields including birthday and gender)
       const response = await fetch('/api/user-profile', {
@@ -275,15 +301,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          username: formData.username || undefined,
-          phone: formData.phone || null,
-          birthday: formData.birthday || null,
-          gender: formData.gender || null,
-          city: formData.city || null,
-        }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -344,7 +362,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
 
   const inputBorderForUsername = () => {
     if (usernameStatus === 'available' || usernameStatus === 'self') return 'border-green-400 ring-1 ring-green-400';
-    if (usernameStatus === 'taken' || usernameStatus === 'invalid') return 'border-red-400 ring-1 ring-red-400';
+    if (usernameStatus === 'taken' || usernameStatus === 'invalid' || usernameStatus === 'empty') return 'border-red-400 ring-1 ring-red-400';
     return 'border-gray-200 focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]';
   };
 
@@ -356,6 +374,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
       self: { color: 'text-blue-500', icon: <Check className="h-3.5 w-3.5" />, text: labels.usernameSelf },
       taken: { color: 'text-red-500', icon: <AlertCircle className="h-3.5 w-3.5" />, text: labels.usernameTaken },
       invalid: { color: 'text-orange-500', icon: <AlertCircle className="h-3.5 w-3.5" />, text: labels.usernameInvalid },
+      empty: { color: 'text-red-500', icon: <AlertCircle className="h-3.5 w-3.5" />, text: labels.usernameRequired },
     };
     const cfg = configs[usernameStatus];
     return (
@@ -639,7 +658,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
                   <button
                     type="submit"
                     form="edit-profile-form"
-                    disabled={isLoading || isFetching || usernameStatus === 'taken' || usernameStatus === 'invalid' || usernameStatus === 'checking'}
+                    disabled={isLoading || isFetching || usernameStatus === 'taken' || usernameStatus === 'invalid' || usernameStatus === 'checking' || usernameStatus === 'empty' || !formData.username?.trim()}
                     className="px-3 sm:px-6 py-2.5 bg-green-500 sm:bg-white border border-green-500 sm:border-gray-300 text-white sm:text-gray-700 rounded-[90px] font-medium transition-all sm:hover:bg-green-500 sm:hover:text-white sm:hover:border-green-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {isLoading ? (

@@ -262,7 +262,7 @@ function DateStrip({ selectedDate, onSelectDate, businessHours, accent, t, local
 /* ================================================================
    TIME SLOT GRID
    ================================================================ */
-function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, userBookings, crossBusinessBookings, totalDuration }) {
+function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, userBookings, crossBusinessBookings, totalDuration, isRTL }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-10">
@@ -306,7 +306,7 @@ function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, u
         <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl border" style={{ borderColor: accent.bg + '40', backgroundColor: accent.bg + '08' }}>
           <Clock className="w-4 h-4" style={{ color: accent.bg }} />
           <span className="text-[13px] font-semibold" style={{ color: accent.bg }}>
-            {selectedSlot.start} → {selectedSlot.end}
+            {selectedSlot.start} {isRTL ? '←' : '→'} {selectedSlot.end}
           </span>
           <span className="text-[11px] text-gray-400">({totalDuration} min)</span>
         </div>
@@ -1187,14 +1187,14 @@ export default function BusinessPage() {
                     </div>
                     <DateStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} businessHours={business.businessHours} accent={accent} t={t} locale={locale} />
                     {selectedDate && (
-                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} crossBusinessBookings={crossBusinessBookings} totalDuration={totalDuration} />
+                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} crossBusinessBookings={crossBusinessBookings} totalDuration={totalDuration} isRTL={isRTL} />
                     )}
                     {selectedSlot && (
                       <button onClick={handleBookNow}
                         className="w-full py-3.5 rounded-xl text-[15px] font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] shadow-lg"
                         style={{ backgroundColor: accent.bg }}>
                         <Calendar className="w-4 h-4" />
-                        {t('bp.bookFor')} {selectedSlot.start} → {selectedSlot.end}
+                        {t('bp.bookFor')} {selectedSlot.start} {isRTL ? '←' : '→'} {selectedSlot.end}
                       </button>
                     )}
                     {selectedSlot && !isSignedIn && (
@@ -1358,7 +1358,7 @@ export default function BusinessPage() {
 
                     {/* Time slots */}
                     {selectedDate && (
-                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} crossBusinessBookings={crossBusinessBookings} totalDuration={totalDuration} />
+                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} crossBusinessBookings={crossBusinessBookings} totalDuration={totalDuration} isRTL={isRTL} />
                     )}
 
                     {/* Confirm button */}
@@ -1367,7 +1367,7 @@ export default function BusinessPage() {
                         className="w-full py-3.5 rounded-xl text-[15px] font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] shadow-lg"
                         style={{ backgroundColor: accent.bg }}>
                         <Calendar className="w-4 h-4" />
-                        {t('bp.bookFor')} {selectedSlot.start} → {selectedSlot.end}
+                        {t('bp.bookFor')} {selectedSlot.start} {isRTL ? '←' : '→'} {selectedSlot.end}
                       </button>
                     )}
                     {selectedSlot && !isSignedIn && (

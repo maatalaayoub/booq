@@ -63,8 +63,8 @@ export async function PUT(request) {
       return apiError('User not found', 404);
     }
 
-    // Update username if changed
-    if (username !== undefined && username !== user.username) {
+    // Update username if changed (skip if undefined or empty)
+    if (username !== undefined && username !== null && username !== '' && username !== user.username) {
       if (await isUsernameTaken(supabase, username)) {
         return apiError('Username already taken', 409);
       }
@@ -89,6 +89,9 @@ export async function PUT(request) {
     return apiSuccess();
   } catch (error) {
     console.error('[user-profile] Unexpected error:', error);
-    return apiError('Internal server error');
+    const message = process.env.NODE_ENV === 'development' && error?.message
+      ? `Internal server error: ${error.message}`
+      : 'Internal server error';
+    return apiError(message);
   }
 }

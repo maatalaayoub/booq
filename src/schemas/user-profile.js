@@ -10,8 +10,12 @@ export const updateProfileSchema = z.object({
   username: z.string()
     .trim()
     .toLowerCase()
-    .regex(/^[a-z0-9_]{3,20}$/, 'Username must be 3-20 characters (lowercase letters, numbers, underscores)')
-    .optional(),
+    .transform(val => val === '' ? undefined : val)
+    .pipe(
+      z.string()
+        .regex(/^[a-z0-9_]{3,20}$/, 'Username must be 3-20 characters (lowercase letters, numbers, underscores)')
+        .optional()
+    ),
   coverImageUrl: z.string().nullable().optional(),
   coverImagePosition: z.number().nullable().optional(),
   city: z.string().nullable().optional(),
