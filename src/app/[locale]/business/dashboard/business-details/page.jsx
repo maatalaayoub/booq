@@ -18,6 +18,7 @@ import {
   Map,
   Store,
   Sparkles,
+  RotateCw,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -207,6 +208,38 @@ export default function BusinessDetailsPage() {
       .finally(() => setLoading(false));
   }, [isLoaded, user]);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const r = await fetch('/api/business/details');
+      const data = r.ok ? await r.json() : null;
+      if (data) {
+        setBusinessCategory(data.businessCategory);
+        setSpecialtyName(data.specialtyName || '');
+        setServiceCategoryName(data.serviceCategoryName || '');
+        const formData = {
+          businessName: data.businessName || '',
+          address: data.address || '',
+          city: data.city || '',
+          phone: data.phone || '',
+          professionalType: data.professionalType || 'barber',
+          workLocation: data.workLocation || 'my_place',
+          serviceArea: data.serviceArea || '',
+          travelRadiusKm: data.travelRadiusKm || '',
+          latitude: data.latitude || null,
+          longitude: data.longitude || null,
+        };
+        setForm(formData);
+        savedFormRef.current = JSON.parse(JSON.stringify(formData));
+      }
+    } catch (err) {
+      console.error('Error refreshing business details:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const set = useCallback((key, value) => {
     setForm((f) => ({ ...f, [key]: value }));
     setSaveStatus(null);
@@ -337,13 +370,23 @@ export default function BusinessDetailsPage() {
           <div className="absolute -right-5 -bottom-5 w-24 h-24 bg-white rounded-full" />
         </div>
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-[5px] flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-[5px] flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white">
+                {t('businessDetails.title') || 'Business Details'}
+              </h1>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white">
-              {t('businessDetails.title') || 'Business Details'}
-            </h1>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-[5px] transition-colors disabled:opacity-50"
+              title={t('common.refresh') || 'Refresh'}
+            >
+              <RotateCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           <p className="text-sm text-white/70 ml-13">
             {t('businessDetails.subtitle') || 'View and update your business information'}

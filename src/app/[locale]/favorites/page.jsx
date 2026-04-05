@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Heart, ArrowLeft, MapPin, Star, Clock, Scissors, Sparkles, Hand, Palette, Phone, MessageCircle, Navigation, Briefcase, Loader2 } from 'lucide-react';
+import { Heart, ArrowLeft, MapPin, Star, Clock, Scissors, Sparkles, Hand, Palette, Phone, MessageCircle, Navigation, Briefcase, Loader2, RotateCw } from 'lucide-react';
 import Sidebar from '@/components/Sidebar';
 
 const ACCENT_COLORS = {
@@ -27,6 +27,7 @@ export default function FavoritesPage() {
   const [removedIds, setRemovedIds] = useState(new Set());
   const [confirmRemoveId, setConfirmRemoveId] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const handleToggleSidebar = () => setIsSidebarOpen(prev => !prev);
@@ -34,20 +35,15 @@ export default function FavoritesPage() {
     return () => window.removeEventListener('toggle-home-sidebar', handleToggleSidebar);
   }, []);
 
-  useEffect(() => {
-    if (!isLoaded) return;
-    if (!isSignedIn) {
-      setLoading(false);
-      return;
-    }
-
+  const fetchFavorites = () => {
+    if (!user?.id) return;
     const favKey = `favoriteBusinesses_${user.id}`;
     const favs = JSON.parse(localStorage.getItem(favKey) || '[]');
     if (favs.length === 0) {
       setLoading(false);
       return;
     }
-
+    setFetchError(false);
     fetch('/api/businesses/favorites', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,7 +53,38 @@ export default function FavoritesPage() {
       .then(data => setBusinesses(data.businesses || []))
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      setLoading(false);
+      return;
+    }
+    fetchFavorites();
   }, [isLoaded, isSignedIn]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await new Promise((resolve, reject) => {
+        const favKey = `favoriteBusinesses_${user.id}`;
+        const favs = JSON.parse(localStorage.getItem(favKey) || '[]');
+        if (favs.length === 0) { setBusinesses([]); resolve(); return; }
+        setFetchError(false);
+        fetch('/api/businesses/favorites', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: favs }),
+        })
+          .then(res => res.json())
+          .then(data => { setBusinesses(data.businesses || []); resolve(); })
+          .catch(() => { setFetchError(true); reject(); });
+      });
+    } catch {} finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleRemoveFavorite = (id) => {
     if (!user?.id) return;
@@ -80,9 +107,19 @@ export default function FavoritesPage() {
             className="hidden sd:flex w-9 h-9 rounded-xl bg-gray-100 items-center justify-center hover:bg-gray-200 transition-colors">
             <ArrowLeft className={`w-4.5 h-4.5 text-gray-700 ${isRTL ? 'rotate-180' : ''}`} />
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2">
             <h1 className="text-lg font-bold text-gray-900">{t('favorites.title')}</h1>
           </div>
+          {isSignedIn && (
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+              title={t('common.refresh') || 'Refresh'}
+            >
+              <RotateCw className={`w-4 h-4 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
         </div>
       </div>
 

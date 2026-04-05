@@ -8,7 +8,7 @@ import { useBusinessCategory } from '@/contexts/BusinessCategoryContext';
 import BusinessOnboarding from '@/components/BusinessOnboarding';
 import AppointmentDetailModal from '@/components/dashboard/AppointmentDetailModal';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, XCircle, CalendarDays, Clock, ChevronLeft, ChevronRight, Check, Loader2, ArrowRight } from 'lucide-react';
+import { AlertTriangle, XCircle, CalendarDays, Clock, ChevronLeft, ChevronRight, Check, Loader2, ArrowRight, RotateCw } from 'lucide-react';
 
 export default function BusinessDashboard() {
   const { 
@@ -38,6 +38,16 @@ export default function BusinessDashboard() {
   const [selectedDay, setSelectedDay] = useState(() => {
     const d = new Date(); d.setUTCHours(0,0,0,0); return d.toISOString().slice(0,10);
   });
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([checkOnboardingStatus(), fetchStats()]);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   
   // Ref to track if we've handled the setup (prevents redirect after URL clean)
   const setupHandledRef = useRef(false);
@@ -562,13 +572,23 @@ export default function BusinessDashboard() {
   if (businessCategory === 'job_seeker') {
     return (
       <div>
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t?.('dashboard.welcome') || 'Welcome back'}, {user?.firstName}!
-          </h1>
-          <p className="text-gray-500 mt-1">
-            {t?.('dashboard.jobSeeker.subtitle') || "Here's an overview of your job search progress."}
-          </p>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t?.('dashboard.welcome') || 'Welcome back'}, {user?.firstName}!
+            </h1>
+            <p className="text-gray-500 mt-1">
+              {t?.('dashboard.jobSeeker.subtitle') || "Here's an overview of your job search progress."}
+            </p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t?.('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
 
         {/* Job Seeker Quick Stats */}
@@ -692,13 +712,23 @@ export default function BusinessDashboard() {
   return (
     <div>
       {/* Dashboard content */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          {t?.('dashboard.welcome') || 'Welcome back'}, {user?.firstName}!
-        </h1>
-        <p className="text-gray-500 mt-1">
-          {t?.('dashboard.subtitle') || "Here's what's happening with your business today."}
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t?.('dashboard.welcome') || 'Welcome back'}, {user?.firstName}!
+          </h1>
+          <p className="text-gray-500 mt-1">
+            {t?.('dashboard.subtitle') || "Here's what's happening with your business today."}
+          </p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+          title={t?.('common.refresh') || 'Refresh'}
+        >
+          <RotateCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {/* Quick Stats */}

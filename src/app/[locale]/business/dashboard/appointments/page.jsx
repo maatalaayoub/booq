@@ -20,6 +20,7 @@ import {
   Check,
   Loader2,
   ArrowRight,
+  RotateCw,
 } from 'lucide-react';
 import AppointmentDetailModal from '@/components/dashboard/AppointmentDetailModal';
 import NewAppointmentModal from '@/components/dashboard/NewAppointmentModal';
@@ -168,6 +169,28 @@ export default function AppointmentsPage() {
   const [toast, setToast] = useState(null);
   const toastTimer = useRef(null);
   const [conflictDialog, setConflictDialog] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/business/appointments');
+      if (res.ok) {
+        const data = await res.json();
+        setEvents((data.appointments || []).map(toCalendarEvent));
+      }
+      const schedRes = await fetch('/api/business/schedule');
+      const ct = schedRes.headers.get('content-type') || '';
+      if (ct.includes('application/json')) {
+        const data = await schedRes.json();
+        setSchedule({ businessHours: data.businessHours || [], exceptions: data.exceptions || [] });
+      }
+    } catch (err) {
+      console.error('[Appointments] Refresh error:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Schedule data for calendar-level validation
   const [schedule, setSchedule] = useState({ businessHours: [], exceptions: [] });
@@ -884,17 +907,28 @@ export default function AppointmentsPage() {
             {t('appointments.subtitle')}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setNewDefaultDate(null);
-            setNewDefaultEndDate(null);
-            setIsNewOpen(true);
-          }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#364153] hover:bg-[#2a3444] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          {t('appointments.new')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <div className="flex-1 sm:hidden" />
+          <button
+            onClick={() => {
+              setNewDefaultDate(null);
+              setNewDefaultEndDate(null);
+              setIsNewOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#364153] hover:bg-[#2a3444] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {t('appointments.new')}
+          </button>
+        </div>
       </div>
 
       {/* ── Stats Row ── */}
@@ -959,13 +993,13 @@ export default function AppointmentsPage() {
                 onClick={goPrev}
                 className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <ChevronLeft className="w-4 h-4" />
+                {isRTL ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
               </button>
               <button
                 onClick={goNext}
                 className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <ChevronRight className="w-4 h-4" />
+                {isRTL ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
               </button>
               {visibleRangeLabel && (
                 <span className="ml-1 text-sm font-semibold text-gray-700 whitespace-nowrap">

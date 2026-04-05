@@ -213,6 +213,26 @@ export default function SchedulePage() {
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavUrl, setPendingNavUrl] = useState(null);
   const savedHoursRef = useRef(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/business/schedule');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.businessHours?.length > 0) {
+          setBusinessHours(data.businessHours);
+          savedHoursRef.current = JSON.parse(JSON.stringify(data.businessHours));
+        }
+        setExceptions(data.exceptions || []);
+      }
+    } catch (err) {
+      console.error('Failed to refresh schedule:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // ── Fetch data from API ──
   useEffect(() => {
@@ -567,17 +587,28 @@ export default function SchedulePage() {
             {t('schedule.subtitle')}
           </p>
         </div>
-        <button
-          onClick={() => {
-            setEditingException(null);
-            setModalDefaultDate(null);
-            setIsModalOpen(true);
-          }}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#364153] hover:bg-[#2a3444] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          {t('schedule.addException')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <div className="flex-1 sm:hidden" />
+          <button
+            onClick={() => {
+              setEditingException(null);
+              setModalDefaultDate(null);
+              setIsModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#364153] hover:bg-[#2a3444] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {t('schedule.addException')}
+          </button>
+        </div>
       </div>
 
       {/* ── Tab Switcher ── */}

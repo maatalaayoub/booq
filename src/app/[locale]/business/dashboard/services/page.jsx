@@ -16,6 +16,7 @@ import {
   Check,
   AlertTriangle,
   Search,
+  RotateCw,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useBusinessCategory } from '@/contexts/BusinessCategoryContext';
@@ -442,6 +443,7 @@ export default function ServicesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingService, setEditingService] = useState(null);
   const [deletingService, setDeletingService] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // ── Fetch ──
   const fetchServices = useCallback(async () => {
@@ -530,15 +532,26 @@ export default function ServicesPage() {
           </h1>
           <p className="text-sm text-gray-400 mt-1">{t('services.subtitle')}</p>
         </div>
-        {(loading || services.length > 0) && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-colors shrink-0"
+            onClick={() => { setRefreshing(true); fetchServices().finally(() => setRefreshing(false)); }}
+            disabled={refreshing}
+            className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t('common.refresh') || 'Refresh'}
           >
-            <Plus className="w-4 h-4" />
-            {t('services.addService')}
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
-        )}
+          <div className="flex-1 sm:hidden" />
+          {(loading || services.length > 0) && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-colors shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              {t('services.addService')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Stats */}

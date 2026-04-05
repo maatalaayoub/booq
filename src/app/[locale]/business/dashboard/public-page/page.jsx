@@ -23,6 +23,7 @@ import {
   DollarSign,
   Info,
   Camera,
+  RotateCw,
   Upload,
   Trash2,
   Plus,
@@ -316,6 +317,30 @@ export default function PublicPageManager() {
   const hasFetchedRef = useRef(false);
   const savedSettingsRef = useRef(null);
   const [savedVersion, setSavedVersion] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const [profile, savedData] = await Promise.all([
+        fetch('/api/user-profile').then(r => r.ok ? r.json() : {}),
+        fetch('/api/business/public-page-settings').then(r => r.ok ? r.json() : null),
+      ]);
+      setBusinessData(profile);
+      if (savedData?.settings) {
+        const mergedSettings = { ...savedData.settings };
+        if (savedData.fallbackBusinessName) {
+          mergedSettings.businessName = savedData.fallbackBusinessName;
+        }
+        setSettings(s => ({ ...s, ...mergedSettings }));
+        savedSettingsRef.current = { ...DEFAULT_SETTINGS, ...mergedSettings };
+      }
+    } catch (e) {
+      console.error('Failed to refresh public page data:', e);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   // Fetch business data & saved settings (only once)
   useEffect(() => {
@@ -643,6 +668,15 @@ export default function PublicPageManager() {
           {saveError && (
             <span className="text-sm text-red-500">{saveError}</span>
           )}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <div className="flex-1 sm:hidden" />
           <button
             onClick={handleSave}
             disabled={saving || !hasUnsavedChanges}

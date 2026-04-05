@@ -27,6 +27,7 @@ import {
   X,
   GraduationCap,
   Navigation,
+  RotateCw,
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -105,6 +106,7 @@ export default function VerificationPage() {
 
   // Prerequisites state
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [hasServices, setHasServices] = useState(false);
   const [hasBusinessName, setHasBusinessName] = useState(false);
   const [hasProfileImage, setHasProfileImage] = useState(false);
@@ -154,6 +156,41 @@ export default function VerificationPage() {
     }
     fetchData();
   }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const [servicesRes, settingsRes, verificationRes, serviceAreaRes] = await Promise.all([
+        fetch('/api/business/services').then(r => r.ok ? r.json() : {}),
+        fetch('/api/business/public-page-settings').then(r => r.ok ? r.json() : {}),
+        fetch('/api/business/verification').then(r => r.ok ? r.json() : {}),
+        fetch('/api/business/service-area').then(r => r.ok ? r.json() : null),
+      ]);
+      const services = servicesRes.services || [];
+      setHasServices(services.length > 0);
+      const s = settingsRes.settings || {};
+      const businessName = s.businessName?.trim() || settingsRes.fallbackBusinessName?.trim() || '';
+      setHasBusinessName(!!businessName);
+      setHasProfileImage(!!s.avatarUrl);
+      setHasCoverImage((s.coverGallery || []).length > 0);
+      if (serviceAreaRes) {
+        setHasServiceArea(!!(serviceAreaRes.baseLocation || serviceAreaRes.city) && serviceAreaRes.serviceRadius > 0);
+      }
+      const v = verificationRes.verification || {};
+      setIdentityStatus(v.identity_status || 'not_submitted');
+      setBusinessStatus(v.business_status || 'not_submitted');
+      setIdentityDocUrl(v.identity_document_url || null);
+      setBusinessDocUrl(v.business_document_url || null);
+      setIdentityDocType(v.identity_document_type || '');
+      setBusinessDocType(v.business_document_type || '');
+      setIdentityRejectionReason(v.identity_rejection_reason || null);
+      setBusinessRejectionReason(v.business_rejection_reason || null);
+    } catch (err) {
+      console.error('[verification] Refresh error:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const prerequisites = [
     { key: 'services', met: hasServices, icon: Tag, labelKey: 'verification.prereq.services', href: `/${locale}/business/dashboard/services` },
@@ -272,14 +309,24 @@ export default function VerificationPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-          <ShieldCheck className="w-7 h-7 text-[#364153]" />
-          {t('dashboard.verification.title')}
-        </h1>
-        <p className="text-gray-500 mt-1">
-          {t('dashboard.verification.subtitle')}
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+            <ShieldCheck className="w-7 h-7 text-[#364153]" />
+            {t('dashboard.verification.title')}
+          </h1>
+          <p className="text-gray-500 mt-1">
+            {t('dashboard.verification.subtitle')}
+          </p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+          title={t('common.refresh') || 'Refresh'}
+        >
+          <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {/* Overall status banner */}

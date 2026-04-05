@@ -9,7 +9,7 @@ import Sidebar from '@/components/Sidebar';
 import {
   ArrowLeft, Calendar, Clock, MapPin, Phone, Loader2,
   CheckCircle2, XCircle, AlertCircle, ChevronRight,
-  X, ChevronLeft, Pencil, Plus, Navigation,
+  X, ChevronLeft, Pencil, Plus, Navigation, RotateCw,
 } from 'lucide-react';
 
 const ACCENT_COLORS = {
@@ -54,6 +54,7 @@ export default function BookingsPage() {
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState(null);
   const [fetchError, setFetchError] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Service editing state
   const [availableServices, setAvailableServices] = useState([]);
@@ -85,6 +86,21 @@ export default function BookingsPage() {
     }
     fetchBookings();
   }, [isLoaded, isSignedIn, fetchBookings]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await new Promise((resolve, reject) => {
+        setFetchError(false);
+        fetch('/api/bookings')
+          .then(res => res.json())
+          .then(data => { setBookings(data.bookings || []); resolve(); })
+          .catch(() => { setFetchError(true); reject(); });
+      });
+    } catch {} finally {
+      setRefreshing(false);
+    }
+  };
 
   const filters = [
     { id: 'all',       label: t('bookings.all') },
@@ -320,9 +336,19 @@ export default function BookingsPage() {
             className="hidden sd:flex w-9 h-9 rounded-xl bg-gray-100 items-center justify-center hover:bg-gray-200 transition-colors">
             <ArrowLeft className={`w-4.5 h-4.5 text-gray-700 ${isRTL ? 'rotate-180' : ''}`} />
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2">
             <h1 className="text-lg font-bold text-gray-900">{t('bookings.title')}</h1>
           </div>
+          {isSignedIn && (
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+              title={t('common.refresh') || 'Refresh'}
+            >
+              <RotateCw className={`w-4 h-4 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+          )}
         </div>
       </div>
 

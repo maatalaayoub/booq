@@ -15,6 +15,7 @@ import {
   X,
   Plus,
   Map,
+  RotateCw,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -67,6 +68,30 @@ export default function ServiceAreaPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const r = await fetch('/api/business/service-area');
+      const data = r.ok ? await r.json() : null;
+      if (data) {
+        setForm({
+          baseLocation: data.baseLocation || '',
+          city: data.city || '',
+          serviceRadius: data.serviceRadius || 5,
+          citiesCovered: data.citiesCovered || [],
+          travelFee: data.travelFee || 0,
+          latitude: data.latitude || null,
+          longitude: data.longitude || null,
+        });
+      }
+    } catch (err) {
+      console.error('Error refreshing service area:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const [cityInput, setCityInput] = useState('');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
 
@@ -186,13 +211,23 @@ export default function ServiceAreaPage() {
           <div className="absolute -right-5 -bottom-5 w-24 h-24 bg-white rounded-full" />
         </div>
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-[5px] flex items-center justify-center">
-              <Navigation className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-[5px] flex items-center justify-center">
+                <Navigation className="w-5 h-5 text-white" />
+              </div>
+              <h1 className="text-xl font-bold text-white">
+                {t('serviceArea.title') || 'Service Area'}
+              </h1>
             </div>
-            <h1 className="text-xl font-bold text-white">
-              {t('serviceArea.title') || 'Service Area'}
-            </h1>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-[5px] transition-colors disabled:opacity-50"
+              title={t('common.refresh') || 'Refresh'}
+            >
+              <RotateCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           <p className="text-white/70 text-sm">
             {t('serviceArea.subtitle') || 'Define where you deliver your services'}

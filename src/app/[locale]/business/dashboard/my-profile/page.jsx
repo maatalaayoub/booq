@@ -18,6 +18,7 @@ import {
   X,
   Plus,
   Camera,
+  RotateCw,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -293,6 +294,34 @@ export default function JobSeekerProfilePage() {
     fetchProfile();
   }, []);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/business/job-seeker-profile');
+      if (res.ok) {
+        const data = await res.json();
+        setFirstName(data.firstName || '');
+        setLastName(data.lastName || '');
+        setPhone(data.phone || '');
+        setCity(data.city || '');
+        setProfileImageUrl(data.profileImageUrl || null);
+        setYearsOfExperience(data.yearsOfExperience || '');
+        setHasCertificate(data.hasCertificate || false);
+        setPreferredCity(data.preferredCity || []);
+        setResumeUrl(data.resumeUrl || null);
+        setBio(data.bio || '');
+        setEducation(data.education || '');
+        setSkills(data.skills || []);
+        setProfessionalType(data.professionalType || '');
+      }
+    } catch (err) {
+      console.error('Error refreshing profile:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   // Save profile
   const handleSave = async () => {
     setSaving(true);
@@ -421,28 +450,38 @@ export default function JobSeekerProfilePage() {
             {t?.('jobSeekerProfile.subtitle') || 'Complete your profile to increase your chances of getting hired'}
           </p>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 bg-white text-[#364153] rounded-[5px] text-sm font-medium hover:bg-gray-100 disabled:opacity-60 transition-all"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : saveStatus === 'success' ? (
-            <CheckCircle className="w-4 h-4" />
-          ) : saveStatus === 'error' ? (
-            <AlertCircle className="w-4 h-4" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {saving
-            ? (t?.('common.saving') || 'Saving...')
-            : saveStatus === 'success'
-              ? (t?.('common.saved') || 'Saved!')
-              : saveStatus === 'error'
-                ? (t?.('jobSeekerProfile.saveError') || 'Error saving')
-                : (t?.('common.saveChanges') || 'Save Changes')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t?.('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-white text-[#364153] rounded-[5px] text-sm font-medium hover:bg-gray-100 disabled:opacity-60 transition-all"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : saveStatus === 'success' ? (
+              <CheckCircle className="w-4 h-4" />
+            ) : saveStatus === 'error' ? (
+              <AlertCircle className="w-4 h-4" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {saving
+              ? (t?.('common.saving') || 'Saving...')
+              : saveStatus === 'success'
+                ? (t?.('common.saved') || 'Saved!')
+                : saveStatus === 'error'
+                  ? (t?.('jobSeekerProfile.saveError') || 'Error saving')
+                  : (t?.('common.saveChanges') || 'Save Changes')}
+          </button>
+        </div>
       </div>
 
       {/* Profile photo + name row */}

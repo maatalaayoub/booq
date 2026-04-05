@@ -18,6 +18,7 @@ import {
   MoreVertical,
   Trash2,
   X,
+  RotateCw,
 } from 'lucide-react';
 
 const STATUS_CONFIG = {
@@ -194,6 +195,22 @@ export default function MyApplicationsPage() {
     }
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('/api/business/applications');
+      if (res.ok) {
+        const data = await res.json();
+        setApplications(data);
+      }
+    } catch (err) {
+      console.error('Error refreshing applications:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleWithdraw = async (id) => {
     try {
       const res = await fetch(`/api/business/applications/${id}`, {
@@ -258,12 +275,24 @@ export default function MyApplicationsPage() {
     <div>
       {/* Header */}
       <div className="bg-gradient-to-r from-[#364153] to-[#4a5568] rounded-[5px] p-6 mb-6">
-        <h1 className="text-xl font-bold text-white">
-          {t?.('dashboard.sidebar.myApplications') || 'My Applications'}
-        </h1>
-        <p className="text-white/70 text-sm mt-1">
-          Track and manage your job applications
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-white">
+              {t?.('dashboard.sidebar.myApplications') || 'My Applications'}
+            </h1>
+            <p className="text-white/70 text-sm mt-1">
+              Track and manage your job applications
+            </p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t?.('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
