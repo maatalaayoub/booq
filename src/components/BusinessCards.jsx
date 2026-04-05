@@ -248,16 +248,20 @@ function CategoryRow({ type, businesses, t, locale }) {
 
   return (
     <div className="mb-8">
-      {/* Category header — aligned with page content */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-[5px] bg-[#364153]/10 flex items-center justify-center">
-            <Icon className="w-4 h-4 text-[#364153]" />
+      {/* Category header */}
+      <div className="flex items-center justify-between mb-4 px-1">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#364153] to-[#4a5568] flex items-center justify-center shadow-sm">
+            <Icon className="w-4.5 h-4.5 text-white" />
           </div>
-          <h3 className="text-base font-bold text-[#364153]">
-            {t(`home.category.${type}`)}
-          </h3>
-          <span className="text-xs text-gray-400 font-medium">({businesses.length})</span>
+          <div>
+            <h3 className="text-[15px] font-bold text-[#364153] leading-tight">
+              {t(`home.category.${type}`)}
+            </h3>
+            <p className="text-[11px] text-gray-400 font-medium">
+              {businesses.length} {businesses.length === 1 ? t('home.professional') || 'professional' : t('home.professionals') || 'professionals'}
+            </p>
+          </div>
         </div>
         {/* Scroll arrows - desktop only */}
         <div className="hidden sm:flex items-center gap-1">
