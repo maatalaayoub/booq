@@ -59,12 +59,12 @@ function BusinessCard({ business, t, locale }) {
         </div>
         {/* Avatar */}
         {business.showProfile && (
-          <div className="absolute bottom-0 left-3 translate-y-1/2 z-10">
+          <div className="absolute bottom-0 start-3 translate-y-1/2 z-10">
             {business.avatarUrl ? (
               <img
                 src={business.avatarUrl}
                 alt={business.businessName}
-                className="w-12 h-12 rounded-full border-2 border-white shadow object-cover"
+                className="w-12 h-12 rounded-full border-2 border-white shadow object-cover bg-gray-200"
               />
             ) : (
               <div className="w-12 h-12 rounded-full border-2 border-white shadow bg-gray-200 flex items-center justify-center">

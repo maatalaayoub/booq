@@ -30,9 +30,13 @@ CREATE POLICY "Users can view own data"
   ON users FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Allow insert users" ON users;
+DROP POLICY IF EXISTS "Allow insert for service role" ON users;
+DROP POLICY IF EXISTS "Allow user inserts" ON users;
 -- No INSERT policy for anon: all writes go through service-role API routes
 
 DROP POLICY IF EXISTS "Allow update users" ON users;
+DROP POLICY IF EXISTS "Allow update for service role" ON users;
+DROP POLICY IF EXISTS "Users can update own data" ON users;
 -- No UPDATE policy for anon: all writes go through service-role API routes
 
 -- Function to update updated_at timestamp
@@ -42,7 +46,8 @@ BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = '';
 
 DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at
@@ -328,13 +333,14 @@ BEGIN
     base_username := 'user';
   END IF;
   final_username := base_username;
-  WHILE EXISTS (SELECT 1 FROM users WHERE username = final_username) LOOP
+  WHILE EXISTS (SELECT 1 FROM public.users WHERE username = final_username) LOOP
     counter := counter + 1;
     final_username := base_username || counter::TEXT;
   END LOOP;
   RETURN final_username;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = '';
 
 -- Reload schema cache
 NOTIFY pgrst, 'reload schema';
@@ -379,7 +385,8 @@ BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = '';
 
 -- Trigger to auto-update updated_at
 DROP TRIGGER IF EXISTS update_users_updated_at ON users;
@@ -660,7 +667,8 @@ BEGIN
   
     RETURN final_username;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SET search_path = '';
 
 -- ============================================
 -- MIGRATIONS (idempotent column additions)

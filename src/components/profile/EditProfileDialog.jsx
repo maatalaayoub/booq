@@ -165,10 +165,21 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
     city: '',
   });
 
+  // Track whether the form has been initialized for the current open state
+  const formInitializedRef = useRef(false);
+
+  // Reset initialization flag when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      formInitializedRef.current = false;
+    }
+  }, [isOpen]);
+
   // Fetch profile data from database when dialog opens
   useEffect(() => {
-    if (!isOpen || !user) return;
+    if (!isOpen || !user || formInitializedRef.current) return;
 
+    formInitializedRef.current = true;
     setError('');
     setUsernameStatus(null);
 
