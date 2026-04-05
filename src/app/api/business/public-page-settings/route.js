@@ -68,29 +68,41 @@ export async function POST(request) {
     if (!ctx) return apiError('Business profile not found. Please complete onboarding first.', 404);
 
     const body = await request.json();
-    const { settings } = body;
+    const { settings: incomingSettings, partial } = body;
 
     // Sanitize businessName: strip HTML/script tags and control characters
-    if (settings?.businessName) {
-      settings.businessName = settings.businessName
+    if (incomingSettings?.businessName) {
+      incomingSettings.businessName = incomingSettings.businessName
         .replace(/<[^>]*>/g, '')
         .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
         .trim()
         .slice(0, 60);
     }
 
+    // Merge with existing settings if this is a partial (dirty-fields-only) update
+    let finalSettings = incomingSettings;
+    if (partial) {
+      const { data: existing } = await supabase
+        .from('business_card_settings')
+        .select('settings')
+        .eq('business_info_id', ctx.businessInfoId)
+        .single();
+
+      finalSettings = { ...(existing?.settings || {}), ...incomingSettings };
+    }
+
     // Also update business_name in the canonical location (category-specific table)
-    if (settings?.businessName && ctx.tableName) {
+    if (incomingSettings?.businessName && ctx.tableName) {
       await supabase
         .from(ctx.tableName)
-        .update({ business_name: settings.businessName })
+        .update({ business_name: incomingSettings.businessName })
         .eq('business_info_id', ctx.businessInfoId);
     }
 
     const { error } = await supabase
       .from('business_card_settings')
       .upsert(
-        { business_info_id: ctx.businessInfoId, settings, updated_at: new Date().toISOString() },
+        { business_info_id: ctx.businessInfoId, settings: finalSettings, updated_at: new Date().toISOString() },
         { onConflict: 'business_info_id' }
       );
 

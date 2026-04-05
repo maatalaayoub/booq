@@ -308,6 +308,7 @@ export default function PublicPageManager() {
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [fetchFailed, setFetchFailed] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const [pendingNavUrl, setPendingNavUrl] = useState(null);
   const avatarInputRef = useRef(null);
@@ -338,7 +339,10 @@ export default function PublicPageManager() {
         setSettings(s => ({ ...s, businessName: savedData.fallbackBusinessName }));
       }
       savedSettingsRef.current = initialSettings;
-    }).catch(e => console.error('Failed to load public page data:', e)).finally(() => setLoading(false));
+    }).catch(e => {
+      console.error('Failed to load public page data:', e);
+      setFetchFailed(true);
+    }).finally(() => setLoading(false));
   }, [isLoaded, user]);
 
   // Count how many logical changes differ from saved state
@@ -428,13 +432,36 @@ export default function PublicPageManager() {
   };
 
   const handleSave = async () => {
+    // Block save if initial data hasn't loaded yet to prevent overwriting with defaults
+    if (!savedSettingsRef.current) return;
+
     setSaving(true);
     setSaveError(null);
     try {
+      // Compute only the fields that the user actually changed
+      const base = savedSettingsRef.current;
+      const changedFields = {};
+      for (const key of Object.keys(settings)) {
+        const a = base[key];
+        const b = settings[key];
+        const changed = Array.isArray(a) && Array.isArray(b)
+          ? JSON.stringify(a) !== JSON.stringify(b)
+          : a !== b;
+        if (changed) {
+          changedFields[key] = b;
+        }
+      }
+
+      // Nothing changed — skip the request
+      if (Object.keys(changedFields).length === 0) {
+        setSaving(false);
+        return;
+      }
+
       const res = await fetch('/api/business/public-page-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings }),
+        body: JSON.stringify({ settings: changedFields, partial: true }),
       });
       const text = await res.text();
       let data;
@@ -554,6 +581,12 @@ export default function PublicPageManager() {
     setSaved(false);
   };
 
+  const handleRetryFetch = () => {
+    setFetchFailed(false);
+    setLoading(true);
+    hasFetchedRef.current = false;
+  };
+
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto animate-pulse space-y-4">
@@ -564,6 +597,31 @@ export default function PublicPageManager() {
             {[...Array(5)].map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-[5px]" />)}
           </div>
           <div className="h-80 bg-gray-100 rounded-[5px]" />
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchFailed) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+            <X className="w-6 h-6 text-red-500" />
+          </div>
+          <h2 className="text-lg font-semibold text-gray-800 mb-2">
+            {t('businessCard.fetchErrorTitle') || 'Failed to load settings'}
+          </h2>
+          <p className="text-sm text-gray-500 mb-6 max-w-sm">
+            {t('businessCard.fetchErrorDesc') || 'Your settings could not be loaded. Please check your connection and try again.'}
+          </p>
+          <button
+            onClick={handleRetryFetch}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-[5px] text-sm font-medium bg-[#364153] text-white hover:bg-[#364153]/90 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            {t('businessCard.retry') || 'Retry'}
+          </button>
         </div>
       </div>
     );
@@ -799,27 +857,45 @@ export default function PublicPageManager() {
                   setSaved(false);
                 };
 
-                return presets.map(p => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => applyPreset(p.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[5px] border transition-colors text-left ${
-                      preset === p.id
-                        ? 'border-[#364153] bg-[#364153]/5'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      preset === p.id ? 'border-[#364153]' : 'border-gray-300'
-                    }`}>
-                      {preset === p.id && <div className="w-2 h-2 rounded-full bg-[#364153]" />}
-                    </div>
-                    <p.icon className={`w-4 h-4 flex-shrink-0 ${preset === p.id ? 'text-[#364153]' : 'text-gray-400'}`} />
-                    <span className={`text-sm ${preset === p.id ? 'font-medium text-[#364153]' : 'text-gray-600'}`}>{p.label}</span>
-                  </button>
-                ));
+                return (
+                  <>
+                    {presets.map(p => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => applyPreset(p.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-[5px] border transition-colors text-left ${
+                          preset === p.id
+                            ? 'border-[#364153] bg-[#364153]/5'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                          preset === p.id ? 'border-[#364153]' : 'border-gray-300'
+                        }`}>
+                          {preset === p.id && <div className="w-2 h-2 rounded-full bg-[#364153]" />}
+                        </div>
+                        <p.icon className={`w-4 h-4 flex-shrink-0 ${preset === p.id ? 'text-[#364153]' : 'text-gray-400'}`} />
+                        <span className={`text-sm ${preset === p.id ? 'font-medium text-[#364153]' : 'text-gray-600'}`}>{p.label}</span>
+                      </button>
+                    ))}
+                    {preset === 'contact-only' && (
+                      <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-[5px] mt-1">
+                        <Phone className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-[12px] text-amber-700 leading-relaxed">{t('businessCard.contactOnlyInfo')}</p>
+                      </div>
+                    )}
+                  </>
+                );
               })()}
+
+              {/* Contact-only notice for both & walkin modes */}
+              {(serviceMode === 'both' || serviceMode === 'walkin') && !settings.showBookingButton && !settings.showGetDirections && settings.showCallButton && settings.showMessageButton && (
+                <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-[5px] mt-1">
+                  <Phone className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-[12px] text-amber-700 leading-relaxed">{t('businessCard.contactOnlyInfo')}</p>
+                </div>
+              )}
 
             </div>
           </div>

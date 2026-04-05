@@ -1261,9 +1261,53 @@ export default function BusinessPage() {
 
               {/* Walk-in notice */}
               {business.serviceMode === 'walkin' && (
-                <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-2xl mt-6">
-                  <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                  <p className="text-[13px] text-amber-700 leading-relaxed">{t('bp.walkinOnly')}</p>
+                <div className="flex flex-col gap-3 p-4 bg-amber-50 rounded-2xl mt-6">
+                  <div className="flex items-start gap-3">
+                    <Info className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-[13px] text-amber-700 leading-relaxed">{t('bp.walkinOnly')}</p>
+                  </div>
+                  {directionsUrl && (
+                    <div className="ms-8 max-w-md">
+                      <a href={directionsUrl} target="_blank" rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 text-white text-[13px] font-semibold hover:bg-amber-700 transition-colors w-full">
+                        <Navigation className="w-4 h-4" />
+                        {t('businessCard.getDirections')}
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Contact-only notice */}
+              {!canBook && business.serviceMode !== 'walkin' && (business.showCallButton || business.showMessageButton) && (
+                <div className="flex flex-col gap-3 p-4 bg-blue-50 rounded-2xl mt-6">
+                  <div className="flex items-start gap-3">
+                    <Phone className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-[13px] font-semibold text-blue-800 mb-1">{t('bp.contactOnlyTitle')}</p>
+                      <p className="text-[13px] text-blue-700 leading-relaxed">{t('bp.contactOnlyDesc')}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ms-8 max-w-md">
+                    {business.showCallButton && business.phone && (
+                      <a href={`tel:${business.phone}`}
+                        onClick={e => e.stopPropagation()}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-[13px] font-semibold hover:bg-blue-700 transition-colors">
+                        <Phone className="w-4 h-4" />
+                        {t('businessCard.call')}
+                      </a>
+                    )}
+                    {business.showMessageButton && business.phone && (
+                      <a href={`https://wa.me/${business.phone.replace(/[^0-9]/g, '')}`}
+                        target="_blank" rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-green-600 text-white text-[13px] font-semibold hover:bg-green-700 transition-colors">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 2C6.477 2 2 6.477 2 12c0 1.89.525 3.66 1.438 5.168L2 22l4.832-1.438A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 01-4.243-1.214l-.252-.149-2.868.852.852-2.868-.168-.268A8 8 0 1112 20z"/></svg>
+                        {t('businessCard.message')}
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
 
