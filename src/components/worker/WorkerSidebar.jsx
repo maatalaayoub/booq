@@ -59,25 +59,25 @@ export default function WorkerSidebar({ permissions = {} }) {
       icon: Calendar,
       label: t('worker.sidebar.appointments') || 'My Appointments',
       href: `/${locale}/worker/dashboard/appointments`,
-      perm: 'canManageAppointments',
+      always: true,
     },
     {
       icon: Clock,
       label: t('worker.sidebar.schedule') || 'Schedule',
       href: `/${locale}/worker/dashboard/schedule`,
-      perm: 'canEditSchedule',
+      always: true,
     },
     {
       icon: Tag,
       label: t('worker.sidebar.services') || 'Services',
       href: `/${locale}/worker/dashboard/services`,
-      perm: 'canManageServices',
+      always: true,
     },
     {
       icon: DollarSign,
       label: t('worker.sidebar.earnings') || 'Earnings',
       href: `/${locale}/worker/dashboard/earnings`,
-      perm: 'canViewEarnings',
+      always: true,
     },
   ];
 
