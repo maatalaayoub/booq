@@ -5,8 +5,8 @@ import { getCategoryTableName, getBusinessContext } from '@/lib/business';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 
 // Extend base context with full business_info, category data, and specialty names
-async function getDetailedBusinessContext(supabase, clerkUserId) {
-  const base = await getBusinessContext(supabase, clerkUserId);
+async function getDetailedBusinessContext(supabase, authUserId) {
+  const base = await getBusinessContext(supabase, authUserId);
   if (!base) return { error: 'Business not found', status: 404 };
 
   // Fetch full business_info row

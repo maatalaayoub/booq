@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
 
 export function useVerificationStatus() {
-  const { isSignedIn, isLoaded: isClerkLoaded } = useAuthUser();
+  const { isSignedIn, isLoaded: isAuthLoaded } = useAuthUser();
   const [isVerified, setIsVerified] = useState(false);
   const [identityStatus, setIdentityStatus] = useState('not_submitted');
   const [businessStatus, setBusinessStatus] = useState('not_submitted');
@@ -45,17 +45,17 @@ export function useVerificationStatus() {
   }, [isSignedIn]);
 
   useEffect(() => {
-    if (isClerkLoaded) {
+    if (isAuthLoaded) {
       fetchVerificationStatus();
     }
-  }, [isClerkLoaded, fetchVerificationStatus]);
+  }, [isAuthLoaded, fetchVerificationStatus]);
 
   return {
     isVerified,
     identityStatus,
     businessStatus,
     isLoading,
-    isLoaded: isClerkLoaded && !isLoading,
+    isLoaded: isAuthLoaded && !isLoading,
     refetch: fetchVerificationStatus,
   };
 }

@@ -12,11 +12,11 @@ import { syncWorkerSchedulesToBusinessHours } from '@/repositories/workerSchedul
 // ─── GET: Fetch working hours + schedule exceptions ─────────
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     const businessHours = await getBusinessHours(supabase, ctx.businessInfoId, ctx.category);
@@ -36,11 +36,11 @@ export async function GET(request) {
 // ─── PUT: Update working hours ──────────────────────────────
 export async function PUT(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
@@ -69,11 +69,11 @@ export async function PUT(request) {
 // ─── POST: Add a schedule exception ──────────────────────────
 export async function POST(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
@@ -106,15 +106,15 @@ export async function POST(request) {
 // ─── DELETE: Remove a schedule exception ────────────────────
 export async function DELETE(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const { searchParams } = new URL(request.url);
     const { error: validationError, data: validated } = parseQuery(deleteExceptionSchema, searchParams);
     if (validationError) return validationResponse(validationError);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     await deleteException(supabase, validated.id, ctx.businessInfoId);
@@ -129,11 +129,11 @@ export async function DELETE(request) {
 // ─── PATCH: Update a schedule exception ─────────────────────
 export async function PATCH(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();

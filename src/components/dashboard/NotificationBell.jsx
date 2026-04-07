@@ -12,8 +12,9 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useParams, usePathname } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { translateNotification } from '@/lib/notification-translate';
 
 const TYPE_ICONS = {
   team_invite: UserPlus,
@@ -45,6 +46,7 @@ export default function NotificationBell() {
   const dropdownRef = useRef(null);
   const params = useParams();
   const pathname = usePathname();
+  const router = useRouter();
   const locale = params.locale || 'en';
   const { t, isRTL } = useLanguage();
 
@@ -137,6 +139,12 @@ export default function NotificationBell() {
     }
   };
 
+  const handleNotificationClick = (n) => {
+    if (!n.read_at) markAsRead(n.id);
+    setDropdownOpen(false);
+    router.push(`${notificationsHref}?open=${n.id}`);
+  };
+
   const formatTime = (dateStr) => {
     const date = new Date(dateStr);
     const now = new Date();
@@ -158,7 +166,7 @@ export default function NotificationBell() {
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className={`absolute -top-0.5 ${isRTL ? '-left-0.5' : '-right-0.5'} flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full ring-2 ring-white`}>
+          <span className={`absolute -top-0.5 ${isRTL ? '-left-0.5' : '-right-0.5'} flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full`}>
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -166,20 +174,14 @@ export default function NotificationBell() {
 
       {dropdownOpen && (
         <div
-          className={`absolute top-full mt-2 ${isRTL ? 'left-0' : 'right-0'} w-[340px] sm:w-[380px] bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden`}
+          className={`absolute top-full mt-2 ${isRTL ? 'right-0' : 'right-0'} w-[340px] sm:w-[380px] bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden`}
+          dir={isRTL ? 'rtl' : 'ltr'}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900 text-sm">
-                {t('notifications.title') || 'Notifications'}
-              </h3>
-              {unreadCount > 0 && (
-                <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded-full">
-                  {unreadCount}
-                </span>
-              )}
-            </div>
+            <h3 className="font-semibold text-gray-900 text-sm">
+              {t('notifications.title') || 'Notifications'}
+            </h3>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
@@ -213,7 +215,7 @@ export default function NotificationBell() {
                 return (
                   <button
                     key={n.id}
-                    onClick={() => !n.read_at && markAsRead(n.id)}
+                    onClick={() => handleNotificationClick(n)}
                     className={`w-full text-start px-4 py-3 hover:bg-gray-50 transition-colors ${
                       !n.read_at ? 'bg-blue-50/40' : ''
                     }`}
@@ -225,13 +227,13 @@ export default function NotificationBell() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className={`text-sm ${!n.read_at ? 'font-semibold' : 'font-medium'} text-gray-900 truncate`}>
-                            {n.title}
+                            {translateNotification(n, t).title}
                           </p>
                           {!n.read_at && (
                             <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{translateNotification(n, t).message}</p>
                         <p className="text-[11px] text-gray-400 mt-1">{formatTime(n.created_at)}</p>
                       </div>
                     </div>

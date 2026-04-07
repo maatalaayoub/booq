@@ -15,14 +15,14 @@ export async function GET(request) {
 
     const supabase = createServerSupabaseClient();
 
-    let clerkId = null;
+    let authId = null;
     try {
-      clerkId = await getUserId(request);
+      authId = await getUserId(request);
     } catch (_) {
       // Auth not available — public access
     }
 
-    const result = await getAvailableSlots(supabase, { businessId, dateStr, duration, clerkId });
+    const result = await getAvailableSlots(supabase, { businessId, dateStr, duration, authId });
 
     return apiData(result);
   } catch (err) {

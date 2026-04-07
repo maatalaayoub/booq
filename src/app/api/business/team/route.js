@@ -2,7 +2,7 @@ import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
 import { getBusinessContext } from '@/repositories/business';
-import { findUserByClerkId } from '@/repositories/user';
+import { findUserByAuthId } from '@/repositories/user';
 import {
   findTeamMembers,
   findInvitationsByBusiness,
@@ -19,11 +19,11 @@ import { createNotification } from '@/repositories/notification';
  */
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     const [members, invitations] = await Promise.all([
@@ -45,11 +45,11 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
@@ -62,7 +62,7 @@ export async function POST(request) {
     // Find the user by username
     const { data: targetUser, error: userErr } = await supabase
       .from('users')
-      .select('id, username, clerk_id')
+      .select('id, username, supabase_auth_id')
       .eq('username', username)
       .single();
 
@@ -81,6 +81,16 @@ export async function POST(request) {
       .maybeSingle();
 
     if (existingMember) return apiError('This user is already a team member', 400);
+
+    // Check if user is already associated with ANY other business
+    const { data: otherMembership } = await supabase
+      .from('team_members')
+      .select('id, business_info_id')
+      .eq('user_id', targetUser.id)
+      .eq('status', 'active')
+      .maybeSingle();
+
+    if (otherMembership) return apiError('This user is already a member of another business', 400);
 
     // Check if there's already a pending invitation
     const { data: existingInvite } = await supabase
@@ -111,7 +121,7 @@ export async function POST(request) {
       type: 'team_invite',
       title: 'Team Invitation',
       message: `You've been invited to join ${businessName} as a team member.`,
-      data: { invitationId: invitation.id, businessInfoId: ctx.businessInfoId },
+      data: { invitationId: invitation.id, businessInfoId: ctx.businessInfoId, businessName },
     });
 
     return apiSuccess({ invitation });
@@ -129,11 +139,11 @@ export async function POST(request) {
  */
 export async function PATCH(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();
@@ -167,7 +177,7 @@ export async function PATCH(request) {
         type: 'member_removed',
         title: 'Removed from Team',
         message: `You have been removed from ${businessName}.`,
-        data: { businessInfoId: ctx.businessInfoId },
+        data: { businessInfoId: ctx.businessInfoId, businessName },
       });
 
       return apiSuccess({ message: 'Team member removed' });

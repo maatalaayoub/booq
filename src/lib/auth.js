@@ -1,9 +1,8 @@
-import { getSessionUserId, getSessionRole, verifyBearerToken } from '@/lib/auth/server-adapter';
+import { getSessionUserId, getSessionRole, verifyBearerToken } from '@/lib/auth/supabase-adapter';
 import { redirect } from 'next/navigation';
 
 /**
  * Server-side role utility functions.
- * All Clerk-specific logic lives in @/lib/auth/server-adapter.
  */
 
 /**
@@ -90,16 +89,16 @@ export async function getUserId(request) {
 }
 
 /**
- * Resolve a Clerk userId to the internal Supabase user ID.
+ * Resolve an auth provider user ID to the internal Supabase user ID.
  * @param {object} supabase - Supabase client
- * @param {string} clerkId  - Clerk userId
+ * @param {string} authId   - Supabase Auth user ID (UUID)
  * @returns {Promise<string | null>} internal user.id or null
  */
-export async function getInternalUserId(supabase, clerkId) {
+export async function getInternalUserId(supabase, authId) {
   const { data: user } = await supabase
     .from('users')
     .select('id')
-    .eq('clerk_id', clerkId)
+    .eq('supabase_auth_id', authId)
     .single();
 
   return user?.id || null;

@@ -12,15 +12,15 @@ const MAX_SIZE_MB = 10;
  */
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
 
     // Get internal user id
-    const internalId = await getInternalUserId(supabase, clerkId);
+    const internalId = await getInternalUserId(supabase, authId);
     if (!internalId) {
       return apiError('User not found', 404);
     }
@@ -65,8 +65,8 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
@@ -83,7 +83,7 @@ export async function POST(request) {
     const supabase = createServerSupabaseClient();
 
     // Get business context
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) {
       return apiError('Business profile not found. Complete onboarding first.', 404);
     }

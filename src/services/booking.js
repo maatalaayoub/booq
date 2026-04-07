@@ -173,11 +173,11 @@ export async function checkBusinessConflicts(supabase, businessId, startISO, end
  * Check if a user has overlapping confirmed bookings at the same business.
  * @returns {{ conflict: boolean, status?: string, time?: string }}
  */
-export async function checkUserConflicts(supabase, clerkId, businessId, startISO, endISO, excludeId = null) {
+export async function checkUserConflicts(supabase, authId, businessId, startISO, endISO, excludeId = null) {
   let query = supabase
     .from('appointments')
     .select('id, status, start_time')
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .eq('business_info_id', businessId)
     .eq('status', 'confirmed')
     .lt('start_time', endISO)
@@ -199,11 +199,11 @@ export async function checkUserConflicts(supabase, clerkId, businessId, startISO
  * Check if a user has overlapping confirmed bookings at OTHER businesses.
  * @returns {{ conflict: boolean, startTime?: string, endTime?: string }}
  */
-export async function checkCrossBusinessConflicts(supabase, clerkId, businessId, startISO, endISO) {
+export async function checkCrossBusinessConflicts(supabase, authId, businessId, startISO, endISO) {
   const { data } = await supabase
     .from('appointments')
     .select('id, start_time, end_time, service, business_info_id')
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .neq('business_info_id', businessId)
     .eq('status', 'confirmed')
     .lt('start_time', endISO)
@@ -266,14 +266,14 @@ export function generateTimeSlots({ openTime, closeTime, duration, blockedRanges
  * Fetch a user's existing bookings at a specific business on a given date.
  * Used to show the user which slots they've already booked.
  */
-export async function getUserBookingsForDate(supabase, clerkId, businessId, dateStr) {
+export async function getUserBookingsForDate(supabase, authId, businessId, dateStr) {
   const dayStart = `${dateStr}T00:00:00.000Z`;
   const dayEnd = `${dateStr}T23:59:59.999Z`;
 
   const { data } = await supabase
     .from('appointments')
     .select('start_time, end_time, status')
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .eq('business_info_id', businessId)
     .in('status', ['pending', 'confirmed'])
     .gte('start_time', dayStart)
@@ -290,14 +290,14 @@ export async function getUserBookingsForDate(supabase, clerkId, businessId, date
  * Fetch a user's confirmed bookings at OTHER businesses on a given date.
  * Used to show cross-business conflicts.
  */
-export async function getCrossBusinessBookingsForDate(supabase, clerkId, businessId, dateStr) {
+export async function getCrossBusinessBookingsForDate(supabase, authId, businessId, dateStr) {
   const dayStart = `${dateStr}T00:00:00.000Z`;
   const dayEnd = `${dateStr}T23:59:59.999Z`;
 
   const { data } = await supabase
     .from('appointments')
     .select('start_time, end_time, status')
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .neq('business_info_id', businessId)
     .eq('status', 'confirmed')
     .gte('start_time', dayStart)

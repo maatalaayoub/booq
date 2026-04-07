@@ -12,13 +12,13 @@ import { createBusinessAppointment, updateBusinessAppointment, ServiceError } fr
 // ─── GET: Fetch all appointments for the business ───────────
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) {
       return apiData({ appointments: [] });
     }
@@ -41,13 +41,13 @@ export async function GET(request) {
 // ─── POST: Create a new appointment ─────────────────────────
 export async function POST(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) {
       return apiError('Business not found', 404);
     }
@@ -85,13 +85,13 @@ export async function POST(request) {
 // ─── PUT: Update an existing appointment ────────────────────
 export async function PUT(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) {
       return apiError('Business not found', 404);
     }
@@ -137,13 +137,13 @@ export async function PUT(request) {
 // ─── DELETE: Remove an appointment ──────────────────────────
 export async function DELETE(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) {
       return apiError('Business not found', 404);
     }

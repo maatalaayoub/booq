@@ -3,12 +3,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  X, Home, Settings, LogOut, Info, Mail, Shield, LayoutDashboard, ChevronRight, Calendar, Heart, Bell, Users
+  X, Home, Settings, LogOut, Info, Mail, Shield, LayoutDashboard, ChevronRight, Calendar, Heart, Bell, Users, User
 } from 'lucide-react';
 import ReactCountryFlag from 'react-country-flag';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { SignOutButton } from '@clerk/nextjs';
 import { useAuthUser } from '@/hooks/useAuthUser';
+import { createAuthClient } from '@/lib/supabase/auth-client';
 import { useParams, usePathname } from 'next/navigation';
 import { useRole } from '@/hooks/useRole';
 import Link from 'next/link';
@@ -24,7 +24,7 @@ export default function Sidebar({ isOpen, onClose }) {
   const pathname = usePathname();
   const locale = params.locale || 'en';
   const { t, changeLanguage, isRTL } = useLanguage();
-  const { user, isSignedIn, isLoaded: isClerkLoaded } = useAuthUser();
+  const { user, isSignedIn, isLoaded: isAuthLoaded } = useAuthUser();
   const { isBusiness, isLoaded: isRoleLoaded } = useRole();
   const sideMenuRef = useRef(null);
   
@@ -32,7 +32,7 @@ export default function Sidebar({ isOpen, onClose }) {
     languages.find(l => l.code === locale) || languages[0]
   );
 
-  const isLoaded = isClerkLoaded && isRoleLoaded;
+  const isLoaded = isAuthLoaded && isRoleLoaded;
   const isHomePage = pathname === `/${locale}` || pathname === `/${locale}/`;
 
   const [unreadCount, setUnreadCount] = useState(0);
@@ -182,11 +182,23 @@ export default function Sidebar({ isOpen, onClose }) {
                       <div className="flex items-center gap-3">
                         <div className="relative">
                           <div className="h-12 w-12 rounded-full overflow-hidden border-2 border-gray-300">
-                            <img 
-                              src={user.imageUrl} 
-                              alt={user.firstName || 'Profile'} 
-                              className="h-full w-full object-cover"
-                            />
+                            {user.imageUrl ? (
+                              <img 
+                                src={user.imageUrl} 
+                                alt={user.firstName || 'Profile'} 
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="h-full w-full bg-gradient-to-br from-[#D4AF37] to-[#B8963A] flex items-center justify-center">
+                                {user.firstName ? (
+                                  <span className="text-lg font-bold text-white">
+                                    {user.firstName.charAt(0).toUpperCase()}
+                                  </span>
+                                ) : (
+                                  <User className="w-6 h-6 text-white" />
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 bg-green-500 rounded-full border-2 border-white" />
                         </div>
@@ -203,12 +215,16 @@ export default function Sidebar({ isOpen, onClose }) {
                     <div className="h-px bg-gray-200 mx-4" />
                     
                     {/* Logout Button */}
-                    <SignOutButton redirectUrl={`/${locale}`}>
-                      <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50/50 transition-all group">
-                        <LogOut className="h-4 w-4 text-gray-400 group-hover:text-red-500 transition-colors" />
-                        <span className="text-sm font-medium">{t('signOut') || 'Sign Out'}</span>
-                      </button>
-                    </SignOutButton>
+                    <button
+                      onClick={async () => {
+                        await createAuthClient().auth.signOut();
+                        window.location.href = `/${locale}`;
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:text-red-600 hover:bg-red-50/50 transition-all group"
+                    >
+                      <LogOut className="h-4 w-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+                      <span className="text-sm font-medium">{t('signOut') || 'Sign Out'}</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -237,17 +253,12 @@ export default function Sidebar({ isOpen, onClose }) {
                   <div className="relative">
                     <Bell className="h-5 w-5 text-[#244C70]" strokeWidth={1.5} />
                     {unreadCount > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-red-500 text-white text-[10px] font-bold rounded-full">
+                      <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] flex items-center justify-center px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full">
                         {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
                   </div>
                   <span className="font-medium text-base">{t('notifications') || 'Notifications'}</span>
-                  {unreadCount > 0 && (
-                    <span className="ml-auto px-2 py-0.5 bg-red-100 text-red-600 text-xs font-semibold rounded-full">
-                      {unreadCount}
-                    </span>
-                  )}
                 </Link>
               )}
 

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
 import PendingInvitations from '@/components/dashboard/PendingInvitations';
+import { translateNotification } from '@/lib/notification-translate';
 import {
   Bell,
   Check,
@@ -15,6 +17,8 @@ import {
   UserPlus,
   UserMinus,
   Info,
+  ArrowLeft,
+  X,
 } from 'lucide-react';
 
 const TYPE_ICONS = {
@@ -60,11 +64,13 @@ function NotificationSkeleton() {
 
 export default function NotificationsPage() {
   const { t, isRTL } = useLanguage();
+  const searchParams = useSearchParams();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all'); // all, unread
+  const [selectedNotification, setSelectedNotification] = useState(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -85,6 +91,20 @@ export default function NotificationsPage() {
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
+
+  // Auto-open notification from ?open= query param
+  const autoOpenedRef = useRef(false);
+  useEffect(() => {
+    const openId = searchParams.get('open');
+    if (openId && notifications.length > 0 && !autoOpenedRef.current) {
+      const found = notifications.find((n) => n.id === openId);
+      if (found) {
+        autoOpenedRef.current = true;
+        setSelectedNotification(found);
+        if (!found.read_at) markAsRead(found.id);
+      }
+    }
+  }, [searchParams, notifications]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -156,6 +176,11 @@ export default function NotificationsPage() {
     ? notifications.filter((n) => !n.read_at)
     : notifications;
 
+  const handleNotificationClick = (n) => {
+    setSelectedNotification(n);
+    if (!n.read_at) markAsRead(n.id);
+  };
+
   return (
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Pending Team Invitations */}
@@ -163,26 +188,35 @@ export default function NotificationsPage() {
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">
-            {t('notifications.title') || 'Notifications'}
-          </h1>
-          {unreadCount > 0 && (
-            <p className="text-sm text-gray-500">
-              {unreadCount} {t('notifications.unread') || 'unread'}
-            </p>
-          )}
+        <div className="flex items-center justify-between sm:justify-start gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">
+              {t('notifications.title') || 'Notifications'}
+            </h1>
+            {unreadCount > 0 && (
+              <p className="text-sm text-gray-500">
+                {unreadCount} {t('notifications.unread') || 'unread'}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="sm:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            title={t('dashboard.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            className="hidden sm:block p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
             title={t('dashboard.refresh') || 'Refresh'}
           >
             <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
-          <div className="flex-1 sm:hidden" />
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
@@ -244,55 +278,111 @@ export default function NotificationsPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((n) => {
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Notification List */}
+          <div className={`space-y-2 ${selectedNotification ? 'hidden md:block md:w-1/2 lg:w-2/5' : 'w-full'}`}>
+            {filtered.map((n) => {
+              const IconComponent = TYPE_ICONS[n.type] || Info;
+              const colorClass = TYPE_COLORS[n.type] || TYPE_COLORS.general;
+              const isSelected = selectedNotification?.id === n.id;
+
+              return (
+                <div
+                  key={n.id}
+                  onClick={() => handleNotificationClick(n)}
+                  className={`bg-white rounded-[5px] border p-4 transition-colors group cursor-pointer ${
+                    isSelected
+                      ? 'border-[#D4AF37] ring-1 ring-[#D4AF37]/30'
+                      : !n.read_at
+                        ? 'border-gray-200 border-l-[3px] border-l-blue-500 bg-blue-50/30 hover:bg-blue-50/50'
+                        : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-[5px] flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                      <IconComponent className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm ${!n.read_at ? 'font-semibold' : 'font-medium'} text-gray-900 line-clamp-1`}>
+                        {translateNotification(n, t).title}
+                      </p>
+                      {n.message && (
+                        <p className="text-sm text-gray-600 mt-0.5 line-clamp-1">{translateNotification(n, t).message}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1.5">{formatTime(n.created_at)}</p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                      {!n.read_at && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
+                          className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors"
+                          title={t('notifications.markRead') || 'Mark as read'}
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (selectedNotification?.id === n.id) setSelectedNotification(null);
+                          deleteNotification(n.id);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                        title={t('notifications.delete') || 'Delete'}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Detail Panel */}
+          {selectedNotification && (() => {
+            const n = selectedNotification;
             const IconComponent = TYPE_ICONS[n.type] || Info;
             const colorClass = TYPE_COLORS[n.type] || TYPE_COLORS.general;
-
             return (
-              <div
-                key={n.id}
-                className={`bg-white rounded-[5px] border border-gray-200 p-4 transition-colors group ${
-                  !n.read_at ? 'border-l-[3px] border-l-blue-500 bg-blue-50/30' : ''
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-[5px] flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-                    <IconComponent className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className={`text-sm ${!n.read_at ? 'font-semibold' : 'font-medium'} text-gray-900`}>
-                          {n.title}
-                        </p>
-                        <p className="text-sm text-gray-600 mt-0.5">{n.message}</p>
-                        <p className="text-xs text-gray-400 mt-1.5">{formatTime(n.created_at)}</p>
+              <div className="flex-1 md:w-1/2 lg:w-3/5">
+                <div className="bg-white rounded-[5px] border border-gray-200 p-6 sticky top-4">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-11 h-11 rounded-[5px] flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                        <IconComponent className="w-5 h-5" />
                       </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {!n.read_at && (
-                          <button
-                            onClick={() => markAsRead(n.id)}
-                            className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-md transition-colors"
-                            title={t('notifications.markRead') || 'Mark as read'}
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => deleteNotification(n.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                          title={t('notifications.delete') || 'Delete'}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <div>
+                        <p className="text-base font-semibold text-gray-900">{translateNotification(n, t).title}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{formatTime(n.created_at)}</p>
                       </div>
                     </div>
+                    <button
+                      onClick={() => setSelectedNotification(null)}
+                      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {n.message && (
+                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{translateNotification(n, t).message}</p>
+                  )}
+                  <div className="flex items-center gap-2 mt-6 pt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => {
+                        setSelectedNotification(null);
+                        deleteNotification(n.id);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      {t('notifications.delete') || 'Delete'}
+                    </button>
                   </div>
                 </div>
               </div>
             );
-          })}
+          })()}
         </div>
       )}
     </div>

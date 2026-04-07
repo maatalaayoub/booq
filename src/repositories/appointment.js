@@ -44,9 +44,9 @@ export async function findAppointmentsForWorker(supabase, businessInfoId, worker
 }
 
 /**
- * Fetch appointments for a user (via clerk_id) with joined business details.
+ * Fetch appointments for a user (via auth_id) with joined business details.
  */
-export async function findAppointmentsByUser(supabase, clerkId) {
+export async function findAppointmentsByUser(supabase, authId) {
   const { data, error } = await supabase
     .from('appointments')
     .select(`
@@ -61,7 +61,7 @@ export async function findAppointmentsByUser(supabase, clerkId) {
         business_card_settings ( settings )
       )
     `)
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .order('start_time', { ascending: false });
 
   if (error) throw error;
@@ -69,14 +69,14 @@ export async function findAppointmentsByUser(supabase, clerkId) {
 }
 
 /**
- * Find a single appointment by ID owned by a specific user (clerk_id).
+ * Find a single appointment by ID owned by a specific user (auth_id).
  */
-export async function findUserAppointment(supabase, appointmentId, clerkId) {
+export async function findUserAppointment(supabase, appointmentId, authId) {
   const { data, error } = await supabase
     .from('appointments')
     .select('*')
     .eq('id', appointmentId)
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .single();
 
   if (error && error.code !== 'PGRST116') throw error;
@@ -116,12 +116,12 @@ export async function updateAppointmentByBusiness(supabase, appointmentId, busin
 /**
  * Update an appointment scoped to a user.
  */
-export async function updateAppointmentByUser(supabase, appointmentId, clerkId, updateFields) {
+export async function updateAppointmentByUser(supabase, appointmentId, authId, updateFields) {
   const { data, error } = await supabase
     .from('appointments')
     .update(updateFields)
     .eq('id', appointmentId)
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .select()
     .single();
 
@@ -145,12 +145,12 @@ export async function deleteAppointmentByBusiness(supabase, appointmentId, busin
 /**
  * Cancel an appointment (set status = 'cancelled') scoped to a user.
  */
-export async function cancelAppointmentByUser(supabase, appointmentId, clerkId) {
+export async function cancelAppointmentByUser(supabase, appointmentId, authId) {
   const { error } = await supabase
     .from('appointments')
     .update({ status: 'cancelled', updated_at: new Date().toISOString() })
     .eq('id', appointmentId)
-    .eq('clerk_id', clerkId);
+    .eq('auth_id', authId);
 
   if (error) throw error;
 }
@@ -181,11 +181,11 @@ export async function findConflictingAppointments(supabase, businessInfoId, star
 /**
  * Check if a user has overlapping confirmed bookings at the same business.
  */
-export async function findUserConflicts(supabase, clerkId, businessInfoId, startISO, endISO, excludeId = null) {
+export async function findUserConflicts(supabase, authId, businessInfoId, startISO, endISO, excludeId = null) {
   let query = supabase
     .from('appointments')
     .select('id, status, start_time')
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .eq('business_info_id', businessInfoId)
     .eq('status', 'confirmed')
     .lt('start_time', endISO)
@@ -202,11 +202,11 @@ export async function findUserConflicts(supabase, clerkId, businessInfoId, start
 /**
  * Check if a user has overlapping confirmed bookings at OTHER businesses.
  */
-export async function findCrossBusinessConflicts(supabase, clerkId, businessInfoId, startISO, endISO) {
+export async function findCrossBusinessConflicts(supabase, authId, businessInfoId, startISO, endISO) {
   const { data } = await supabase
     .from('appointments')
     .select('id, start_time, end_time, service, business_info_id')
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .neq('business_info_id', businessInfoId)
     .eq('status', 'confirmed')
     .lt('start_time', endISO)
@@ -238,7 +238,7 @@ export async function findAppointmentsInRange(supabase, businessInfoId, startISO
 export async function findOverlappingPendingAppointments(supabase, businessInfoId, startISO, endISO, excludeId = null) {
   let query = supabase
     .from('appointments')
-    .select('id, client_name, service, start_time, end_time, status, clerk_id')
+    .select('id, client_name, service, start_time, end_time, status, auth_id')
     .eq('business_info_id', businessInfoId)
     .eq('status', 'pending')
     .lt('start_time', endISO)
@@ -255,14 +255,14 @@ export async function findOverlappingPendingAppointments(supabase, businessInfoI
 /**
  * Fetch a user's bookings at a specific business on a given date.
  */
-export async function findUserBookingsForDate(supabase, clerkId, businessInfoId, dateStr) {
+export async function findUserBookingsForDate(supabase, authId, businessInfoId, dateStr) {
   const dayStart = `${dateStr}T00:00:00.000Z`;
   const dayEnd = `${dateStr}T23:59:59.999Z`;
 
   const { data } = await supabase
     .from('appointments')
     .select('start_time, end_time, status')
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .eq('business_info_id', businessInfoId)
     .in('status', ['pending', 'confirmed'])
     .gte('start_time', dayStart)
@@ -274,14 +274,14 @@ export async function findUserBookingsForDate(supabase, clerkId, businessInfoId,
 /**
  * Fetch a user's confirmed bookings at OTHER businesses on a given date.
  */
-export async function findCrossBusinessBookingsForDate(supabase, clerkId, businessInfoId, dateStr) {
+export async function findCrossBusinessBookingsForDate(supabase, authId, businessInfoId, dateStr) {
   const dayStart = `${dateStr}T00:00:00.000Z`;
   const dayEnd = `${dateStr}T23:59:59.999Z`;
 
   const { data } = await supabase
     .from('appointments')
     .select('start_time, end_time, status')
-    .eq('clerk_id', clerkId)
+    .eq('auth_id', authId)
     .neq('business_info_id', businessInfoId)
     .eq('status', 'confirmed')
     .gte('start_time', dayStart)

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 
 export function useRole({ requiredRole = null, redirectTo = '/' } = {}) {
-  const { user, isLoaded: isClerkLoaded, isSignedIn, getToken } = useAuthUser();
+  const { user, isLoaded: isAuthLoaded, isSignedIn, getToken } = useAuthUser();
   const router = useRouter();
   
   const [role, setRole] = useState(null);
@@ -62,16 +62,16 @@ export function useRole({ requiredRole = null, redirectTo = '/' } = {}) {
   }, [isSignedIn, user, getAuthHeaders]);
 
   useEffect(() => {
-    if (isClerkLoaded) {
+    if (isAuthLoaded) {
       fetchRole();
     }
-  }, [isClerkLoaded, fetchRole]);
+  }, [isAuthLoaded, fetchRole]);
 
   const isUser = role === 'user';
   const isBusiness = role === 'business';
   const isAdmin = role === 'admin';
   const hasRole = role !== null;
-  const isLoaded = isClerkLoaded && !isLoading;
+  const isLoaded = isAuthLoaded && !isLoading;
 
   // Client-side role enforcement
   useEffect(() => {

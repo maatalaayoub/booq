@@ -104,7 +104,7 @@ async function validateAgainstSchedule(supabase, businessId, startTimeISO, endTi
  * @throws {ServiceError} on business rule violations
  * @returns {object} the created appointment
  */
-export async function createBooking(supabase, { clerkId, businessId, serviceIds, date, startTime, clientName, clientPhone, notes, assignedWorkerId }) {
+export async function createBooking(supabase, { authId, businessId, serviceIds, date, startTime, clientName, clientPhone, notes, assignedWorkerId }) {
   // Verify business exists and accepts bookings
   const bizInfo = await findBusinessById(supabase, businessId, 'id, business_category, service_mode, onboarding_completed');
   if (!bizInfo || !bizInfo.onboarding_completed) throw new ServiceError('Business not found', 404);
@@ -149,14 +149,14 @@ export async function createBooking(supabase, { clerkId, businessId, serviceIds,
   const conflicts = await findConflictingAppointments(supabase, businessId, startISO, endISO);
   if (conflicts.length > 0) throw new ServiceError('This time slot is no longer available. Please choose another time.', 409);
 
-  const userConflictData = await findUserConflicts(supabase, clerkId, businessId, startISO, endISO);
+  const userConflictData = await findUserConflicts(supabase, authId, businessId, startISO, endISO);
   if (userConflictData.length > 0) {
     const existing = userConflictData[0];
     const time = new Date(existing.start_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
     throw new ServiceError(`You already have a ${existing.status} booking at ${time}. You cannot book the same time slot twice.`, 409);
   }
 
-  const crossConflictData = await findCrossBusinessConflicts(supabase, clerkId, businessId, startISO, endISO);
+  const crossConflictData = await findCrossBusinessConflicts(supabase, authId, businessId, startISO, endISO);
   if (crossConflictData.length > 0) {
     const c = crossConflictData[0];
     const cStart = new Date(c.start_time).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
@@ -167,7 +167,7 @@ export async function createBooking(supabase, { clerkId, businessId, serviceIds,
   // Create
   return createAppointment(supabase, {
     business_info_id: businessId,
-    clerk_id: clerkId,
+    auth_id: authId,
     client_name: sanitizeText(clientName),
     client_phone: clientPhone ? sanitizePhone(clientPhone) : null,
     service: combinedName,
@@ -186,11 +186,11 @@ export async function createBooking(supabase, { clerkId, businessId, serviceIds,
  * Edit an existing booking (user-side).
  * @throws {ServiceError}
  */
-export async function editBooking(supabase, { clerkId, id, date, startTime, serviceIds }) {
+export async function editBooking(supabase, { authId, id, date, startTime, serviceIds }) {
   const hasTimeChange = !!(date && startTime);
   const hasServiceChange = !!(serviceIds && serviceIds.length > 0);
 
-  const apt = await findUserAppointment(supabase, id, clerkId);
+  const apt = await findUserAppointment(supabase, id, authId);
   if (!apt) throw new ServiceError('Appointment not found', 404);
   if (apt.status === 'cancelled' || apt.status === 'completed') {
     throw new ServiceError('Cannot edit a cancelled or completed appointment');
@@ -231,7 +231,7 @@ export async function editBooking(supabase, { clerkId, id, date, startTime, serv
     updateFields.end_time = new Date(currentStart.getTime() + durationMs).toISOString();
   }
 
-  return updateAppointmentByUser(supabase, id, clerkId, updateFields);
+  return updateAppointmentByUser(supabase, id, authId, updateFields);
 }
 
 // ─── CANCEL BOOKING (USER) ─────────────────────────────────────────
@@ -240,13 +240,13 @@ export async function editBooking(supabase, { clerkId, id, date, startTime, serv
  * Cancel a booking (user-side).
  * @throws {ServiceError}
  */
-export async function cancelBooking(supabase, { clerkId, appointmentId }) {
-  const apt = await findUserAppointment(supabase, appointmentId, clerkId);
+export async function cancelBooking(supabase, { authId, appointmentId }) {
+  const apt = await findUserAppointment(supabase, appointmentId, authId);
   if (!apt) throw new ServiceError('Appointment not found', 404);
   if (apt.status === 'cancelled') throw new ServiceError('Already cancelled');
   if (apt.status === 'completed') throw new ServiceError('Cannot cancel a completed appointment');
 
-  await cancelAppointmentByUser(supabase, appointmentId, clerkId);
+  await cancelAppointmentByUser(supabase, appointmentId, authId);
 }
 
 // ─── GET AVAILABLE SLOTS ───────────────────────────────────────────
@@ -254,7 +254,7 @@ export async function cancelBooking(supabase, { clerkId, appointmentId }) {
 /**
  * Generate available time slots for a date.
  */
-export async function getAvailableSlots(supabase, { businessId, dateStr, duration, clerkId }) {
+export async function getAvailableSlots(supabase, { businessId, dateStr, duration, authId }) {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
   const requested = new Date(dateStr + 'T00:00:00Z');
@@ -350,15 +350,15 @@ export async function getAvailableSlots(supabase, { businessId, dateStr, duratio
 
   let userBookings = [];
   let crossBusinessBookings = [];
-  if (clerkId) {
-    const rawUserBookings = await findUserBookingsForDate(supabase, clerkId, businessId, dateStr);
+  if (authId) {
+    const rawUserBookings = await findUserBookingsForDate(supabase, authId, businessId, dateStr);
     userBookings = rawUserBookings.map(apt => ({
       start: toHHMM(new Date(apt.start_time)),
       end: toHHMM(new Date(apt.end_time)),
       status: apt.status,
     }));
 
-    const rawCross = await findCrossBusinessBookingsForDate(supabase, clerkId, businessId, dateStr);
+    const rawCross = await findCrossBusinessBookingsForDate(supabase, authId, businessId, dateStr);
     crossBusinessBookings = rawCross.map(apt => ({
       start: toHHMM(new Date(apt.start_time)),
       end: toHHMM(new Date(apt.end_time)),

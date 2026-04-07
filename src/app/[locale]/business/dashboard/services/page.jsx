@@ -525,23 +525,32 @@ export default function ServicesPage() {
     <div className={`p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto ${isRTL ? 'rtl' : 'ltr'}`}>
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#364153] flex items-center gap-2">
-            <Tag className="w-6 h-6" />
-            {t('services.title')}
-          </h1>
-          <p className="text-sm text-gray-400 mt-1">{t('services.subtitle')}</p>
+        <div className="flex items-center justify-between sm:justify-start gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-[#364153] flex items-center gap-2">
+              <Tag className="w-6 h-6" />
+              {t('services.title')}
+            </h1>
+            <p className="text-sm text-gray-400 mt-1">{t('services.subtitle')}</p>
+          </div>
+          <button
+            onClick={() => { setRefreshing(true); fetchServices().finally(() => setRefreshing(false)); }}
+            disabled={refreshing}
+            className="sm:hidden p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => { setRefreshing(true); fetchServices().finally(() => setRefreshing(false)); }}
             disabled={refreshing}
-            className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            className="hidden sm:block p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
             title={t('common.refresh') || 'Refresh'}
           >
             <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
-          <div className="flex-1 sm:hidden" />
           {(loading || services.length > 0) && (
             <button
               onClick={() => setShowAddModal(true)}

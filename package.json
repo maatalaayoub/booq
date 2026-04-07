@@ -9,14 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@clerk/localizations": "^4.0.0",
-    "@clerk/nextjs": "^7.0.1",
     "@fullcalendar/core": "^6.1.20",
     "@fullcalendar/daygrid": "^6.1.20",
     "@fullcalendar/interaction": "^6.1.20",
     "@fullcalendar/list": "^6.1.20",
     "@fullcalendar/react": "^6.1.20",
     "@fullcalendar/timegrid": "^6.1.20",
+    "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.95.3",
     "framer-motion": "^12.38.0",
     "leaflet": "^1.9.4",

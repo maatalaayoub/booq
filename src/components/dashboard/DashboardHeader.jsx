@@ -75,8 +75,12 @@ export default function DashboardHeader() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                        <User className="w-5 h-5 text-gray-600" />
+                      <div className="w-full h-full bg-gradient-to-br from-[#D4AF37] to-[#B8963A] flex items-center justify-center">
+                        {user.firstName ? (
+                          <span className="text-sm font-bold text-white">{user.firstName.charAt(0).toUpperCase()}</span>
+                        ) : (
+                          <User className="w-5 h-5 text-white" />
+                        )}
                       </div>
                     )}
                   </div>

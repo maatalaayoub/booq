@@ -21,7 +21,7 @@ const languages = [
 
 export default function Hero() {
   const { t, locale, changeLanguage } = useLanguage();
-  const { isSignedIn, user, isLoaded: isClerkLoaded } = useAuthUser();
+  const { isSignedIn, user, isLoaded: isAuthLoaded } = useAuthUser();
   const { role: userRole, isBusiness, isLoaded: isRoleLoaded } = useRole();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -39,8 +39,8 @@ export default function Hero() {
   const stickyCityRef = useRef(null);
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   
-  // Combined loaded state - both Clerk and role data must be loaded
-  const isLoaded = isClerkLoaded && isRoleLoaded;
+  // Combined loaded state - both auth and role data must be loaded
+  const isLoaded = isAuthLoaded && isRoleLoaded;
   
   // Debug logging
   useEffect(() => {
@@ -287,7 +287,13 @@ export default function Hero() {
                     {user?.imageUrl ? (
                       <img src={user.imageUrl} alt={user.firstName || 'Profile'} className="h-full w-full object-cover" />
                     ) : (
-                      <User className="h-5 w-5 text-white" />
+                      <div className="h-full w-full bg-gradient-to-br from-[#D4AF37] to-[#B8963A] flex items-center justify-center">
+                        {user?.firstName ? (
+                          <span className="text-sm font-bold text-white">{user.firstName.charAt(0).toUpperCase()}</span>
+                        ) : (
+                          <User className="h-5 w-5 text-white" />
+                        )}
+                      </div>
                     )}
                   </Link>
                   </>
@@ -390,7 +396,17 @@ export default function Hero() {
                 className="relative flex items-center justify-center p-0.5 rounded-full border-2 border-white/20 transition-all hover:border-[#D4AF37]"
               >
                 <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-800">
-                  <img src={user.imageUrl} alt={user.firstName || 'Profile'} className="h-full w-full object-cover" />
+                  {user.imageUrl ? (
+                    <img src={user.imageUrl} alt={user.firstName || 'Profile'} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full bg-gradient-to-br from-[#D4AF37] to-[#B8963A] flex items-center justify-center">
+                      {user.firstName ? (
+                        <span className="text-xs font-bold text-white">{user.firstName.charAt(0).toUpperCase()}</span>
+                      ) : (
+                        <User className="h-4 w-4 text-white" />
+                      )}
+                    </div>
+                  )}
                 </div>
               </Link>
             )}
@@ -424,11 +440,21 @@ export default function Hero() {
                     className="relative flex items-center justify-center p-0.5 rounded-full border-2 border-white/20 transition-all hover:border-[#D4AF37] hover:shadow-[0_0_15px_rgba(212,175,55,0.3)] focus:outline-none"
                   >
                     <div className="h-10 w-10 rounded-full overflow-hidden bg-gray-800">
-                      <img 
-                        src={user?.imageUrl} 
-                        alt={user?.firstName || 'Profile'} 
-                        className="h-full w-full object-cover"
-                      />
+                      {user?.imageUrl ? (
+                        <img 
+                          src={user.imageUrl} 
+                          alt={user?.firstName || 'Profile'} 
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full bg-gradient-to-br from-[#D4AF37] to-[#B8963A] flex items-center justify-center">
+                          {user?.firstName ? (
+                            <span className="text-sm font-bold text-white">{user.firstName.charAt(0).toUpperCase()}</span>
+                          ) : (
+                            <User className="h-5 w-5 text-white" />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </Link>
                   {/* Drawer icon - Show only for Arabic (RTL) on right side */}

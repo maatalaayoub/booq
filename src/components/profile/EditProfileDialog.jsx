@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Check, User, Calendar, ChevronDown, Settings, AtSign, AlertCircle, MapPin, Search, Phone } from 'lucide-react';
-import { useClerk } from '@clerk/nextjs';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -132,7 +131,6 @@ const translations = {
 
 export default function EditProfileDialog({ isOpen, onClose, initialProfile = null }) {
   const { user } = useAuthUser();
-  const { openUserProfile } = useClerk();
   const { isRTL, locale: language } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
@@ -282,14 +280,14 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
     setSuccess(false);
 
     try {
-      // Update Clerk user (first name, last name)
+      // Update auth user (first name, last name)
       try {
         await user.update({
           firstName: formData.firstName,
           lastName: formData.lastName,
         });
-      } catch (clerkErr) {
-        throw new Error(clerkErr?.errors?.[0]?.message || clerkErr?.message || 'Failed to update name');
+      } catch (authErr) {
+        throw new Error(authErr?.errors?.[0]?.message || authErr?.message || 'Failed to update name');
       }
 
       // Build request body - only include username if it's non-empty and valid

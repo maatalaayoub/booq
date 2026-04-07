@@ -10,7 +10,7 @@ const spec = {
     version: '1.0.0',
     description:
       'Appointment booking platform for barbers, salons, mobile service providers, and job seekers. ' +
-      'All timestamps are in UTC ISO-8601 format. Authentication is handled via Clerk session cookies.',
+      'All timestamps are in UTC ISO-8601 format. Authentication is handled via Supabase session cookies.',
   },
   servers: [{ url: '/api', description: 'Default' }],
   tags: [
@@ -25,11 +25,11 @@ const spec = {
   ],
   components: {
     securitySchemes: {
-      clerkSession: {
+      supabaseSession: {
         type: 'apiKey',
         in: 'cookie',
         name: '__session',
-        description: 'Clerk session cookie (set automatically after sign-in)',
+        description: 'Supabase session cookie (set automatically after sign-in)',
       },
     },
     schemas: {
@@ -39,7 +39,7 @@ const spec = {
         properties: {
           id: { type: 'string', format: 'uuid' },
           business_info_id: { type: 'string', format: 'uuid' },
-          clerk_id: { type: 'string' },
+          auth_id: { type: 'string' },
           client_name: { type: 'string' },
           client_phone: { type: 'string', nullable: true },
           client_address: { type: 'string', nullable: true },
@@ -87,7 +87,7 @@ const spec = {
         type: 'object',
         properties: {
           id: { type: 'string', format: 'uuid' },
-          clerk_id: { type: 'string' },
+          auth_id: { type: 'string' },
           role: { type: 'string', enum: ['user', 'business', 'admin'] },
           username: { type: 'string', nullable: true },
           first_name: { type: 'string', nullable: true },
@@ -200,7 +200,7 @@ const spec = {
       post: {
         tags: ['Booking'],
         summary: 'Create a booking',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -246,7 +246,7 @@ const spec = {
       get: {
         tags: ['Booking'],
         summary: 'List user bookings',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             description: 'Bookings with business info',
@@ -285,7 +285,7 @@ const spec = {
       patch: {
         tags: ['Booking'],
         summary: 'Edit a booking (reschedule or change services)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -311,7 +311,7 @@ const spec = {
       delete: {
         tags: ['Booking'],
         summary: 'Cancel a booking',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [
           { name: 'id', in: 'query', required: true, schema: { type: 'string', format: 'uuid' } },
         ],
@@ -326,7 +326,7 @@ const spec = {
       get: {
         tags: ['Business Appointments'],
         summary: 'List all appointments for the business',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             content: { 'application/json': { schema: { type: 'object', properties: { appointments: { type: 'array', items: { $ref: '#/components/schemas/Appointment' } } } } } },
@@ -336,7 +336,7 @@ const spec = {
       post: {
         tags: ['Business Appointments'],
         summary: 'Create appointment (business-side)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -367,7 +367,7 @@ const spec = {
       put: {
         tags: ['Business Appointments'],
         summary: 'Update appointment (business-side)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -398,7 +398,7 @@ const spec = {
       delete: {
         tags: ['Business Appointments'],
         summary: 'Delete appointment',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [
           { name: 'id', in: 'query', required: true, schema: { type: 'string', format: 'uuid' } },
         ],
@@ -411,7 +411,7 @@ const spec = {
       get: {
         tags: ['Business Profile'],
         summary: 'Get onboarding state',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             content: {
@@ -434,7 +434,7 @@ const spec = {
       post: {
         tags: ['Business Profile'],
         summary: 'Save onboarding data',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -464,13 +464,13 @@ const spec = {
       get: {
         tags: ['Business Profile'],
         summary: 'Get own business details',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: { 200: { description: 'Business details with specialty names' } },
       },
       put: {
         tags: ['Business Profile'],
         summary: 'Update business details',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           content: {
             'application/json': {
@@ -495,7 +495,7 @@ const spec = {
       get: {
         tags: ['Business Profile'],
         summary: 'List own services',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             content: { 'application/json': { schema: { type: 'object', properties: { services: { type: 'array', items: { $ref: '#/components/schemas/BusinessService' } } } } } },
@@ -505,7 +505,7 @@ const spec = {
       post: {
         tags: ['Business Profile'],
         summary: 'Add a service',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -530,7 +530,7 @@ const spec = {
       put: {
         tags: ['Business Profile'],
         summary: 'Update a service',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -556,7 +556,7 @@ const spec = {
       delete: {
         tags: ['Business Profile'],
         summary: 'Delete a service',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [
           { name: 'id', in: 'query', required: true, schema: { type: 'string', format: 'uuid' } },
         ],
@@ -567,7 +567,7 @@ const spec = {
       get: {
         tags: ['Business Profile'],
         summary: 'Get business hours + schedule exceptions',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             content: {
@@ -588,7 +588,7 @@ const spec = {
       put: {
         tags: ['Business Profile'],
         summary: 'Update business hours',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           content: { 'application/json': { schema: { type: 'object', properties: { businessHours: { type: 'array' } } } } },
         },
@@ -597,7 +597,7 @@ const spec = {
       post: {
         tags: ['Business Profile'],
         summary: 'Add schedule exception',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -625,7 +625,7 @@ const spec = {
       delete: {
         tags: ['Business Profile'],
         summary: 'Delete schedule exception',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [
           { name: 'id', in: 'query', required: true, schema: { type: 'string', format: 'uuid' } },
         ],
@@ -636,7 +636,7 @@ const spec = {
       get: {
         tags: ['Business Profile'],
         summary: 'Get public page / business card settings',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             content: {
@@ -656,7 +656,7 @@ const spec = {
       post: {
         tags: ['Business Profile'],
         summary: 'Save public page settings',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -687,13 +687,13 @@ const spec = {
       get: {
         tags: ['Business Profile'],
         summary: 'Get mobile service area (mobile_service only)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: { 200: { description: 'Service area data' } },
       },
       put: {
         tags: ['Business Profile'],
         summary: 'Update mobile service area',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           content: {
             'application/json': {
@@ -719,7 +719,7 @@ const spec = {
       get: {
         tags: ['Business Profile'],
         summary: 'Get dashboard statistics',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             content: {
@@ -743,13 +743,13 @@ const spec = {
       get: {
         tags: ['Business Profile'],
         summary: 'Get job seeker profile',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: { 200: { description: 'Combined user_profile + job_seeker_info' } },
       },
       put: {
         tags: ['Business Profile'],
         summary: 'Update job seeker profile',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           content: {
             'application/json': {
@@ -776,7 +776,7 @@ const spec = {
       get: {
         tags: ['Business Profile'],
         summary: 'List job applications (job seeker)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: { 200: { description: '{ applications: [...] }' } },
       },
     },
@@ -784,7 +784,7 @@ const spec = {
       patch: {
         tags: ['Business Profile'],
         summary: 'Update application status',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         requestBody: {
           content: { 'application/json': { schema: { type: 'object', properties: { status: { type: 'string', enum: ['withdrawn'] } } } } },
@@ -794,7 +794,7 @@ const spec = {
       delete: {
         tags: ['Business Profile'],
         summary: 'Delete application',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
         responses: { 200: { description: 'Deleted' } },
       },
@@ -875,13 +875,13 @@ const spec = {
       get: {
         tags: ['User'],
         summary: 'Get own profile',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: { 200: { content: { 'application/json': { schema: { $ref: '#/components/schemas/UserProfile' } } } } },
       },
       put: {
         tags: ['User'],
         summary: 'Update own profile',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           content: {
             'application/json': {
@@ -923,7 +923,7 @@ const spec = {
       get: {
         tags: ['User'],
         summary: 'Check username availability',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [
           { name: 'username', in: 'query', required: true, schema: { type: 'string' } },
         ],
@@ -948,7 +948,7 @@ const spec = {
       get: {
         tags: ['User'],
         summary: 'Get current user role',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             content: {
@@ -973,7 +973,7 @@ const spec = {
       post: {
         tags: ['User'],
         summary: 'Set user role (user or business)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -995,13 +995,13 @@ const spec = {
       get: {
         tags: ['User'],
         summary: 'Check onboarding status',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: { 200: { description: '{ onboarding_completed }' } },
       },
       post: {
         tags: ['User'],
         summary: 'Mark onboarding as complete',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: { 200: { description: '{ user }' } },
       },
     },
@@ -1011,7 +1011,7 @@ const spec = {
       get: {
         tags: ['Verification'],
         summary: 'Get own verification status',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             content: {
@@ -1030,7 +1030,7 @@ const spec = {
       post: {
         tags: ['Verification'],
         summary: 'Upload verification documents',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1056,7 +1056,7 @@ const spec = {
       post: {
         tags: ['Upload'],
         summary: 'Upload image (avatar, cover, gallery, business avatar)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1081,7 +1081,7 @@ const spec = {
       post: {
         tags: ['Upload'],
         summary: 'Upload CV (PDF/DOC/DOCX)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1105,7 +1105,7 @@ const spec = {
       get: {
         tags: ['Admin'],
         summary: 'Verify admin access',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: { description: '{ isAdmin, adminId }' },
           403: { description: 'Not an admin' },
@@ -1116,7 +1116,7 @@ const spec = {
       get: {
         tags: ['Admin'],
         summary: 'Get platform statistics',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: {
           200: {
             content: {
@@ -1141,7 +1141,7 @@ const spec = {
       get: {
         tags: ['Admin'],
         summary: 'List users (with filters)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [
           { name: 'role', in: 'query', schema: { type: 'string' } },
           { name: 'status', in: 'query', schema: { type: 'string' } },
@@ -1152,7 +1152,7 @@ const spec = {
       put: {
         tags: ['Admin'],
         summary: 'Update user status (suspend/restrict/activate)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1174,7 +1174,7 @@ const spec = {
       delete: {
         tags: ['Admin'],
         summary: 'Delete a user',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           content: {
             'application/json': {
@@ -1196,13 +1196,13 @@ const spec = {
       get: {
         tags: ['Admin'],
         summary: 'List pending / all verifications',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         responses: { 200: { description: 'Paginated verifications with user + business info' } },
       },
       put: {
         tags: ['Admin'],
         summary: 'Approve or reject a verification document',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         requestBody: {
           required: true,
           content: {
@@ -1227,7 +1227,7 @@ const spec = {
       get: {
         tags: ['Admin'],
         summary: 'List all business users',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [
           { name: 'search', in: 'query', schema: { type: 'string' } },
           { name: 'category', in: 'query', schema: { type: 'string' } },
@@ -1239,7 +1239,7 @@ const spec = {
       get: {
         tags: ['Admin'],
         summary: 'Get single business detail (admin)',
-        security: [{ clerkSession: [] }],
+        security: [{ supabaseSession: [] }],
         parameters: [
           { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' }, description: 'users.id (not business_info.id)' },
         ],

@@ -909,22 +909,31 @@ export default function AppointmentsPage() {
     <div className={`space-y-6 ${isRTL ? 'rtl' : 'ltr'}`}>
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('appointments.title')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            {t('appointments.subtitle')}
-          </p>
+        <div className="flex items-center justify-between sm:justify-start gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{t('appointments.title')}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {t('appointments.subtitle')}
+            </p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="sm:hidden p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            className="hidden sm:block p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
             title={t('common.refresh') || 'Refresh'}
           >
             <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
-          <div className="flex-1 sm:hidden" />
           <button
             onClick={() => {
               setNewDefaultDate(null);

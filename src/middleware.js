@@ -1,17 +1,33 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { createMiddlewareClient } from '@/lib/supabase/middleware-client';
 import { NextResponse } from 'next/server';
 
 // Supported locales
 const locales = ['en', 'fr', 'ar'];
 const defaultLocale = 'fr';
 
-// Define route matchers for different sections
-const isUserRoute = createRouteMatcher(['/user/:path*', '/:locale/user/:path*']);
-const isBusinessRoute = createRouteMatcher(['/business/:path*', '/:locale/business/:path*']);
-const isWorkerRoute = createRouteMatcher(['/worker/:path*', '/:locale/worker/:path*']);
-const isAdminRoute = createRouteMatcher(['/admin/:path*', '/:locale/admin/:path*']);
-const isUserAuthRoute = createRouteMatcher(['/auth/user/:path*', '/:locale/auth/user/:path*']);
-const isBusinessAuthRoute = createRouteMatcher(['/auth/business/:path*', '/:locale/auth/business/:path*']);
+// Route matching helpers
+function matchRoute(pathname, patterns) {
+  return patterns.some((p) => {
+    const regex = new RegExp('^' + p.replace(':path*', '.*') + '$');
+    return regex.test(pathname);
+  });
+}
+
+const isBusinessRoute = (pathname) =>
+  matchRoute(pathname, ['/business/:path*', '/:locale/business/:path*'].map(p => p.replace('/:locale', '/[a-z]{2}')));
+const isWorkerRoute = (pathname) =>
+  matchRoute(pathname, ['/worker/:path*', '/:locale/worker/:path*'].map(p => p.replace('/:locale', '/[a-z]{2}')));
+const isAdminRoute = (pathname) =>
+  matchRoute(pathname, ['/admin/:path*', '/:locale/admin/:path*'].map(p => p.replace('/:locale', '/[a-z]{2}')));
+
+function isProtectedRoute(pathname) {
+  const stripped = pathname.replace(/^\/[a-z]{2}/, '');
+  return (
+    stripped.startsWith('/business/') ||
+    stripped.startsWith('/worker/') ||
+    stripped.startsWith('/admin/')
+  );
+}
 
 // Helper to get locale from pathname
 function getLocaleFromPath(pathname) {
@@ -35,9 +51,8 @@ function getPreferredLocale(request) {
   return defaultLocale;
 }
 
-export default clerkMiddleware(async (auth, req) => {
+export async function middleware(req) {
   const pathname = req.nextUrl.pathname;
-  const searchParams = req.nextUrl.searchParams;
 
   // Skip static files
   if (
@@ -51,85 +66,36 @@ export default clerkMiddleware(async (auth, req) => {
   // Handle locale routing first
   const pathnameLocale = getLocaleFromPath(pathname);
   const hasLocale = pathnameLocale !== null;
-  
-  // If no locale in path, redirect with locale prefix
+
   if (!hasLocale && !pathname.startsWith('/api')) {
     const locale = getPreferredLocale(req);
     const newUrl = new URL(`/${locale}${pathname}`, req.url);
-    // Preserve search params
     newUrl.search = req.nextUrl.search;
     return NextResponse.redirect(newUrl);
   }
 
   const locale = pathnameLocale || defaultLocale;
-  
-  // Get auth state (only check if user is signed in)
-  const { userId } = await auth();
 
-  // Check if accessing auth routes
-  if (isUserAuthRoute(req) || isBusinessAuthRoute(req)) {
-    // Don't interfere with Clerk's sign-up flow - let forceRedirectUrl work
-    // After signup, Clerk handles the redirect with the ?setup= param
-    // Only redirect if user is explicitly visiting auth pages when already signed in
-    // (detected by absence of Clerk session initialization indicators)
-    if (userId) {
-      // Check if this is a fresh page load (not a Clerk callback/redirect)
-      // Clerk sets __clerk_status cookie during auth flow
-      const isClerkCallback = pathname.includes('/sso-callback') || 
-                              pathname.includes('/verify') ||
-                              searchParams.has('__clerk_ticket') ||
-                              searchParams.has('__clerk_status');
-      
-      // If not a Clerk callback, redirect signed-in users away from auth pages
-      if (!isClerkCallback) {
-        // Allow sign-in and sign-up pages to handle their own redirects
-        // They need to check if user exists in database first
-        const isSignUpPage = pathname.includes('/sign-up');
-        const isSignInPage = pathname.includes('/sign-in');
-        
-        // Let auth pages handle their own redirects for business users
-        // This allows them to check database before deciding where to go
-        if (!isSignUpPage && !isSignInPage) {
-          if (isBusinessAuthRoute(req)) {
-            return NextResponse.redirect(new URL(`/${locale}/business/dashboard`, req.url));
-          }
-          return NextResponse.redirect(new URL(`/${locale}`, req.url));
-        }
-      }
-    }
-    // Allow access to auth pages
-    return NextResponse.next();
-  }
+  // Create Supabase middleware client (refreshes session cookie)
+  const { supabase, response } = createMiddlewareClient(req);
 
-  // User routes - redirect to home (users don't have dashboard)
-  if (isUserRoute(req)) {
-    return NextResponse.redirect(new URL(`/${locale}`, req.url));
-  }
+  // Refresh session — this is the key call that keeps cookies alive
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  // Admin routes - require authentication (role verified on page level via API)
-  if (isAdminRoute(req)) {
-    if (!userId) {
+  const userId = user?.id || null;
+
+  // Protected routes — redirect unauthenticated users
+  if (isProtectedRoute(pathname) && !userId) {
+    const stripped = pathname.replace(/^\/[a-z]{2}/, '');
+    if (stripped.startsWith('/business/') || stripped.startsWith('/worker/') || stripped.startsWith('/admin/')) {
       return NextResponse.redirect(new URL(`/${locale}/auth/business/sign-in`, req.url));
     }
   }
 
-  // Business routes - require authentication
-  // Role verification is done on the page level via useRole hook
-  if (isBusinessRoute(req)) {
-    if (!userId) {
-      return NextResponse.redirect(new URL(`/${locale}/auth/business/sign-in`, req.url));
-    }
-  }
-
-  // Worker routes - require authentication (membership verified on page level)
-  if (isWorkerRoute(req)) {
-    if (!userId) {
-      return NextResponse.redirect(new URL(`/${locale}/auth/business/sign-in`, req.url));
-    }
-  }
-
-  return NextResponse.next();
-});
+  return response;
+}
 
 export const config = {
   matcher: [

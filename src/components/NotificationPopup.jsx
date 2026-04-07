@@ -15,7 +15,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { useParams, usePathname } from 'next/navigation';
+import { useParams, usePathname, useRouter } from 'next/navigation';
+import { translateNotification } from '@/lib/notification-translate';
 
 const TYPE_ICONS = {
   team_invite: UserPlus,
@@ -57,6 +58,7 @@ export default function NotificationPopup({ className, iconSize = 'h-5 w-5' }) {
   const { t, isRTL } = useLanguage();
   const params = useParams();
   const pathname = usePathname();
+  const router = useRouter();
   const locale = params.locale || 'en';
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
@@ -73,6 +75,8 @@ export default function NotificationPopup({ className, iconSize = 'h-5 w-5' }) {
     : isBusinessDashboard
       ? `/${locale}/business/dashboard/notifications`
       : `/${locale}/notifications`;
+
+  const isDashboard = isWorkerDashboard || isBusinessDashboard;
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -177,6 +181,12 @@ export default function NotificationPopup({ className, iconSize = 'h-5 w-5' }) {
     }
   };
 
+  const handleNotificationClick = (n) => {
+    if (!n.read_at) markAsRead(n.id);
+    setIsOpen(false);
+    router.push(`${notificationsHref}?open=${n.id}`);
+  };
+
   return (
     <div className="relative" ref={popupRef}>
       {/* Bell Button */}
@@ -187,7 +197,7 @@ export default function NotificationPopup({ className, iconSize = 'h-5 w-5' }) {
       >
         <Bell className={iconSize} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-[#0F172A]">
+          <span className="absolute -top-1 -right-1 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -210,17 +220,13 @@ export default function NotificationPopup({ className, iconSize = 'h-5 w-5' }) {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className={`fixed left-2 right-2 top-16 sd:absolute sd:top-full sd:mt-2 sd:left-auto sd:right-auto ${isRTL ? 'sd:left-0' : 'sd:right-0'} z-[100] sd:w-[340px] max-h-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl border border-gray-200 flex flex-col`}
+              className={`fixed left-2 right-2 top-16 sd:absolute sd:top-full sd:mt-2 ${isRTL && isDashboard ? 'sd:right-auto sd:left-0' : 'sd:left-auto sd:right-0'} z-[100] sd:w-[340px] max-h-[420px] overflow-hidden rounded-2xl bg-white shadow-2xl border border-gray-200 flex flex-col`}
+              dir={isRTL ? 'rtl' : 'ltr'}
             >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <h3 className="text-sm font-bold text-gray-900">
                 {t('notifications.title') || 'Notifications'}
-                {unreadCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-semibold rounded-full">
-                    {unreadCount}
-                  </span>
-                )}
               </h3>
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
@@ -262,7 +268,8 @@ export default function NotificationPopup({ className, iconSize = 'h-5 w-5' }) {
                     return (
                       <div
                         key={n.id}
-                        className={`px-4 py-3 border-b border-gray-50 transition-colors group hover:bg-gray-50/50 ${
+                        onClick={() => handleNotificationClick(n)}
+                        className={`px-4 py-3 border-b border-gray-50 transition-colors group hover:bg-gray-50/50 cursor-pointer ${
                           !n.read_at ? 'bg-blue-50/40' : ''
                         }`}
                       >
@@ -272,17 +279,17 @@ export default function NotificationPopup({ className, iconSize = 'h-5 w-5' }) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className={`text-[13px] leading-snug ${!n.read_at ? 'font-semibold' : 'font-medium'} text-gray-900 line-clamp-2`}>
-                              {n.title}
+                              {translateNotification(n, t).title}
                             </p>
                             {n.message && (
-                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{n.message}</p>
+                              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{translateNotification(n, t).message}</p>
                             )}
                             <p className="text-[11px] text-gray-400 mt-1">{formatTime(n.created_at, t)}</p>
                           </div>
                           <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                             {!n.read_at && (
                               <button
-                                onClick={() => markAsRead(n.id)}
+                                onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
                                 className="p-1 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded transition-colors"
                                 title={t('notifications.markRead') || 'Mark as read'}
                               >
@@ -290,7 +297,7 @@ export default function NotificationPopup({ className, iconSize = 'h-5 w-5' }) {
                               </button>
                             )}
                             <button
-                              onClick={() => handleDelete(n.id)}
+                              onClick={(e) => { e.stopPropagation(); handleDelete(n.id); }}
                               className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
                               title={t('notifications.delete') || 'Delete'}
                             >

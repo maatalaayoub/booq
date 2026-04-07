@@ -281,7 +281,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
   );
   
   // Create user in database immediately when component mounts
-  // With retry mechanism for cases where Clerk session isn't immediately available
+  // With retry mechanism for cases where auth session isn't immediately available
   const userCreatedRef = useRef(false);
   useEffect(() => {
     userCreatedRef.current = userCreated;
@@ -299,9 +299,9 @@ export default function BusinessOnboarding({ userName, onComplete }) {
       
       console.log('[BusinessOnboarding] Creating user in database (attempt', retryCount + 1, ')...');
       try {
-        // Get Clerk session token to pass explicitly (fixes session sync issues after fresh signup)
+        // Get auth session token to pass explicitly (fixes session sync issues after fresh signup)
         const token = await getToken();
-        console.log('[BusinessOnboarding] Got Clerk token:', token ? 'yes' : 'NO TOKEN');
+        console.log('[BusinessOnboarding] Got auth token:', token ? 'yes' : 'NO TOKEN');
         
         const response = await fetch('/api/set-role', {
           method: 'POST',
@@ -373,7 +373,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
       }
     }
     
-    // Initial delay to allow Clerk session to establish
+    // Initial delay to allow auth session to establish
     pendingTimeout = setTimeout(createUserImmediately, 500);
     
     return () => {

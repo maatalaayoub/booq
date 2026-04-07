@@ -1,4 +1,4 @@
-﻿-- Booka.ma Database Schema
+-- Booka.ma Database Schema
 -- Run this in your Supabase SQL Editor
 -- Last updated: February 2026
 
@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================
 CREATE TABLE IF NOT EXISTS users (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  clerk_id TEXT UNIQUE NOT NULL,
+  supabase_auth_id UUID UNIQUE,
   email TEXT,
   username TEXT UNIQUE,
   role TEXT NOT NULL CHECK (role IN ('user', 'business')),
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
+CREATE INDEX IF NOT EXISTS idx_users_supabase_auth_id ON users(supabase_auth_id);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
@@ -352,10 +352,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================
 -- USERS TABLE
 -- ============================================
--- Stores user roles and basic info synced from Clerk
+-- Stores user roles and basic info synced from Supabase Auth
 CREATE TABLE IF NOT EXISTS users (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-  clerk_id TEXT UNIQUE NOT NULL,
+  supabase_auth_id UUID UNIQUE,
   email TEXT,
   username TEXT UNIQUE,
   role TEXT NOT NULL CHECK (role IN ('user', 'business')),
@@ -364,8 +364,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create index for faster lookups by clerk_id
-CREATE INDEX IF NOT EXISTS idx_users_clerk_id ON users(clerk_id);
+-- Create index for faster lookups by supabase_auth_id
+CREATE INDEX IF NOT EXISTS idx_users_supabase_auth_id ON users(supabase_auth_id);
 CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
@@ -724,7 +724,7 @@ CREATE POLICY "Schedule exceptions viewable by owner"
     business_info_id IN (
       SELECT bi.id FROM business_info bi
       JOIN users u ON u.id = bi.user_id
-      WHERE u.clerk_id = auth.uid()::text
+      WHERE u.supabase_auth_id = auth.uid()
     )
   );
 
@@ -740,7 +740,7 @@ CREATE TRIGGER update_schedule_exceptions_updated_at
 CREATE TABLE IF NOT EXISTS appointments (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   business_info_id UUID REFERENCES business_info(id) ON DELETE CASCADE NOT NULL,
-  clerk_id TEXT,
+  auth_id TEXT,
   client_name TEXT NOT NULL,
   client_phone TEXT,
   client_address TEXT,
@@ -760,7 +760,7 @@ CREATE TABLE IF NOT EXISTS appointments (
 CREATE INDEX IF NOT EXISTS idx_appointments_business_info_id ON appointments(business_info_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_start_time ON appointments(start_time);
 CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
-CREATE INDEX IF NOT EXISTS idx_appointments_clerk_id ON appointments(clerk_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_auth_id ON appointments(auth_id);
 
 ALTER TABLE appointments ENABLE ROW LEVEL SECURITY;
 
@@ -771,7 +771,7 @@ CREATE POLICY "Appointments viewable by owner"
     business_info_id IN (
       SELECT bi.id FROM business_info bi
       JOIN users u ON u.id = bi.user_id
-      WHERE u.clerk_id = auth.uid()::text
+      WHERE u.supabase_auth_id = auth.uid()
     )
   );
 
@@ -820,7 +820,7 @@ CREATE TRIGGER update_business_services_updated_at
 -- Migration: remove category column from business_services
 ALTER TABLE business_services DROP COLUMN IF EXISTS category;
 
--- â”€â”€â”€ BUSINESS PUBLIC PAGE SETTINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ─── BUSINESS PUBLIC PAGE SETTINGS ──────────────────────────────────────────
 -- Stores per-business card configuration as a single JSONB document.
 -- One row per business_info record (enforced by the UNIQUE constraint).
 -- All mutations go through the service-role API route, so RLS uses the
@@ -868,7 +868,7 @@ CREATE TRIGGER trg_bcs_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- â”€â”€ Row Level Security â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- ── Row Level Security ─────────────────────────────────────────────────────
 ALTER TABLE business_card_settings ENABLE ROW LEVEL SECURITY;
 
 -- Service-role key (used by API routes) bypasses RLS entirely.
@@ -884,7 +884,7 @@ CREATE POLICY "owner can select own card settings"
       SELECT bi.id
       FROM   business_info bi
       JOIN   users u ON u.id = bi.user_id
-      WHERE  u.clerk_id = auth.uid()::text
+      WHERE  u.supabase_auth_id = auth.uid()
     )
   );
 
@@ -897,7 +897,7 @@ CREATE POLICY "owner can insert own card settings"
       SELECT bi.id
       FROM   business_info bi
       JOIN   users u ON u.id = bi.user_id
-      WHERE  u.clerk_id = auth.uid()::text
+      WHERE  u.supabase_auth_id = auth.uid()
     )
   );
 
@@ -910,7 +910,7 @@ CREATE POLICY "owner can update own card settings"
       SELECT bi.id
       FROM   business_info bi
       JOIN   users u ON u.id = bi.user_id
-      WHERE  u.clerk_id = auth.uid()::text
+      WHERE  u.supabase_auth_id = auth.uid()
     )
   )
   WITH CHECK (
@@ -918,7 +918,7 @@ CREATE POLICY "owner can update own card settings"
       SELECT bi.id
       FROM   business_info bi
       JOIN   users u ON u.id = bi.user_id
-      WHERE  u.clerk_id = auth.uid()::text
+      WHERE  u.supabase_auth_id = auth.uid()
     )
   );
 
@@ -931,7 +931,7 @@ CREATE POLICY "owner can delete own card settings"
       SELECT bi.id
       FROM   business_info bi
       JOIN   users u ON u.id = bi.user_id
-      WHERE  u.clerk_id = auth.uid()::text
+      WHERE  u.supabase_auth_id = auth.uid()
     )
   );
 
@@ -939,7 +939,7 @@ CREATE POLICY "owner can delete own card settings"
 -- MIGRATION: Allow 'admin' role
 -- ============================================
 -- The users table role CHECK constraint needs to include 'admin'.
--- Admins are ONLY created via direct DB insert â€” never through the app.
+-- Admins are ONLY created via direct DB insert — never through the app.
 ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check;
 ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN ('user', 'business', 'admin'));
 
@@ -1241,7 +1241,7 @@ CREATE POLICY "Team members viewable"
 
 
 -- ============================================
--- ALTER APPOINTMENTS — add assigned worker
+-- ALTER APPOINTMENTS � add assigned worker
 -- ============================================
 ALTER TABLE appointments
   ADD COLUMN IF NOT EXISTS assigned_worker_id UUID REFERENCES users(id) ON DELETE SET NULL;

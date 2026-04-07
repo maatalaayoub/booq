@@ -7,11 +7,11 @@ import { getCategoryTableName } from '@/lib/business';
  * Get full business context: user → business_info → category table name.
  * @returns {{ userId, businessInfoId, category, professionalType } | null}
  */
-export async function getBusinessContext(supabase, clerkId) {
+export async function getBusinessContext(supabase, authId) {
   const { data: user } = await supabase
     .from('users')
     .select('id, role')
-    .eq('clerk_id', clerkId)
+    .eq('supabase_auth_id', authId)
     .single();
 
   if (!user || user.role !== 'business') return null;

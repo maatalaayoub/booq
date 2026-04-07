@@ -17,7 +17,7 @@ export async function POST(request) {
     const { data, error } = await supabase
       .from('users')
       .update({ onboarding_completed: true })
-      .eq('clerk_id', userId)
+      .eq('supabase_auth_id', userId)
       .select('id, role, onboarding_completed')
       .single();
 
@@ -47,7 +47,7 @@ export async function GET(request) {
     const { data, error } = await supabase
       .from('users')
       .select('onboarding_completed')
-      .eq('clerk_id', userId)
+      .eq('supabase_auth_id', userId)
       .single();
 
     if (error) {

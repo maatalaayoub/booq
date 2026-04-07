@@ -16,13 +16,13 @@ import {
  */
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
 
-    // Look up internal user id from clerk_id
-    const userId = await resolveUserId(supabase, clerkId);
+    // Look up internal user id
+    const userId = await resolveUserId(supabase, authId);
     if (!userId) return apiError('User not found', 404);
 
     const { searchParams } = new URL(request.url);
@@ -50,11 +50,11 @@ export async function GET(request) {
  */
 export async function PATCH(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const userId = await resolveUserId(supabase, clerkId);
+    const userId = await resolveUserId(supabase, authId);
     if (!userId) return apiError('User not found', 404);
 
     const body = await request.json();
@@ -83,11 +83,11 @@ export async function PATCH(request) {
  */
 export async function DELETE(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const userId = await resolveUserId(supabase, clerkId);
+    const userId = await resolveUserId(supabase, authId);
     if (!userId) return apiError('User not found', 404);
 
     const body = await request.json();
@@ -106,15 +106,17 @@ export async function DELETE(request) {
 // ─── HELPER ─────────────────────────────────────────────────────────────
 
 /**
- * Resolve the internal `users.id` from a Clerk ID.
+ * Resolve the internal `users.id` from an auth provider ID.
  */
-async function resolveUserId(supabase, clerkId) {
+async function resolveUserId(supabase, authId) {
   const { data, error } = await supabase
     .from('users')
     .select('id')
-    .eq('clerk_id', clerkId)
+    .eq('supabase_auth_id', authId)
     .single();
 
+  if (data?.id) return data.id;
+
   if (error && error.code !== 'PGRST116') throw error;
-  return data?.id || null;
+  return null;
 }

@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, MapPin, Link as LinkIcon, Instagram, Twitter, Facebook, Linkedin, Edit3, BadgeCheck, Settings, Loader2, Move, Trash2, ChevronDown } from 'lucide-react';
-import { useClerk } from '@clerk/nextjs';
+// Account settings handled in-app
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useVerificationStatus } from '@/hooks/useVerificationStatus';
 
@@ -26,7 +26,6 @@ export default function ProfileHeader({
   onCoverPositionChange,
 }) {
   const { t, isRTL } = useLanguage();
-  const { openUserProfile } = useClerk();
   const { isVerified } = useVerificationStatus();
   const [isHoveringProfile, setIsHoveringProfile] = useState(false);
   const [localCoverImage, setLocalCoverImage] = useState(coverImage);
@@ -174,7 +173,7 @@ export default function ProfileHeader({
     e.target.value = '';
     setIsUploadingAvatar(true);
     try {
-      // Update Clerk profile image (shows in all Clerk UI)
+      // Update profile image in our DB
       if (user?.setProfileImage) {
         await user.setProfileImage({ file });
       }
@@ -464,7 +463,7 @@ export default function ProfileHeader({
                       <span>{t('profile.editProfile')}</span>
                     </button>
                     <button
-                      onClick={() => openUserProfile()}
+                      onClick={onEditProfile}
                       className="flex items-center justify-center w-9 h-9 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
                       title={t('profile.accountSettings')}
                     >

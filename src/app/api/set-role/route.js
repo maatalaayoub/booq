@@ -1,42 +1,18 @@
 import { NextResponse } from 'next/server';
-import { auth, currentUser, clerkClient } from '@clerk/nextjs/server';
+import { getUserId } from '@/lib/auth';
+import { createAuthServerClient } from '@/lib/supabase/auth-server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const VALID_ROLES = ['user', 'business'];
-
-// Helper: get userId either from session or Bearer token
-async function getUserId(request) {
-  // First try standard session auth
-  const { userId } = await auth();
-  if (userId) return { userId, source: 'session' };
-  
-  // Fallback: try Bearer token from Authorization header
-  const authHeader = request.headers.get('Authorization');
-  if (authHeader?.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      // Verify token using Clerk's secret key
-      const { verifyToken } = await import('@clerk/backend');
-      const payload = await verifyToken(token, {
-        secretKey: process.env.CLERK_SECRET_KEY,
-      });
-      if (payload?.sub) return { userId: payload.sub, source: 'bearer' };
-    } catch (err) {
-      console.log('[set-role] Bearer token verification failed:', err.message);
-    }
-  }
-  
-  return { userId: null, source: 'none' };
-}
 
 export async function POST(request) {
   console.log('[set-role] API called');
   
   try {
-    const { userId, source } = await getUserId(request);
-    console.log('[set-role] Clerk userId:', userId, '(source:', source + ')');
+    const authUserId = await getUserId(request);
+    console.log('[set-role] Auth userId:', authUserId);
     
-    if (!userId) {
+    if (!authUserId) {
       console.log('[set-role] No userId, returning 401');
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -57,18 +33,18 @@ export async function POST(request) {
       );
     }
 
-    // Get current user info from Clerk using the userId directly
+    // Get current user info from Supabase Auth
     let email = null;
     let firstName = null;
     let lastName = null;
     try {
-      const client = await clerkClient();
-      const clerkUser = await client.users.getUser(userId);
-      email = clerkUser?.emailAddresses?.[0]?.emailAddress || null;
-      firstName = clerkUser?.firstName || null;
-      lastName = clerkUser?.lastName || null;
+      const authClient = await createAuthServerClient();
+      const { data: { user: authUser } } = await authClient.auth.getUser();
+      email = authUser?.email || null;
+      firstName = authUser?.user_metadata?.first_name || authUser?.user_metadata?.firstName || null;
+      lastName = authUser?.user_metadata?.last_name || authUser?.user_metadata?.lastName || null;
     } catch (err) {
-      console.log('[set-role] Could not fetch Clerk user details:', err.message);
+      console.log('[set-role] Could not fetch auth user details:', err.message);
     }
     console.log('[set-role] User info:', { email, firstName, lastName });
 
@@ -117,7 +93,7 @@ export async function POST(request) {
     const { data: existingUser, error: fetchError } = await supabase
       .from('users')
       .select('id, role')
-      .eq('clerk_id', userId)
+      .eq('supabase_auth_id', authUserId)
       .single();
 
     console.log('[set-role] Existing user check:', { existingUser, fetchError });
@@ -150,12 +126,10 @@ export async function POST(request) {
     const { data: newUser, error: insertError } = await supabase
       .from('users')
       .insert({
-        clerk_id: userId,
+        supabase_auth_id: authUserId,
         email: email,
         username: username,
         role: role,
-        // Normal users have no onboarding steps, mark complete immediately
-        // Business users must complete onboarding steps first
         onboarding_completed: role === 'user' ? true : false,
       })
       .select()
@@ -170,7 +144,7 @@ export async function POST(request) {
         const { data: existingUserRetry, error: retryError } = await supabase
           .from('users')
           .select('id, role')
-          .eq('clerk_id', userId)
+          .eq('supabase_auth_id', authUserId)
           .single();
         
         if (existingUserRetry) {
@@ -231,22 +205,29 @@ export async function POST(request) {
 }
 
 // GET method to retrieve current role
-export async function GET() {
+export async function GET(request) {
   try {
-    const { userId } = await auth();
+    const authUserId = await getUserId(request);
     
-    if (!userId) {
+    if (!authUserId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-    const role = user.publicMetadata?.role || null;
+    const supabase = createServerSupabaseClient();
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('supabase_auth_id', authUserId)
+      .single();
 
-    return NextResponse.json({ role }, { status: 200 });
+    if (error && error.code !== 'PGRST116') {
+      return NextResponse.json({ error: 'Database error' }, { status: 500 });
+    }
+
+    return NextResponse.json({ role: user?.role || null }, { status: 200 });
   } catch (error) {
     console.error('Error getting role:', error);
     return NextResponse.json(

@@ -17,11 +17,11 @@ import {
  */
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     const businessHours = await getBusinessHours(supabase, ctx.businessInfoId, ctx.category);
@@ -53,11 +53,11 @@ export async function GET(request) {
  */
 export async function PUT(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) return apiError('Business not found', 404);
 
     const body = await request.json();

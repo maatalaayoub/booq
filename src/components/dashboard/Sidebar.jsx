@@ -245,7 +245,7 @@ export default function Sidebar() {
             <div className="relative flex-shrink-0">
               <item.icon className={`w-5 h-5 ${isActive(item.href) ? 'text-[#364153]' : 'text-gray-600'}`} />
               {item.badge > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#364153] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {item.badge}
                 </span>
               )}

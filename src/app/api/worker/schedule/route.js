@@ -11,11 +11,11 @@ import {
 
 // ── Helper: auth + membership ───────────────────────────────
 async function getWorkerContext(request) {
-  const clerkId = await getUserId(request);
-  if (!clerkId) return { error: apiError('Unauthorized', 401) };
+  const authId = await getUserId(request);
+  if (!authId) return { error: apiError('Unauthorized', 401) };
 
   const supabase = createServerSupabaseClient();
-  const userId = await getInternalUserId(supabase, clerkId);
+  const userId = await getInternalUserId(supabase, authId);
   if (!userId) return { error: apiError('User not found', 404) };
 
   return { supabase, userId };

@@ -32,7 +32,7 @@ export async function GET(request) {
     const { data: currentUser } = await supabase
       .from('users')
       .select('id, username')
-      .eq('clerk_id', userId)
+      .eq('supabase_auth_id', userId)
       .single();
 
     // If they're checking their own current username it's "available"

@@ -27,7 +27,7 @@ BEGIN;
 
 -- ─── USERS ──────────────────────────────────────────────────
 -- Public: usernames, roles visible for profile/listing pages
--- Private: email, clerk_id (but no column-level RLS in Supabase)
+-- Private: email (but no column-level RLS in Supabase)
 -- Fix: Remove INSERT and UPDATE policies
 DROP POLICY IF EXISTS "Allow insert users" ON users;
 DROP POLICY IF EXISTS "Allow update users" ON users;

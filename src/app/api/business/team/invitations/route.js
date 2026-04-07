@@ -1,7 +1,7 @@
 import { getUserId } from '@/lib/auth';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { apiError, apiSuccess, apiData } from '@/lib/api-response';
-import { findUserByClerkId } from '@/repositories/user';
+import { findUserByAuthId } from '@/repositories/user';
 import {
   findPendingInvitationsForUser,
   respondToInvitation,
@@ -15,11 +15,11 @@ import { createNotification } from '@/repositories/notification';
  */
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const user = await findUserByClerkId(supabase, clerkId, 'id, username');
+    const user = await findUserByAuthId(supabase, authId, 'id, username');
     if (!user) return apiError('User not found', 404);
 
     const invitations = await findPendingInvitationsForUser(supabase, user.id);
@@ -59,11 +59,11 @@ export async function GET(request) {
  */
 export async function PATCH(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const user = await findUserByClerkId(supabase, clerkId, 'id, username');
+    const user = await findUserByAuthId(supabase, authId, 'id, username');
     if (!user) return apiError('User not found', 404);
 
     const body = await request.json();
@@ -78,6 +78,18 @@ export async function PATCH(request) {
     if (!invitation) return apiError('Invitation not found or already responded', 404);
 
     if (action === 'accept') {
+      // Check if user is already a member of any business
+      const { data: existingMembership } = await supabase
+        .from('team_members')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      if (existingMembership) {
+        return apiError('You are already a member of another business', 400);
+      }
+
       // Create team member
       await createTeamMember(supabase, {
         businessInfoId: invitation.business_info_id,
@@ -92,7 +104,7 @@ export async function PATCH(request) {
         type: 'invite_accepted',
         title: 'Invitation Accepted',
         message: `${user.username} has accepted your team invitation.`,
-        data: { userId: user.id, businessInfoId: invitation.business_info_id },
+        data: { userId: user.id, businessInfoId: invitation.business_info_id, username: user.username },
       });
     } else {
       // Notify business owner of decline
@@ -101,7 +113,7 @@ export async function PATCH(request) {
         type: 'invite_declined',
         title: 'Invitation Declined',
         message: `${user.username} has declined your team invitation.`,
-        data: { userId: user.id, businessInfoId: invitation.business_info_id },
+        data: { userId: user.id, businessInfoId: invitation.business_info_id, username: user.username },
       });
     }
 

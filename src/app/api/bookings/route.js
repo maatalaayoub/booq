@@ -12,13 +12,13 @@ import { editBooking, cancelBooking, ServiceError } from '@/services/bookingServ
  */
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
-    const appointments = await findAppointmentsByUser(supabase, clerkId);
+    const appointments = await findAppointmentsByUser(supabase, authId);
 
     const results = appointments.map(apt => {
       const biz = apt.business_info;
@@ -58,8 +58,8 @@ export async function GET(request) {
  */
 export async function PATCH(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
@@ -68,7 +68,7 @@ export async function PATCH(request) {
     if (validationError) return validationResponse(validationError);
 
     const supabase = createServerSupabaseClient();
-    const updated = await editBooking(supabase, { clerkId, ...validated });
+    const updated = await editBooking(supabase, { authId, ...validated });
 
     return apiSuccess({ appointment: updated });
   } catch (err) {
@@ -86,8 +86,8 @@ export async function PATCH(request) {
  */
 export async function DELETE(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
@@ -96,7 +96,7 @@ export async function DELETE(request) {
     if (validationError) return validationResponse(validationError);
 
     const supabase = createServerSupabaseClient();
-    await cancelBooking(supabase, { clerkId, appointmentId: validated.id });
+    await cancelBooking(supabase, { authId, appointmentId: validated.id });
 
     return apiSuccess();
   } catch (err) {

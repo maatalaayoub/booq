@@ -12,7 +12,7 @@ export async function findTeamMembers(supabase, businessInfoId) {
     .select(`
       id, user_id, role, permissions, status, joined_at,
       users:users!team_members_user_id_fkey (
-        id, clerk_id, username, email,
+        id, supabase_auth_id, username, email,
         user_profile ( first_name, last_name, phone, profile_image_url )
       )
     `)

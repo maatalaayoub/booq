@@ -18,7 +18,7 @@ export async function GET(request) {
   let query = supabase
     .from('users')
     .select(`
-      id, clerk_id, email, username, role, onboarding_completed, account_status, created_at,
+      id, supabase_auth_id, email, username, role, onboarding_completed, account_status, created_at,
       user_profile ( first_name, last_name, phone, city, profile_image_url )
     `)
     .order('created_at', { ascending: false });

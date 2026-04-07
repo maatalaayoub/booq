@@ -3,16 +3,15 @@
 /**
  * Client-side auth hook.
  *
- * This is the ONLY client file that imports from @clerk/nextjs.
- * To switch auth providers, replace this file and keep the same exports.
+ * Delegates to Supabase Auth via useSupabaseAuth.
+ * Keeps the same export shape so every consumer works unchanged.
  */
-import { useUser, useAuth } from '@clerk/nextjs';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 /**
  * @returns {{ user: object|null, isLoaded: boolean, isSignedIn: boolean, getToken: function }}
  */
 export function useAuthUser() {
-  const { user, isLoaded, isSignedIn } = useUser();
-  const { getToken } = useAuth();
+  const { user, isLoaded, isSignedIn, getToken } = useSupabaseAuth();
   return { user, isLoaded, isSignedIn, getToken };
 }

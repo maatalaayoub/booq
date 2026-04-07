@@ -11,7 +11,6 @@ import {
   X,
   Check,
   Clock,
-  Shield,
   Crown,
   Trash2,
   XCircle,
@@ -21,7 +20,6 @@ import {
   Tag,
   DollarSign,
   User,
-  Copy,
 } from 'lucide-react';
 
 function TeamSkeleton() {
@@ -50,6 +48,10 @@ export default function TeamPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
+  const [removingMemberId, setRemovingMemberId] = useState(null);
+  const [removingLoading, setRemovingLoading] = useState(false);
+  const [cancellingInviteId, setCancellingInviteId] = useState(null);
+  const [cancellingLoading, setCancellingLoading] = useState(false);
   const [tab, setTab] = useState('members'); // members, invitations
 
   const fetchTeam = useCallback(async () => {
@@ -78,6 +80,7 @@ export default function TeamPage() {
   };
 
   const handleCancelInvite = async (invitationId) => {
+    setCancellingLoading(true);
     try {
       const res = await fetch('/api/business/team', {
         method: 'PATCH',
@@ -93,11 +96,14 @@ export default function TeamPage() {
       }
     } catch {
       // silent
+    } finally {
+      setCancellingLoading(false);
+      setCancellingInviteId(null);
     }
   };
 
   const handleRemoveMember = async (teamMemberId) => {
-    if (!confirm(t('team.confirmRemove') || 'Are you sure you want to remove this team member?')) return;
+    setRemovingLoading(true);
     try {
       const res = await fetch('/api/business/team', {
         method: 'PATCH',
@@ -109,6 +115,9 @@ export default function TeamPage() {
       }
     } catch {
       // silent
+    } finally {
+      setRemovingLoading(false);
+      setRemovingMemberId(null);
     }
   };
 
@@ -136,10 +145,7 @@ export default function TeamPage() {
     <div className="space-y-6" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#D4AF37]/10 rounded-lg">
-            <UsersRound className="w-6 h-6 text-[#D4AF37]" />
-          </div>
+        <div className="flex items-center justify-between sm:justify-start gap-3">
           <div>
             <h1 className="text-xl font-bold text-gray-900">
               {t('team.title') || 'Team'}
@@ -148,19 +154,25 @@ export default function TeamPage() {
               {members.length} {t('team.membersCount') || 'members'}
             </p>
           </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="sm:hidden p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            className="hidden sm:block p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
           >
             <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
-          <div className="flex-1 sm:hidden" />
           <button
             onClick={() => setShowInviteModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#D4AF37] hover:bg-[#b8962e] text-white rounded-lg text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#364153] hover:bg-[#2a3444] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
           >
             <UserPlus className="w-4 h-4" />
             {t('team.inviteWorker') || 'Invite Worker'}
@@ -191,7 +203,7 @@ export default function TeamPage() {
         >
           {t('team.invitations') || 'Invitations'}
           {pendingInvitations.length > 0 && (
-            <span className="ml-1.5 px-1.5 py-0.5 bg-yellow-100 text-yellow-600 text-xs font-semibold rounded-full">
+            <span className="ml-1.5 px-1.5 py-0.5 bg-[#364153]/10 text-[#364153] text-xs font-semibold rounded-full">
               {pendingInvitations.length}
             </span>
           )}
@@ -202,9 +214,9 @@ export default function TeamPage() {
       {loading ? (
         <TeamSkeleton />
       ) : tab === 'members' ? (
-        <MembersTab members={members} onRemove={handleRemoveMember} onEditPermissions={setEditingMember} t={t} isRTL={isRTL} />
+        <MembersTab members={members} onRemove={(id) => setRemovingMemberId(id)} onEditPermissions={setEditingMember} t={t} isRTL={isRTL} />
       ) : (
-        <InvitationsTab invitations={invitations} onCancel={handleCancelInvite} t={t} isRTL={isRTL} />
+        <InvitationsTab invitations={invitations} onCancel={(id) => setCancellingInviteId(id)} t={t} isRTL={isRTL} />
       )}
 
       {/* Invite Modal */}
@@ -229,6 +241,90 @@ export default function TeamPage() {
           t={t}
           isRTL={isRTL}
         />
+      )}
+
+      {/* Cancel Invitation Confirmation */}
+      {cancellingInviteId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm" dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <XCircle className="w-5 h-5 text-red-500" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {t('team.cancelInvite') || 'Cancel invitation'}
+                </h3>
+              </div>
+              <p className="text-sm text-gray-500">
+                {t('team.confirmCancelInvite') || 'Are you sure you want to cancel this invitation?'}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 px-6 pb-6">
+              <button
+                onClick={() => setCancellingInviteId(null)}
+                disabled={cancellingLoading}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {t('team.cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={() => handleCancelInvite(cancellingInviteId)}
+                disabled={cancellingLoading}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {cancellingLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <XCircle className="w-4 h-4" />
+                )}
+                {t('team.confirm') || 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Member Confirmation */}
+      {removingMemberId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm" dir={isRTL ? 'rtl' : 'ltr'}>
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Trash2 className="w-5 h-5 text-red-500" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {t('team.removeMember') || 'Remove member'}
+                </h3>
+              </div>
+              <p className="text-sm text-gray-500">
+                {t('team.confirmRemove') || 'Are you sure you want to remove this team member?'}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 px-6 pb-6">
+              <button
+                onClick={() => setRemovingMemberId(null)}
+                disabled={removingLoading}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {t('team.cancel') || 'Cancel'}
+              </button>
+              <button
+                onClick={() => handleRemoveMember(removingMemberId)}
+                disabled={removingLoading}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              >
+                {removingLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                {t('team.remove') || 'Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -486,7 +582,7 @@ function PermissionsModal({ member, onClose, onSave, t, isRTL }) {
                 aria-checked={!!perms[key]}
                 onClick={() => setPerms((p) => ({ ...p, [key]: !p[key] }))}
                 className={`relative w-10 h-6 rounded-full transition-colors ${
-                  perms[key] ? 'bg-[#D4AF37]' : 'bg-gray-300'
+                  perms[key] ? 'bg-[#364153]' : 'bg-gray-300'
                 }`}
               >
                 <span
@@ -512,7 +608,7 @@ function PermissionsModal({ member, onClose, onSave, t, isRTL }) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 bg-[#D4AF37] hover:bg-[#b8962e] text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-[#364153] hover:bg-[#2a3444] text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {saving && <Loader2 className="w-4 h-4 animate-spin" />}
             {t('team.savePermissions') || 'Save'}
@@ -526,40 +622,59 @@ function PermissionsModal({ member, onClose, onSave, t, isRTL }) {
 // ─── INVITE MODAL ────────────────────────────────────────────
 
 function InviteModal({ onClose, onInvited, t, isRTL }) {
-  const [username, setUsername] = useState('');
-  const [message, setMessage] = useState('');
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
-  const [userFound, setUserFound] = useState(null); // null = not searched, true/false
+  const [hasSearched, setHasSearched] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const debounceRef = useState(null);
 
-  const handleSearch = async () => {
-    const clean = username.trim().toLowerCase();
-    if (!clean || clean.length < 3) {
-      setError(t('team.usernameMinLength') || 'Username must be at least 3 characters');
+  // Debounced search
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      setHasSearched(false);
       return;
     }
-    setSearching(true);
-    setError('');
-    setUserFound(null);
-    try {
-      const res = await fetch(`/api/check-username?username=${encodeURIComponent(clean)}`);
-      if (res.ok) {
-        const data = await res.json();
-        // If available = true, user doesn't exist. If false, user exists.
-        setUserFound(!data.available);
-        if (data.available) {
-          setError(t('team.userNotFound') || 'No user found with this username');
+
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      setError('');
+      try {
+        const res = await fetch(`/api/business/team/search?q=${encodeURIComponent(trimmed)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setResults(data.results || []);
         }
+      } catch {
+        setError(t('team.searchError') || 'Error searching for users');
+      } finally {
+        setSearching(false);
+        setHasSearched(true);
       }
-    } catch {
-      setError(t('team.searchError') || 'Error searching for user');
-    } finally {
-      setSearching(false);
-    }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [query, t]);
+
+  const handleSelect = (user) => {
+    if (user.status !== 'available') return;
+    setSelectedUser(user);
+    setError('');
+  };
+
+  const handleBack = () => {
+    setSelectedUser(null);
+    setMessage('');
+    setError('');
   };
 
   const handleInvite = async () => {
+    if (!selectedUser) return;
     setSending(true);
     setError('');
     try {
@@ -567,7 +682,7 @@ function InviteModal({ onClose, onInvited, t, isRTL }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: username.trim().toLowerCase(),
+          username: selectedUser.username,
           message: message.trim() || undefined,
         }),
       });
@@ -584,14 +699,24 @@ function InviteModal({ onClose, onInvited, t, isRTL }) {
     }
   };
 
+  const STATUS_LABELS = {
+    member: t('team.alreadyMember') || 'Already a member',
+    pending: t('team.invitePending') || 'Invitation pending',
+    other_team: t('team.inOtherTeam') || 'In another team',
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md" dir={isRTL ? 'rtl' : 'ltr'}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {t('team.inviteWorker') || 'Invite Worker'}
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {selectedUser
+                ? (t('team.sendInvitation') || 'Send Invitation')
+                : (t('team.inviteWorker') || 'Invite Worker')}
+            </h2>
+          </div>
           <button
             onClick={onClose}
             className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -600,84 +725,161 @@ function InviteModal({ onClose, onInvited, t, isRTL }) {
           </button>
         </div>
 
-        {/* Body */}
-        <div className="p-4 space-y-4">
-          {/* Username search */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              {t('team.username') || 'Username'}
-            </label>
-            <div className="flex gap-2">
-              <div className="flex-1 relative">
-                <span className={`absolute top-1/2 -translate-y-1/2 text-gray-400 ${isRTL ? 'right-3' : 'left-3'}`}>@</span>
+        {!selectedUser ? (
+          <>
+            {/* Search phase */}
+            <div className="p-4 pb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                {t('team.searchWorker') || 'Search for a worker'}
+              </label>
+              <div className="relative">
+                <Search className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 ${isRTL ? 'right-3' : 'left-3'}`} />
                 <input
                   type="text"
-                  value={username}
+                  value={query}
                   onChange={(e) => {
-                    setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''));
-                    setUserFound(null);
+                    setQuery(e.target.value);
+                    setSelectedUser(null);
                     setError('');
                   }}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  placeholder={t('team.usernamePlaceholder') || 'Enter username'}
-                  className={`w-full border border-gray-300 rounded-lg py-2 ${isRTL ? 'pr-8 pl-3' : 'pl-8 pr-3'} text-sm focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37] outline-none`}
-                  maxLength={20}
+                  placeholder={t('team.searchPlaceholder') || 'Name, @username, email, or phone...'}
+                  className={`w-full border border-gray-300 rounded-lg py-2.5 ${isRTL ? 'pr-10 pl-3' : 'pl-10 pr-3'} text-sm focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37] outline-none`}
+                  autoFocus
+                />
+                {searching && (
+                  <Loader2 className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 animate-spin ${isRTL ? 'left-3' : 'right-3'}`} />
+                )}
+              </div>
+              {error && (
+                <p className="mt-1.5 text-sm text-red-500">{error}</p>
+              )}
+            </div>
+
+            {/* Results */}
+            <div className="max-h-[300px] overflow-y-auto pb-4">
+              {hasSearched && !searching && results.length === 0 ? (
+                <div className="text-center py-8 px-4">
+                  <User className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">
+                    {t('team.noResults') || 'No users found'}
+                  </p>
+                </div>
+              ) : (
+                results.map((user) => {
+                  const isDisabled = user.status !== 'available';
+                  return (
+                    <button
+                      key={user.id}
+                      onClick={() => handleSelect(user)}
+                      disabled={isDisabled}
+                      className={`w-full flex items-center gap-3 px-4 py-3 transition-colors border-b border-gray-50 last:border-0 ${
+                        isDisabled
+                          ? 'opacity-50 cursor-not-allowed bg-gray-50/50'
+                          : 'hover:bg-gray-50 cursor-pointer'
+                      }`}
+                    >
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full flex-shrink-0 overflow-hidden bg-gray-100 flex items-center justify-center">
+                        {user.avatarUrl ? (
+                          <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-[#D4AF37] to-[#B8963A] flex items-center justify-center">
+                            <span className="text-sm font-bold text-white">
+                              {(user.fullName || user.username || '?').charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {user.fullName || user.username}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          @{user.username}
+                        </p>
+                      </div>
+
+                      {/* Status badge */}
+                      {isDisabled ? (
+                        <span className="text-[11px] font-medium text-gray-400 flex-shrink-0 px-2 py-0.5 bg-gray-100 rounded-full">
+                          {STATUS_LABELS[user.status] || user.status}
+                        </span>
+                      ) : (
+                        <UserPlus className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Confirmation phase — selected user */}
+            <div className="p-4 space-y-4">
+              {/* Selected user card */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="w-11 h-11 rounded-full flex-shrink-0 overflow-hidden bg-gray-100 flex items-center justify-center">
+                  {selectedUser.avatarUrl ? (
+                    <img src={selectedUser.avatarUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-[#D4AF37] to-[#B8963A] flex items-center justify-center">
+                      <span className="text-base font-bold text-white">
+                        {(selectedUser.fullName || selectedUser.username || '?').charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">
+                    {selectedUser.fullName || selectedUser.username}
+                  </p>
+                  <p className="text-xs text-gray-500">@{selectedUser.username}</p>
+                </div>
+                <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+              </div>
+
+              {/* Optional message */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {t('team.inviteMessage') || 'Message (optional)'}
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={t('team.inviteMessagePlaceholder') || 'Add a personal message...'}
+                  className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37] outline-none resize-none"
+                  rows={3}
+                  maxLength={200}
                 />
               </div>
+
+              {error && (
+                <p className="text-sm text-red-500">{error}</p>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-100">
               <button
-                onClick={handleSearch}
-                disabled={searching || !username.trim()}
-                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                onClick={handleBack}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                {t('team.back') || 'Back'}
+              </button>
+              <button
+                onClick={handleInvite}
+                disabled={sending}
+                className="px-4 py-2 bg-[#364153] hover:bg-[#2a3444] text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {sending && <Loader2 className="w-4 h-4 animate-spin" />}
+                {t('team.sendInvite') || 'Send Invitation'}
               </button>
             </div>
-            {userFound === true && (
-              <p className="mt-1.5 text-sm text-green-600 flex items-center gap-1">
-                <Check className="w-3.5 h-3.5" />
-                {t('team.userFoundMsg') || 'User found! You can send an invitation.'}
-              </p>
-            )}
-            {error && (
-              <p className="mt-1.5 text-sm text-red-500">{error}</p>
-            )}
-          </div>
-
-          {/* Optional message */}
-          {userFound === true && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                {t('team.inviteMessage') || 'Message (optional)'}
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder={t('team.inviteMessagePlaceholder') || 'Add a personal message...'}
-                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-[#D4AF37]/30 focus:border-[#D4AF37] outline-none resize-none"
-                rows={3}
-                maxLength={200}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-gray-100">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            {t('team.cancel') || 'Cancel'}
-          </button>
-          <button
-            onClick={handleInvite}
-            disabled={!userFound || sending}
-            className="px-4 py-2 bg-[#D4AF37] hover:bg-[#b8962e] text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            {sending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {t('team.sendInvite') || 'Send Invitation'}
-          </button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

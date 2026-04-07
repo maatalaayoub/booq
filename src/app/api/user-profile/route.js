@@ -3,7 +3,7 @@ import { getUserId } from '@/lib/auth';
 import { apiError, apiSuccess, apiData, validationResponse } from '@/lib/api-response';
 import { parseBody } from '@/lib/validate';
 import { updateProfileSchema } from '@/schemas/user-profile';
-import { findUserByClerkId, isUsernameTaken, updateUser, findUserProfile, upsertUserProfile } from '@/repositories/user';
+import { findUserByAuthId, isUsernameTaken, updateUser, findUserProfile, upsertUserProfile } from '@/repositories/user';
 
 // GET - Fetch user profile data based on role
 export async function GET(request) {
@@ -15,7 +15,7 @@ export async function GET(request) {
 
     const supabase = createServerSupabaseClient();
 
-    const user = await findUserByClerkId(supabase, userId, 'id, username, role');
+    const user = await findUserByAuthId(supabase, userId, 'id, username, role');
     if (!user) {
       return apiError('User not found', 404);
     }
@@ -58,7 +58,7 @@ export async function PUT(request) {
 
     const supabase = createServerSupabaseClient();
 
-    const user = await findUserByClerkId(supabase, userId, 'id, role, username');
+    const user = await findUserByAuthId(supabase, userId, 'id, role, username');
     if (!user) {
       return apiError('User not found', 404);
     }

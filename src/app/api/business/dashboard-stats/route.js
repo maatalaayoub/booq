@@ -6,14 +6,14 @@ import { apiError, apiData } from '@/lib/api-response';
 
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Unauthorized', 401);
     }
 
     const supabase = createServerSupabaseClient();
 
-    const ctx = await getBusinessContext(supabase, clerkId);
+    const ctx = await getBusinessContext(supabase, authId);
     if (!ctx) {
       return apiError('Business not found', 404);
     }

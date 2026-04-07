@@ -21,19 +21,19 @@ export function getCategoryTableName(category) {
 // ─── SHARED BUSINESS CONTEXT LOOKUP ─────────────────────────────────────────
 
 /**
- * Look up the business context for a given Clerk user.
+ * Look up the business context for a given authenticated user.
  * Returns the core fields every business route needs.
  *
  * @param {object} supabase - Supabase client
- * @param {string} clerkId  - Clerk userId
+ * @param {string} authId  - Auth user ID
  * @returns {Promise<{userId, businessInfoId, category, professionalType} | null>}
  *          null when user is not found, not a business user, or has no business_info.
  */
-export async function getBusinessContext(supabase, clerkId) {
+export async function getBusinessContext(supabase, authId) {
   const { data: user } = await supabase
     .from('users')
     .select('id, role')
-    .eq('clerk_id', clerkId)
+    .eq('supabase_auth_id', authId)
     .single();
 
   if (!user || user.role !== 'business') return null;

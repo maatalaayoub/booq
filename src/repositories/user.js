@@ -2,14 +2,14 @@
 // Reusable data-access functions for the `users` and `user_profile` tables.
 
 /**
- * Find a user by their Clerk ID.
+ * Find a user by their Supabase Auth ID (supabase_auth_id column).
  * @returns {{ id, role, email, username, onboarding_completed, created_at } | null}
  */
-export async function findUserByClerkId(supabase, clerkId, columns = 'id, role') {
+export async function findUserByAuthId(supabase, authId, columns = 'id, role') {
   const { data, error } = await supabase
     .from('users')
     .select(columns)
-    .eq('clerk_id', clerkId)
+    .eq('supabase_auth_id', authId)
     .single();
 
   if (error && error.code !== 'PGRST116') throw error;

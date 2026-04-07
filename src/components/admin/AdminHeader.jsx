@@ -3,7 +3,7 @@
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useParams } from 'next/navigation';
-import { Menu } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminHeader() {
@@ -32,7 +32,17 @@ export default function AdminHeader() {
           <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
             {user && (
               <div className="w-9 h-9 rounded-full ring-2 ring-[#364153]/30 overflow-hidden">
-                <img src={user.imageUrl} alt={user.firstName || 'Admin'} className="w-full h-full object-cover" />
+                {user.imageUrl ? (
+                  <img src={user.imageUrl} alt={user.firstName || 'Admin'} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-[#D4AF37] to-[#B8963A] flex items-center justify-center">
+                    {user.firstName ? (
+                      <span className="text-sm font-bold text-white">{user.firstName.charAt(0).toUpperCase()}</span>
+                    ) : (
+                      <User className="w-5 h-5 text-white" />
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>

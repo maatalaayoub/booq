@@ -9,11 +9,11 @@ import { findUserTeamMemberships } from '@/repositories/team';
  */
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const userId = await getInternalUserId(supabase, clerkId);
+    const userId = await getInternalUserId(supabase, authId);
     if (!userId) return apiError('User not found', 404);
 
     const memberships = await findUserTeamMemberships(supabase, userId);

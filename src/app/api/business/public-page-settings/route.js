@@ -4,8 +4,8 @@ import { getCategoryTableName, getBusinessContext } from '@/lib/business';
 import { apiError, apiData } from '@/lib/api-response';
 
 // Extend base context with business name from category table
-async function getBusinessPageContext(supabase, clerkId) {
-  const ctx = await getBusinessContext(supabase, clerkId);
+async function getBusinessPageContext(supabase, authId) {
+  const ctx = await getBusinessContext(supabase, authId);
   if (!ctx) return null;
 
   let businessName = null;

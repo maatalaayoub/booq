@@ -51,7 +51,7 @@ export async function POST(request) {
     const { data: dbUser } = await supabase
       .from('users')
       .select('id')
-      .eq('clerk_id', userId)
+      .eq('supabase_auth_id', userId)
       .single();
 
     if (!dbUser) {

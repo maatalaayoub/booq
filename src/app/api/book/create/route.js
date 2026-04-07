@@ -7,8 +7,8 @@ import { createBooking, ServiceError } from '@/services/bookingService';
 
 export async function POST(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) {
+    const authId = await getUserId(request);
+    if (!authId) {
       return apiError('Please sign in to book an appointment', 401);
     }
 
@@ -24,7 +24,7 @@ export async function POST(request) {
     const supabase = createServerSupabaseClient();
 
     const appointment = await createBooking(supabase, {
-      clerkId, businessId, serviceIds, date, startTime, clientName, clientPhone, notes, assignedWorkerId,
+      authId, businessId, serviceIds, date, startTime, clientName, clientPhone, notes, assignedWorkerId,
     });
 
     return apiData({

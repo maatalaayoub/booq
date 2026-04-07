@@ -14,11 +14,11 @@ import { createBusinessAppointment, ServiceError } from '@/services/bookingServi
  */
 export async function GET(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const userId = await getInternalUserId(supabase, clerkId);
+    const userId = await getInternalUserId(supabase, authId);
     if (!userId) return apiError('User not found', 404);
 
     const { searchParams } = new URL(request.url);
@@ -49,11 +49,11 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const userId = await getInternalUserId(supabase, clerkId);
+    const userId = await getInternalUserId(supabase, authId);
     if (!userId) return apiError('User not found', 404);
 
     const body = await request.json();
@@ -103,11 +103,11 @@ export async function POST(request) {
  */
 export async function PUT(request) {
   try {
-    const clerkId = await getUserId(request);
-    if (!clerkId) return apiError('Unauthorized', 401);
+    const authId = await getUserId(request);
+    if (!authId) return apiError('Unauthorized', 401);
 
     const supabase = createServerSupabaseClient();
-    const userId = await getInternalUserId(supabase, clerkId);
+    const userId = await getInternalUserId(supabase, authId);
     if (!userId) return apiError('User not found', 404);
 
     const body = await request.json();
