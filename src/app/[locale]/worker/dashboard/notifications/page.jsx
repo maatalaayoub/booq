@@ -58,13 +58,13 @@ function NotificationSkeleton() {
   );
 }
 
-export default function NotificationsPage() {
+export default function WorkerNotificationsPage() {
   const { t, isRTL } = useLanguage();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState('all'); // all, unread
+  const [filter, setFilter] = useState('all');
 
   const fetchNotifications = useCallback(async () => {
     try {

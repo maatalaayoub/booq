@@ -11,6 +11,7 @@ import {
   User,
   Shield,
 } from 'lucide-react';
+import AppointmentDetailModal from '@/components/dashboard/AppointmentDetailModal';
 
 export default function WorkerDashboardPage() {
   const { t, isRTL } = useLanguage();
@@ -18,6 +19,7 @@ export default function WorkerDashboardPage() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
 
   const fetchAppointments = useCallback(async () => {
     if (!activeMembership?.businessInfoId) return;
@@ -65,6 +67,45 @@ export default function WorkerDashboardPage() {
   const upcoming = appointments
     .filter((a) => a.start_time > now && a.status !== 'cancelled')
     .slice(0, 5);
+
+  // Convert appointment to modal format
+  const toModalFormat = (appt) => ({
+    id: appt.id,
+    title: appt.client_name || 'Client',
+    start: appt.start_time,
+    end: appt.end_time,
+    extendedProps: {
+      status: appt.status,
+      client: appt.client_name,
+      service: appt.service,
+      phone: appt.client_phone,
+      notes: appt.notes,
+      price: appt.price,
+      clientAddress: appt.client_address,
+      businessInfoId: activeMembership?.businessInfoId,
+      rescheduled_by: appt.rescheduled_by,
+      previous_start_time: appt.previous_start_time,
+      previous_end_time: appt.previous_end_time,
+    },
+  });
+
+  // Worker appointment actions via worker API
+  const updateAppointmentStatus = async (id, status) => {
+    try {
+      const res = await fetch('/api/worker/appointments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, businessId: activeMembership?.businessInfoId, status }),
+      });
+      if (res.ok) fetchAppointments();
+    } catch (err) {
+      console.error('Failed to update appointment:', err);
+    }
+  };
+
+  const handleConfirm = (id) => updateAppointmentStatus(id, 'confirmed');
+  const handleComplete = (id) => updateAppointmentStatus(id, 'completed');
+  const handleCancel = (id) => updateAppointmentStatus(id, 'cancelled');
 
   const permList = [
     { key: 'canManageAppointments', label: t('team.perm.canManageAppointments') || 'Manage Appointments' },
@@ -165,7 +206,7 @@ export default function WorkerDashboardPage() {
                   hour: '2-digit', minute: '2-digit',
                 });
                 return (
-                  <div key={appt.id} className="px-4 py-3 flex items-center gap-3">
+                  <div key={appt.id} className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-gray-50 transition-colors" onClick={() => setSelectedBooking(appt)}>
                     <div className="flex-shrink-0">
                       <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
                         <User className="w-4 h-4 text-gray-500" />
@@ -199,6 +240,19 @@ export default function WorkerDashboardPage() {
           )}
         </div>
       )}
+
+      {/* Appointment Detail Modal */}
+      <AppointmentDetailModal
+        appointment={selectedBooking ? toModalFormat(selectedBooking) : null}
+        isOpen={!!selectedBooking}
+        onClose={() => setSelectedBooking(null)}
+        onConfirm={async (id) => { await handleConfirm(id); }}
+        onComplete={async (id) => { await handleComplete(id); }}
+        onCancel={async (id) => { await handleCancel(id); }}
+        onReschedule={() => { setSelectedBooking(null); fetchAppointments(); }}
+        mode="worker"
+        businessId={activeMembership?.businessInfoId}
+      />
 
       {/* Permissions overview */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">

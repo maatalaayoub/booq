@@ -170,38 +170,40 @@ export default function NotificationsPage() {
   // Not signed in
   if (isLoaded && !isSignedIn) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Bell className="w-8 h-8 text-gray-400" />
+          <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+            <Bell className="w-9 h-9 text-gray-300" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          <h2 className="text-lg font-bold text-gray-800 mb-1">
             {t('notifications.signInRequired') || 'Sign in to view notifications'}
           </h2>
-          <button
-            onClick={() => router.push(`/${locale}/auth/user/sign-in`)}
-            className="mt-3 px-6 py-2.5 bg-[#244C70] text-white rounded-lg text-sm font-medium hover:bg-[#1a3a57] transition-colors"
-          >
-            {t('login') || 'Sign In'}
-          </button>
+          <p className="text-[14px] text-gray-400 max-w-xs">{t('notifications.signInDesc') || 'Sign in to see your notifications.'}</p>
+          <div className="flex gap-3 mt-6 justify-center">
+            <button
+              onClick={() => router.push(`/${locale}/auth/user/sign-in`)}
+              className="rounded-full border border-gray-200 bg-white px-6 py-2.5 text-sm font-semibold text-[#0F172A] transition-all hover:border-[#D4AF37]"
+            >
+              {t('login') || 'Sign In'}
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" dir={isRTL ? 'rtl' : 'ltr'}>
-      {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-3">
+    <div className={`min-h-screen bg-white ${isRTL ? 'rtl' : 'ltr'}`}>
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-20">
+        <div className="px-4 py-3.5 flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="p-2 -ml-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            className="hidden sd:flex w-9 h-9 rounded-xl bg-gray-100 items-center justify-center hover:bg-gray-200 transition-colors"
           >
-            <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
+            <ArrowLeft className={`w-4.5 h-4.5 text-gray-700 ${isRTL ? 'rotate-180' : ''}`} />
           </button>
-          <div className="flex items-center gap-2 flex-1">
-            <Bell className="w-5 h-5 text-[#D4AF37]" />
+          <div className="flex-1 flex items-center gap-2">
             <h1 className="text-lg font-bold text-gray-900">
               {t('notifications.title') || 'Notifications'}
             </h1>
@@ -212,22 +214,23 @@ export default function NotificationsPage() {
             )}
           </div>
           <div className="flex items-center gap-1">
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-            >
-              <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="p-2 text-[#D4AF37] hover:bg-[#D4AF37]/10 rounded-lg transition-colors"
+                className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
                 title={t('notifications.markAllRead') || 'Mark all read'}
               >
-                <CheckCheck className="w-4 h-4" />
+                <CheckCheck className="w-4 h-4 text-gray-600" />
               </button>
             )}
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50"
+              title={t('common.refresh') || 'Refresh'}
+            >
+              <RotateCw className={`w-4 h-4 text-gray-600 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
       </div>

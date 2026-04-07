@@ -57,7 +57,7 @@ export default function WorkerSidebar({ permissions = {} }) {
     },
     {
       icon: Calendar,
-      label: t('worker.sidebar.appointments') || 'My Appointments',
+      label: t('dashboard.sidebar.appointments') || 'Bookings',
       href: `/${locale}/worker/dashboard/appointments`,
       always: true,
     },
@@ -118,12 +118,12 @@ export default function WorkerSidebar({ permissions = {} }) {
             onClick={forMobile ? () => setMobileOpen(false) : undefined}
             className={`flex items-center gap-3 px-2 py-2.5 rounded-lg transition-colors duration-200 ${
               isActive(item.href)
-                ? 'bg-[#364153]/10 text-[#364153]'
-                : 'text-[#364153]/70 hover:bg-[#364153]/5 hover:text-[#364153]'
+                ? 'bg-[#364153]/10 text-[#364153] font-semibold'
+                : 'text-gray-700 hover:bg-[#364153]/5 hover:text-[#364153]'
             }`}
             title={(!forMobile && !isExpanded) ? item.label : undefined}
           >
-            <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive(item.href) ? 'text-[#364153]' : 'text-[#364153]/50'}`} />
+            <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive(item.href) ? 'text-[#364153]' : 'text-gray-600'}`} />
             <span className={`font-medium text-sm whitespace-nowrap transition-all duration-300 ${
               (!forMobile && !isExpanded) ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'
             }`}>
@@ -139,13 +139,13 @@ export default function WorkerSidebar({ permissions = {} }) {
             onClick={forMobile ? () => setMobileOpen(false) : undefined}
             className={`flex items-center gap-3 px-2 py-2.5 rounded-lg transition-colors duration-200 ${
               isActive(item.href)
-                ? 'bg-[#364153]/10 text-[#364153]'
-                : 'text-[#364153]/70 hover:bg-[#364153]/5 hover:text-[#364153]'
+                ? 'bg-[#364153]/10 text-[#364153] font-semibold'
+                : 'text-gray-700 hover:bg-[#364153]/5 hover:text-[#364153]'
             }`}
             title={(!forMobile && !isExpanded) ? item.label : undefined}
           >
             <div className="relative flex-shrink-0">
-              <item.icon className={`w-5 h-5 ${isActive(item.href) ? 'text-[#364153]' : 'text-[#364153]/50'}`} />
+              <item.icon className={`w-5 h-5 ${isActive(item.href) ? 'text-[#364153]' : 'text-gray-600'}`} />
               {item.badge > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#364153] text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                   {item.badge}

@@ -144,7 +144,10 @@ export default function WorkerSchedulePage() {
     if (data.workerHours && data.workerHours.length > 0) {
       const merged = DAY_KEYS.map((_, i) => {
         const existing = data.workerHours.find((w) => w.dayOfWeek === i);
-        return existing || { dayOfWeek: i, isOpen: false, openTime: '09:00', closeTime: '19:00' };
+        if (existing) {
+          return { ...existing, openTime: (existing.openTime || '09:00').substring(0, 5), closeTime: (existing.closeTime || '19:00').substring(0, 5) };
+        }
+        return { dayOfWeek: i, isOpen: false, openTime: '09:00', closeTime: '19:00' };
       });
       setWorkerHours(merged);
       savedWorkerRef.current = JSON.parse(JSON.stringify(merged));
@@ -155,8 +158,8 @@ export default function WorkerSchedulePage() {
       const defaultWorker = bh.map((b) => ({
         dayOfWeek: b.dayOfWeek,
         isOpen: b.isOpen,
-        openTime: b.openTime || '09:00',
-        closeTime: b.closeTime || '19:00',
+        openTime: (b.openTime || '09:00').substring(0, 5),
+        closeTime: (b.closeTime || '19:00').substring(0, 5),
       }));
       setWorkerHours(defaultWorker);
       savedWorkerRef.current = JSON.parse(JSON.stringify(defaultWorker));
@@ -290,12 +293,15 @@ export default function WorkerSchedulePage() {
   // ── Change count ──
   const changeCount = useMemo(() => {
     if (!savedWorkerRef.current) return 0;
+    const norm = (t) => (t || '').substring(0, 5);
     let count = 0;
     for (let i = 0; i < workerHours.length; i++) {
       const curr = workerHours[i];
       const orig = savedWorkerRef.current[i];
       if (!orig) { count++; continue; }
-      if (curr.isOpen !== orig.isOpen || curr.openTime !== orig.openTime || curr.closeTime !== orig.closeTime) {
+      if (curr.isOpen !== orig.isOpen) {
+        count++;
+      } else if (curr.isOpen && (norm(curr.openTime) !== norm(orig.openTime) || norm(curr.closeTime) !== norm(orig.closeTime))) {
         count++;
       }
     }

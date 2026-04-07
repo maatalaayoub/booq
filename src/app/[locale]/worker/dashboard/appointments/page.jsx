@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import {
+  Plus,
   CalendarDays,
   List,
   Clock,
@@ -17,8 +18,10 @@ import {
   RotateCw,
 } from 'lucide-react';
 import AppointmentDetailModal from '@/components/dashboard/AppointmentDetailModal';
+import NewAppointmentModal from '@/components/dashboard/NewAppointmentModal';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useWorker } from '@/contexts/WorkerContext';
+import { useBusinessCategory } from '@/contexts/BusinessCategoryContext';
 
 // Dynamic import of the FullCalendar wrapper to avoid SSR issues
 const FullCalendarWrapper = dynamic(
@@ -60,7 +63,7 @@ function toCalendarEvent(apt) {
     end: apt.end_time,
     backgroundColor: colors.bg,
     borderColor: colors.border,
-    editable: false,
+    editable: apt.status !== 'confirmed' && apt.status !== 'completed' && apt.status !== 'cancelled',
     extendedProps: {
       client: apt.client_name,
       phone: apt.client_phone || '',
@@ -111,15 +114,47 @@ function FilterPill({ label, active, onClick, color }) {
   );
 }
 
+// ─── Overlap helper ─────────────────────────────────────────
+function timesOverlap(startA, endA, startB, endB) {
+  return startA < endB && endA > startB;
+}
+
+// Parse a date string into { date, time } parts (use UTC to match stored times)
+function parseDateAndTime(dateStr) {
+  if (!dateStr) {
+    const now = new Date();
+    return { date: now.toISOString().split('T')[0], time: '09:00' };
+  }
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) {
+    return { date: dateStr.split('T')[0], time: '09:00' };
+  }
+  const hours = d.getUTCHours().toString().padStart(2, '0');
+  const minutes = d.getUTCMinutes().toString().padStart(2, '0');
+  const time = (hours === '00' && minutes === '00') ? '09:00' : `${hours}:${minutes}`;
+  return { date: d.toISOString().split('T')[0], time };
+}
+
+function computeEndTime(startTime, durationMinutes) {
+  const [h, m] = startTime.split(':').map(Number);
+  const total = h * 60 + m + durationMinutes;
+  return `${String(Math.floor(total / 60) % 24).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 // ─── Main Component ─────────────────────────────────────────
 export default function WorkerAppointmentsPage() {
   const { t, isRTL, locale } = useLanguage();
   const { activeMembership, permissions } = useWorker();
+  const { businessCategory } = useBusinessCategory();
   const calendarRef = useRef(null);
   const [events, setEvents] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isNewOpen, setIsNewOpen] = useState(false);
+  const [newDefaultDate, setNewDefaultDate] = useState(null);
+  const [newDefaultEndDate, setNewDefaultEndDate] = useState(null);
   const [currentView, setCurrentView] = useState('timeGridWeek');
   const [statusFilter, setStatusFilter] = useState('all');
   const [visibleRange, setVisibleRange] = useState({ start: null, end: null });
@@ -275,6 +310,226 @@ export default function WorkerAppointmentsPage() {
   const handleConfirmAppointment = useCallback((eventId) => handleStatusChange(eventId, 'confirmed'), [handleStatusChange]);
   const handleCancelAppointment = useCallback((eventId) => handleStatusChange(eventId, 'cancelled'), [handleStatusChange]);
 
+  // ── Single tap on empty slot => open new ──
+  const handleDateClick = useCallback((info) => {
+    const now = new Date();
+    const clickedDate = new Date(info.dateStr);
+    if (info.allDay) {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (clickedDate < todayStart) {
+        showToast(t('appointments.toast.pastDate'));
+        return;
+      }
+    } else {
+      if (clickedDate < now) {
+        showToast(t('appointments.toast.pastDateTime'));
+        return;
+      }
+    }
+    setNewDefaultDate(info.dateStr);
+    setNewDefaultEndDate(null);
+    setIsNewOpen(true);
+  }, [showToast, t]);
+
+  // ── Drag select => open new with range ──
+  const handleSelect = useCallback((info) => {
+    const now = new Date();
+    const selectedStart = new Date(info.startStr);
+    if (info.allDay) {
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      if (selectedStart < todayStart) {
+        showToast(t('appointments.toast.pastDate'));
+        const api = calendarRef.current?.getApi();
+        if (api) api.unselect();
+        return;
+      }
+    } else {
+      if (selectedStart < now) {
+        showToast(t('appointments.toast.pastDateTime'));
+        const api = calendarRef.current?.getApi();
+        if (api) api.unselect();
+        return;
+      }
+    }
+    setNewDefaultDate(info.startStr);
+    setNewDefaultEndDate(info.endStr);
+    setIsNewOpen(true);
+    const api = calendarRef.current?.getApi();
+    if (api) api.unselect();
+  }, [showToast, t]);
+
+  // ── Drag & drop => reschedule ──
+  const handleEventDrop = useCallback(async (info) => {
+    if (info.event.start < new Date()) {
+      showToast(t('appointments.toast.movePast'));
+      info.revert();
+      return;
+    }
+    const status = info.event.extendedProps?.status;
+    if (status === 'confirmed') {
+      showToast(t('appointments.toast.confirmedNoMove'));
+      info.revert();
+      return;
+    }
+    if (status === 'completed' || status === 'cancelled') {
+      info.revert();
+      return;
+    }
+    const dropStart = info.event.start;
+    const dropEnd = info.event.end || dropStart;
+    const hasOverlap = events.some((e) => {
+      if (e.id === info.event.id) return false;
+      if (e.extendedProps?.status === 'cancelled') return false;
+      return timesOverlap(dropStart, dropEnd, new Date(e.start), new Date(e.end));
+    });
+    if (hasOverlap) {
+      showToast(t('appointments.toast.overlap'));
+      info.revert();
+      return;
+    }
+    const newStart = info.event.start.toISOString();
+    const newEnd = info.event.end?.toISOString() || newStart;
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === info.event.id ? { ...e, start: newStart, end: newEnd } : e
+      )
+    );
+    const api = calendarRef.current?.getApi();
+    if (api) api.gotoDate(info.event.start);
+    try {
+      const res = await fetch('/api/worker/appointments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: info.event.id, businessId, start_time: newStart, end_time: newEnd }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || t('appointments.toast.overlap'));
+        info.revert();
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === info.event.id ? { ...e, start: info.oldEvent.start.toISOString(), end: info.oldEvent.end?.toISOString() || info.oldEvent.start.toISOString() } : e
+          )
+        );
+      }
+    } catch (err) {
+      console.error('[Worker Appointments] Drop update failed:', err);
+      info.revert();
+    }
+  }, [showToast, events, businessId, t]);
+
+  // ── Resize ──
+  const handleEventResize = useCallback(async (info) => {
+    if (info.event.start < new Date()) {
+      showToast(t('appointments.toast.resizePast'));
+      info.revert();
+      return;
+    }
+    const status = info.event.extendedProps?.status;
+    if (status === 'confirmed') {
+      showToast(t('appointments.toast.confirmedNoResize'));
+      info.revert();
+      return;
+    }
+    if (status === 'completed' || status === 'cancelled') {
+      info.revert();
+      return;
+    }
+    const resizeStart = info.event.start;
+    const resizeEnd = info.event.end || resizeStart;
+    const hasOverlap = events.some((e) => {
+      if (e.id === info.event.id) return false;
+      if (e.extendedProps?.status === 'cancelled') return false;
+      return timesOverlap(resizeStart, resizeEnd, new Date(e.start), new Date(e.end));
+    });
+    if (hasOverlap) {
+      showToast(t('appointments.toast.overlap'));
+      info.revert();
+      return;
+    }
+    const newStart = info.event.start.toISOString();
+    const newEnd = info.event.end?.toISOString() || newStart;
+    setEvents((prev) =>
+      prev.map((e) =>
+        e.id === info.event.id ? { ...e, start: newStart, end: newEnd } : e
+      )
+    );
+    try {
+      const res = await fetch('/api/worker/appointments', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: info.event.id, businessId, start_time: newStart, end_time: newEnd }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showToast(data.error || t('appointments.toast.overlap'));
+        info.revert();
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === info.event.id ? { ...e, start: info.oldEvent.start.toISOString(), end: info.oldEvent.end?.toISOString() || info.oldEvent.start.toISOString() } : e
+          )
+        );
+      }
+    } catch (err) {
+      console.error('[Worker Appointments] Resize update failed:', err);
+      info.revert();
+    }
+  }, [showToast, events, businessId, t]);
+
+  // ── Add new event (save to DB) ──
+  const handleAddEvent = useCallback(async (eventData) => {
+    if (new Date(eventData.start) < new Date()) {
+      showToast(t('appointments.toast.pastDateTime'));
+      return;
+    }
+    const newStart = new Date(eventData.start);
+    const newEnd = new Date(eventData.end);
+    const hasOverlap = events.some((e) => {
+      if (e.extendedProps?.status === 'cancelled') return false;
+      return timesOverlap(newStart, newEnd, new Date(e.start), new Date(e.end));
+    });
+    if (hasOverlap) {
+      showToast(t('appointments.toast.overlap'));
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/worker/appointments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          businessId,
+          client_name: eventData.extendedProps.client,
+          client_phone: eventData.extendedProps.phone,
+          client_address: eventData.extendedProps.clientAddress,
+          service: eventData.extendedProps.service,
+          price: eventData.extendedProps.price,
+          start_time: eventData.start,
+          end_time: eventData.end,
+          status: eventData.extendedProps.status || 'confirmed',
+          notes: eventData.extendedProps.notes,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const appt = data.data?.appointment || data.appointment;
+        if (appt) {
+          const calendarEvent = toCalendarEvent(appt);
+          setEvents((prev) => [...prev, calendarEvent]);
+        }
+        setIsNewOpen(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.error || t('appointments.toast.saveFailed'));
+      }
+    } catch (err) {
+      console.error('[Worker Appointments] Save error:', err);
+      showToast(t('appointments.toast.saveFailed'));
+    } finally {
+      setIsSaving(false);
+    }
+  }, [showToast, events, businessId, t]);
+
   // ── View buttons config ──
   const views = [
     { key: 'timeGridDay', icon: Clock, label: t('common.day') },
@@ -303,21 +558,33 @@ export default function WorkerAppointmentsPage() {
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {t('worker.appointments') || 'My Appointments'}
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('appointments.title')}</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            {t('worker.appointmentsSubtitle') || 'View and manage your assigned appointments'}
+            {t('appointments.subtitle')}
           </p>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
-          title={t('common.refresh') || 'Refresh'}
-        >
-          <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <div className="flex-1 sm:hidden" />
+          <button
+            onClick={() => {
+              setNewDefaultDate(null);
+              setNewDefaultEndDate(null);
+              setIsNewOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#364153] hover:bg-[#2a3444] text-white rounded-[5px] font-medium text-sm transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            {t('appointments.new')}
+          </button>
+        </div>
       </div>
 
       {/* ── Stats Row ── */}
@@ -449,6 +716,10 @@ export default function WorkerAppointmentsPage() {
               locale={locale}
               noEventsText={t('common.no_events')}
               onEventClick={handleEventClick}
+              onDateClick={handleDateClick}
+              onSelect={handleSelect}
+              onEventDrop={handleEventDrop}
+              onEventResize={handleEventResize}
               onDatesSet={handleDatesSet}
             />
           )}
@@ -469,6 +740,16 @@ export default function WorkerAppointmentsPage() {
         }}
         mode="worker"
         businessId={businessId}
+      />
+
+      <NewAppointmentModal
+        isOpen={isNewOpen}
+        onClose={() => setIsNewOpen(false)}
+        onSave={handleAddEvent}
+        defaultDate={newDefaultDate}
+        defaultEndDate={newDefaultEndDate}
+        isSaving={isSaving}
+        businessCategory={businessCategory}
       />
 
       {/* ── Toast ── */}

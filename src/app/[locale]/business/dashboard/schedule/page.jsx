@@ -20,10 +20,14 @@ import {
   RotateCw,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   List,
   Check,
   AlertTriangle,
   Pencil,
+  Users,
+  Crown,
+  User,
 } from 'lucide-react';
 import AddExceptionModal from '@/components/dashboard/AddExceptionModal';
 import ExceptionDetailModal from '@/components/dashboard/ExceptionDetailModal';
@@ -131,7 +135,7 @@ export default function SchedulePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalDefaultDate, setModalDefaultDate] = useState(null);
   const [editingException, setEditingException] = useState(null);
-  const [activeTab, setActiveTab] = useState('hours'); // 'hours' | 'calendar'
+  const [activeTab, setActiveTab] = useState('hours'); // 'hours' | 'workerHours' | 'calendar'
   const [currentView, setCurrentView] = useState('dayGridMonth');
   const [deletingId, setDeletingId] = useState(null);
   const [selectedExc, setSelectedExc] = useState(null);
@@ -140,6 +144,26 @@ export default function SchedulePage() {
   const [pendingNavUrl, setPendingNavUrl] = useState(null);
   const savedHoursRef = useRef(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  // ── Team member schedule state ──
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [selectedWorkerId, setSelectedWorkerId] = useState(null);
+  const [workerSchedule, setWorkerSchedule] = useState(null);
+  const [workerBusinessHours, setWorkerBusinessHours] = useState([]);
+  const [loadingWorkerSchedule, setLoadingWorkerSchedule] = useState(false);
+  const [savingWorkerSchedule, setSavingWorkerSchedule] = useState(false);
+  const [workerSaveStatus, setWorkerSaveStatus] = useState(null);
+  const [hasCustomSchedule, setHasCustomSchedule] = useState(false);
+  const [workerDropdownOpen, setWorkerDropdownOpen] = useState(false);
+  const workerDropdownRef = useRef(null);
+
+  const WORKER_DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const DEFAULT_WORKER_WEEK = WORKER_DAY_KEYS.map((_, i) => ({
+    dayOfWeek: i,
+    isOpen: i >= 1 && i <= 5,
+    openTime: '09:00',
+    closeTime: '18:00',
+  }));
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -183,6 +207,108 @@ export default function SchedulePage() {
     }
     fetchSchedule();
   }, []);
+
+  // ── Fetch team members ──
+  useEffect(() => {
+    async function fetchTeam() {
+      try {
+        const res = await fetch('/api/business/team');
+        if (res.ok) {
+          const data = await res.json();
+          setTeamMembers((data.members || []).filter(m => m.role === 'owner' || m.role === 'worker'));
+        }
+      } catch {
+        // silent
+      }
+    }
+    fetchTeam();
+  }, []);
+
+  // ── Close worker dropdown on outside click ──
+  useEffect(() => {
+    function handleClick(e) {
+      if (workerDropdownRef.current && !workerDropdownRef.current.contains(e.target)) {
+        setWorkerDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // ── Load worker schedule when selected ──
+  const loadWorkerSchedule = useCallback(async (workerId) => {
+    setLoadingWorkerSchedule(true);
+    setWorkerSaveStatus(null);
+    try {
+      const res = await fetch(`/api/business/team/schedules?workerId=${workerId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.businessHours) setWorkerBusinessHours(data.businessHours);
+        if (data.schedule && data.schedule.length > 0) {
+          const merged = WORKER_DAY_KEYS.map((_, i) => {
+            const existing = data.schedule.find(s => s.day_of_week === i);
+            return existing ? {
+              dayOfWeek: i,
+              isOpen: existing.is_open,
+              openTime: existing.open_time?.substring(0, 5) || '09:00',
+              closeTime: existing.close_time?.substring(0, 5) || '18:00',
+            } : { dayOfWeek: i, isOpen: false, openTime: '09:00', closeTime: '18:00' };
+          });
+          setWorkerSchedule(merged);
+          setHasCustomSchedule(true);
+        } else {
+          setWorkerSchedule(DEFAULT_WORKER_WEEK);
+          setHasCustomSchedule(false);
+        }
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoadingWorkerSchedule(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (selectedWorkerId) {
+      loadWorkerSchedule(selectedWorkerId);
+    } else {
+      setWorkerSchedule(null);
+      setHasCustomSchedule(false);
+    }
+  }, [selectedWorkerId, loadWorkerSchedule]);
+
+  const saveWorkerSchedule = async () => {
+    if (!selectedWorkerId || !workerSchedule) return;
+    setSavingWorkerSchedule(true);
+    setWorkerSaveStatus(null);
+    try {
+      const res = await fetch('/api/business/team/schedules', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId: selectedWorkerId, schedule: workerSchedule }),
+      });
+      if (res.ok) {
+        setWorkerSaveStatus('saved');
+        setHasCustomSchedule(true);
+        setTimeout(() => setWorkerSaveStatus(null), 3000);
+      } else {
+        setWorkerSaveStatus('error');
+      }
+    } catch {
+      setWorkerSaveStatus('error');
+    } finally {
+      setSavingWorkerSchedule(false);
+    }
+  };
+
+  const updateWorkerDay = (dayIndex, field, value) => {
+    setWorkerSchedule(prev => prev?.map(d =>
+      d.dayOfWeek === dayIndex ? { ...d, [field]: value } : d
+    ) || null);
+  };
+
+  const selectedMember = teamMembers.find(m => m.user_id === selectedWorkerId);
+  const selectedMemberRole = selectedMember?.role;
 
   // ── Save working hours ──
   const saveHours = async () => {
@@ -548,7 +674,18 @@ export default function SchedulePage() {
           }`}
         >
           <Clock className="w-4 h-4" />
-          {t('schedule.workingHours')}
+          {t('schedule.activityHoursTab')}
+        </button>
+        <button
+          onClick={() => setActiveTab('workerHours')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-[5px] text-sm font-medium transition-all ${
+            activeTab === 'workerHours'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          {t('schedule.workerHoursTab')}
         </button>
         <button
           onClick={() => setActiveTab('calendar')}
@@ -575,7 +712,10 @@ export default function SchedulePage() {
           {/* Working Hours Card */}
           <div className="bg-white rounded-[5px] border border-gray-200 overflow-hidden">
             <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-base font-semibold text-gray-900">{t('schedule.weeklyHours')}</h2>
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">{t('schedule.weeklyHours')}</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{t('schedule.weeklyHoursDesc')}</p>
+              </div>
               <button
                 onClick={saveHours}
                 disabled={!hasChanges || saving}
@@ -719,6 +859,243 @@ export default function SchedulePage() {
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </div>
+
+        </motion.div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════
+          TAB: Worker Hours
+          ═══════════════════════════════════════════════════════════ */}
+      {activeTab === 'workerHours' && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-6"
+        >
+          <div className="bg-white rounded-[5px] border border-gray-200">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
+              <div className="flex items-center gap-2 mb-0.5">
+                <Users className="w-4 h-4 text-[#D4AF37]" />
+                <h2 className="text-base font-semibold text-gray-900">{t('schedule.teamSchedules')}</h2>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">{t('schedule.teamSchedulesDesc')}</p>
+            </div>
+
+            {teamMembers.length === 0 ? (
+              <div className="px-4 sm:px-6 py-10 text-center">
+                <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">{t('schedule.noTeamMembers')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('schedule.noTeamMembersHint')}</p>
+              </div>
+            ) : (
+              <div className="px-4 sm:px-6 py-4">
+                {/* Member selector */}
+                <div className="relative" ref={workerDropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setWorkerDropdownOpen(!workerDropdownOpen)}
+                    className="w-full flex items-center gap-3 border border-gray-200 rounded-[5px] p-2.5 text-sm focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 outline-none bg-white text-left"
+                  >
+                    {selectedWorkerId ? (() => {
+                      const m = teamMembers.find(m => m.user_id === selectedWorkerId);
+                      if (!m) return <span className="text-gray-400">{t('schedule.selectMember')}</span>;
+                      const profile = m.users?.user_profile;
+                      const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || m.users?.username || 'Member';
+                      const avatarUrl = profile?.profile_image_url;
+                      return (
+                        <>
+                          <div className="w-7 h-7 rounded-full flex-shrink-0 overflow-hidden bg-gray-100 flex items-center justify-center">
+                            {avatarUrl ? (
+                              <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                            ) : m.role === 'owner' ? (
+                              <Crown className="w-3.5 h-3.5 text-amber-600" />
+                            ) : (
+                              <User className="w-3.5 h-3.5 text-gray-400" />
+                            )}
+                          </div>
+                          <span className="flex-1 truncate font-medium text-gray-900">{name}</span>
+                          <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full ${
+                            m.role === 'owner' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+                          }`}>
+                            {m.role === 'owner' ? t('schedule.ownerRole') : t('schedule.workerRole')}
+                          </span>
+                        </>
+                      );
+                    })() : (
+                      <>
+                        <div className="w-7 h-7 rounded-full flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                          <Users className="w-3.5 h-3.5 text-gray-400" />
+                        </div>
+                        <span className="flex-1 text-gray-400">{t('schedule.selectMember')}</span>
+                      </>
+                    )}
+                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${workerDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {workerDropdownOpen && (
+                    <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-[5px] shadow-lg py-1 max-h-60 overflow-y-auto">
+                      {teamMembers.map(m => {
+                        const profile = m.users?.user_profile;
+                        const name = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || m.users?.username || 'Member';
+                        const avatarUrl = profile?.profile_image_url;
+                        const isSelected = selectedWorkerId === m.user_id;
+                        return (
+                          <button
+                            key={m.user_id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedWorkerId(m.user_id);
+                              setWorkerDropdownOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-colors ${
+                              isSelected ? 'bg-amber-50' : 'hover:bg-gray-50'
+                            }`}
+                          >
+                            <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden bg-gray-100 flex items-center justify-center">
+                              {avatarUrl ? (
+                                <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+                              ) : m.role === 'owner' ? (
+                                <Crown className="w-4 h-4 text-amber-600" />
+                              ) : (
+                                <User className="w-4 h-4 text-gray-400" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0 text-start">
+                              <p className={`font-medium truncate ${isSelected ? 'text-amber-900' : 'text-gray-900'}`}>{name}</p>
+                            </div>
+                            <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded-full ${
+                              m.role === 'owner' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+                            }`}>
+                              {m.role === 'owner' ? t('schedule.ownerRole') : t('schedule.workerRole')}
+                            </span>
+                            {isSelected && <Check className="w-4 h-4 text-amber-600 flex-shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {selectedWorkerId && (
+                  <div className="mt-4 space-y-3">
+                    {/* Role badge */}
+                    <div className="flex items-center gap-2">
+                      {selectedMemberRole === 'owner' ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-full">
+                          <Crown className="w-3 h-3" />
+                          {t('schedule.ownerScheduleLabel')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
+                          <User className="w-3 h-3" />
+                          {t('schedule.workerScheduleLabel')}
+                        </span>
+                      )}
+                    </div>
+
+                    {loadingWorkerSchedule ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                      </div>
+                    ) : workerSchedule ? (
+                      <>
+                        {!hasCustomSchedule && (
+                          <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-[5px] text-xs text-blue-600">
+                            <Clock className="w-3.5 h-3.5 shrink-0" />
+                            {t('schedule.usingBusinessHours')}
+                          </div>
+                        )}
+
+                        {/* Day schedule rows */}
+                        <div className="space-y-1">
+                          {workerSchedule.map((day) => {
+                            const bizDay = workerBusinessHours.find(b => b.dayOfWeek === day.dayOfWeek);
+                            const businessClosed = bizDay ? !bizDay.isOpen : false;
+                            const bizOpen = bizDay?.openTime?.substring(0, 5) || null;
+                            const bizClose = bizDay?.closeTime?.substring(0, 5) || null;
+
+                            return (
+                              <div key={day.dayOfWeek} className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-2.5 rounded-[5px] transition-colors ${
+                                businessClosed ? 'bg-gray-100/70' : day.isOpen ? 'bg-amber-50/40' : 'bg-gray-50 hover:bg-gray-100'
+                              }`}>
+                                <div className="flex items-center gap-3 sm:w-44">
+                                  <div
+                                    className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${
+                                      businessClosed ? 'bg-gray-300 cursor-not-allowed opacity-60' :
+                                      day.isOpen ? 'bg-amber-500' : 'bg-gray-300'
+                                    }`}
+                                    onClick={() => !businessClosed && updateWorkerDay(day.dayOfWeek, 'isOpen', !day.isOpen)}
+                                  >
+                                    <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${
+                                      day.isOpen && !businessClosed ? 'start-5' : 'start-0.5'
+                                    }`} />
+                                  </div>
+                                  <span className={`text-sm font-medium ${
+                                    businessClosed ? 'text-gray-400' : day.isOpen ? 'text-gray-900' : 'text-gray-400'
+                                  }`}>
+                                    {t(`days.${['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][day.dayOfWeek]}`)}
+                                  </span>
+                                </div>
+                                {businessClosed ? (
+                                  <span className="text-xs text-gray-400 italic flex-1 ps-[52px] sm:ps-0">{t('schedule.businessClosedDay')}</span>
+                                ) : day.isOpen ? (
+                                  <div className="flex items-center gap-2 flex-1 min-w-0 ps-[52px] sm:ps-0">
+                                    <TimeSelect
+                                      value={day.openTime}
+                                      onChange={(v) => updateWorkerDay(day.dayOfWeek, 'openTime', v)}
+                                      minTime={bizOpen}
+                                      maxTime={bizClose}
+                                      className="border border-gray-200 rounded-[5px] px-2 py-1.5 text-sm w-[80px] sm:w-[90px] focus:ring-1 focus:ring-amber-400/30 outline-none bg-white appearance-none"
+                                    />
+                                    <span className="text-gray-400 text-sm">{t('common.to')}</span>
+                                    <TimeSelect
+                                      value={day.closeTime}
+                                      onChange={(v) => updateWorkerDay(day.dayOfWeek, 'closeTime', v)}
+                                      minTime={bizOpen}
+                                      maxTime={bizClose}
+                                      className="border border-gray-200 rounded-[5px] px-2 py-1.5 text-sm w-[80px] sm:w-[90px] focus:ring-1 focus:ring-amber-400/30 outline-none bg-white appearance-none"
+                                    />
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-gray-400 flex-1 ps-[52px] sm:ps-0">{t('schedule.dayOff')}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Save button */}
+                        <div className="flex items-center justify-between pt-2">
+                          {workerSaveStatus === 'saved' && (
+                            <span className="text-xs text-green-600 flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5" />
+                              {t('schedule.memberScheduleSaved')}
+                            </span>
+                          )}
+                          {workerSaveStatus === 'error' && (
+                            <span className="text-xs text-red-500">{t('schedule.memberScheduleError')}</span>
+                          )}
+                          {!workerSaveStatus && <div />}
+                          <button
+                            onClick={saveWorkerSchedule}
+                            disabled={savingWorkerSchedule}
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-[5px] text-sm font-medium transition-all ${
+                              savingWorkerSchedule
+                                ? 'bg-gray-100 text-gray-400'
+                                : 'bg-[#364153] hover:bg-[#2a3444] text-white shadow-sm'
+                            }`}
+                          >
+                            {savingWorkerSchedule ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            {savingWorkerSchedule ? t('common.saving') : t('common.saveChanges')}
+                          </button>
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                )}
               </div>
             )}
           </div>

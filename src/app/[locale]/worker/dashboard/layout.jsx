@@ -86,11 +86,7 @@ function WorkerDashboardShell({ children }) {
     <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-x-hidden ${isRTL ? 'rtl' : 'ltr'}`}>
       <WorkerSidebar permissions={permissions} />
       <div className={`flex flex-col min-h-screen overflow-x-hidden ${isRTL ? 'lg:mr-16' : 'lg:ml-16'}`}>
-        <WorkerHeader
-          activeMembership={activeMembership}
-          memberships={memberships}
-          onSwitchBusiness={switchBusiness}
-        />
+        <WorkerHeader />
         <main className="flex-1 p-6 pt-[calc(1.5rem+64px)]">
           {children}
         </main>
