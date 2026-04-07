@@ -1,4 +1,4 @@
-import { getSessionUserId } from '@/lib/auth/server-adapter';
+import { getSessionUserId } from '@/lib/auth/supabase-adapter';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { apiError } from '@/lib/api-response';
 
