@@ -101,12 +101,12 @@ export default function BusinessSignUpPage() {
         <div className="flex-1 flex flex-col bg-white">
           <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 lg:px-12">
             <div className="w-full max-w-md">
-              <div className="text-center mb-8 hidden lg:block">
+              <div className="text-center mb-8">
                 <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
                   {t('auth.barber.createYourAccount') || 'Create your account'}
                 </h2>
                 <p className="text-gray-600">
-                  {t('auth.barber.startFreeToday') || 'Start free today • No credit card required'}
+                  {t('auth.barber.startFreeToday') || 'Set up your business profile in minutes'}
                 </p>
               </div>
 

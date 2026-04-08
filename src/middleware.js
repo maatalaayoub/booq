@@ -63,6 +63,24 @@ export async function middleware(req) {
     return NextResponse.next();
   }
 
+  // ── Access Gate ──────────────────────────────────────────
+  // Allow the access page and its API route through without a cookie
+  const isAccessPage = pathname === '/access';
+  const isAccessApi = pathname.startsWith('/api/access');
+
+  if (!isAccessPage && !isAccessApi && !pathname.startsWith('/api')) {
+    const accessCookie = req.cookies.get('site_access');
+    if (!accessCookie || accessCookie.value !== 'granted') {
+      return NextResponse.redirect(new URL('/access', req.url));
+    }
+  }
+  // ────────────────────────────────────────────────────────
+
+  // The /access page lives outside [locale], skip locale routing for it
+  if (isAccessPage) {
+    return NextResponse.next();
+  }
+
   // Handle locale routing first
   const pathnameLocale = getLocaleFromPath(pathname);
   const hasLocale = pathnameLocale !== null;

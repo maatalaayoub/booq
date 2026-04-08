@@ -319,8 +319,8 @@ const translations = {
     'auth.barber.customerSignIn': 'Sign In',
     
     // Auth - Barber Sign Up
-    'auth.barber.joinNetwork': 'Grow your barbering business',
-    'auth.barber.signUpSubtitle': 'Join 500+ professionals who trust Booka.ma to manage and grow their business.',
+    'auth.barber.joinNetwork': 'Grow your business with Booka.ma',
+    'auth.barber.signUpSubtitle': 'Join hundreds of professionals who trust Booka.ma to manage and grow their business.',
     'auth.barber.createAccount': 'Create your professional account',
     'auth.barber.feature1Title': 'Smart Scheduling',
     'auth.barber.feature1Desc': 'AI-powered booking system',
@@ -336,7 +336,7 @@ const translations = {
     'auth.barber.benefit4': 'Build your online presence',
     'auth.barber.trustedBy': 'Trusted by 500+ professionals',
     'auth.barber.createYourAccount': 'Create your account',
-    'auth.barber.startFreeToday': 'Start free today • No credit card required',
+    'auth.barber.startFreeToday': 'Set up your business profile in minutes',
     'auth.barber.freeToStart': 'Free to start • No credit card required',
     'auth.barber.freeTrial': 'Free to Start',
     'auth.barber.benefitSchedule': 'Smart scheduling that fills your calendar',
@@ -2034,8 +2034,8 @@ const translations = {
     'auth.barber.keepEarningsDesc': 'De vos revenus',
     
     // Auth - Barber Sign Up
-    'auth.barber.joinNetwork': 'Développez votre activité de barbier',
-    'auth.barber.signUpSubtitle': 'Rejoignez 500+ professionnels qui font confiance à Booka.ma.',
+    'auth.barber.joinNetwork': 'Développez votre activité avec Booka.ma',
+    'auth.barber.signUpSubtitle': 'Rejoignez des centaines de professionnels qui font confiance à Booka.ma.',
     'auth.barber.createAccount': 'Créez votre compte professionnel',
     'auth.barber.feature1Title': 'Planification Intelligente',
     'auth.barber.feature1Desc': 'Système de réservation IA',
@@ -2051,7 +2051,7 @@ const translations = {
     'auth.barber.benefit4': 'Construisez votre présence en ligne',
     'auth.barber.trustedBy': 'Approuvé par 500+ professionnels',
     'auth.barber.createYourAccount': 'Créez votre compte',
-    'auth.barber.startFreeToday': 'Commencez gratuitement • Sans carte bancaire',
+    'auth.barber.startFreeToday': 'Configurez votre profil professionnel en quelques minutes',
     'auth.barber.freeToStart': 'Gratuit • Sans carte bancaire',
     'auth.barber.freeTrial': 'Gratuit',
     'auth.barber.benefitSchedule': 'Planification intelligente qui remplit votre agenda',
@@ -3745,8 +3745,8 @@ const translations = {
     'auth.barber.keepEarningsDesc': 'من أرباحك',
     
     // Auth - Barber Sign Up
-    'auth.barber.joinNetwork': 'طوّر عملك في الحلاقة',
-    'auth.barber.signUpSubtitle': 'انضم لـ +500 محترف يثقون في Booka.ma لإدارة وتنمية أعمالهم.',
+    'auth.barber.joinNetwork': 'طوّر عملك مع Booka.ma',
+    'auth.barber.signUpSubtitle': 'انضم لمئات المحترفين الذين يثقون في Booka.ma لإدارة وتنمية أعمالهم.',
     'auth.barber.createAccount': 'أنشئ حسابك المهني',
     'auth.barber.feature1Title': 'جدولة ذكية',
     'auth.barber.feature1Desc': 'نظام حجز بالذكاء الاصطناعي',
@@ -3762,7 +3762,7 @@ const translations = {
     'auth.barber.benefit4': 'بناء تواجدك على الإنترنت',
     'auth.barber.trustedBy': 'موثوق من +500 محترف',
     'auth.barber.createYourAccount': 'أنشئ حسابك',
-    'auth.barber.startFreeToday': 'ابدأ مجاناً • بدون بطاقة ائتمان',
+    'auth.barber.startFreeToday': 'أنشئ ملف عملك في دقائق',
     'auth.barber.freeToStart': 'مجاني • بدون بطاقة ائتمان',
     'auth.barber.freeTrial': 'ابدأ مجاناً',
     'auth.barber.benefitSchedule': 'جدولة ذكية تملأ أجندتك',
