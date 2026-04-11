@@ -30,6 +30,7 @@ import {
   Bookmark,
   MessageSquare,
   Video,
+  Images,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -144,6 +145,12 @@ export default function Sidebar() {
       icon: Globe, 
       label: t('dashboard.sidebar.publicPage') || 'Business Card', 
       href: `/${locale}/business/dashboard/public-page`,
+      categories: ['business_owner', 'mobile_service'],
+    },
+    { 
+      icon: Images, 
+      label: t('dashboard.sidebar.gallery') || 'Gallery', 
+      href: `/${locale}/business/dashboard/gallery`,
       categories: ['business_owner', 'mobile_service'],
     },
     { 

@@ -332,9 +332,13 @@ export default function NotificationsPage() {
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-                        <IconComponent className="w-5 h-5" />
-                      </div>
+                      {n.data?.businessAvatar ? (
+                        <img src={n.data.businessAvatar} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                          <IconComponent className="w-5 h-5" />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className={`text-sm ${!n.read_at ? 'font-semibold' : 'font-medium'} text-gray-900 line-clamp-1`}>
                           {translateNotification(n, t).title}
@@ -382,9 +386,13 @@ export default function NotificationsPage() {
                   <div className="bg-white rounded-[5px] border border-gray-200 p-6 sticky top-16">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-                          <IconComponent className="w-5 h-5" />
-                        </div>
+                        {n.data?.businessAvatar ? (
+                          <img src={n.data.businessAvatar} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0" />
+                        ) : (
+                          <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                            <IconComponent className="w-5 h-5" />
+                          </div>
+                        )}
                         <div>
                           <p className="text-base font-semibold text-gray-900">{translateNotification(n, t).title}</p>
                           <p className="text-xs text-gray-400 mt-0.5">{formatTime(n.created_at)}</p>

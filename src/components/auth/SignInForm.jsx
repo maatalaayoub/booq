@@ -43,7 +43,12 @@ export default function SignInForm({ signUpUrl, redirectTo, onSuccess, variant =
     setLoading(false);
 
     if (signInError) {
-      setError(signInError.message);
+      const msg = signInError.message?.toLowerCase();
+      if (msg?.includes('invalid login credentials') || msg?.includes('invalid_credentials')) {
+        setError(t('auth.invalidCredentials') || 'Incorrect email or password. Please try again.');
+      } else {
+        setError(signInError.message);
+      }
       return;
     }
 

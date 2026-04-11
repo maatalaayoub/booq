@@ -37,10 +37,10 @@ const PROFESSIONAL_TYPES = ['barber', 'hairdresser', 'makeup', 'nails', 'massage
 
 // ─── MOROCCAN CITIES ─────────────────────────────────────────
 const MOROCCAN_CITIES = [
-  '', 'Casablanca', 'Rabat', 'Marrakech', 'Fès', 'Tanger', 'Agadir', 'Meknès',
-  'Oujda', 'Kénitra', 'Tétouan', 'Salé', 'Temara', 'Safi', 'Mohammedia',
-  'El Jadida', 'Béni Mellal', 'Nador', 'Taza', 'Settat', 'Berrechid',
-  'Khémisset', 'Inezgane', 'Khouribga', 'Larache', 'Guelmim', 'Berkane',
+  '', 'Casablanca', 'Rabat', 'Marrakech', 'Fes', 'Tanger', 'Agadir', 'Meknes',
+  'Oujda', 'Kenitra', 'Tetouan', 'Sale', 'Temara', 'Safi', 'Mohammedia',
+  'El Jadida', 'Beni Mellal', 'Nador', 'Taza', 'Settat', 'Berrechid',
+  'Khemisset', 'Inezgane', 'Khouribga', 'Larache', 'Guelmim', 'Berkane',
   'Taourirt', 'Errachidia', 'Sidi Kacem', 'Sidi Slimane',
 ];
 
@@ -49,9 +49,9 @@ function DetailsSkeleton() {
   return (
     <div className="animate-pulse">
       {/* Header skeleton */}
-      <div className="bg-gradient-to-r from-[#364153] to-[#4a5568] rounded-[5px] p-6 mb-6">
-        <div className="h-7 w-48 bg-white/20 rounded mb-2" />
-        <div className="h-4 w-64 bg-white/10 rounded" />
+      <div className="mb-6">
+        <div className="h-7 w-48 bg-gray-200 rounded mb-2" />
+        <div className="h-4 w-64 bg-gray-100 rounded" />
       </div>
       {/* Cards skeleton */}
       <div className="grid lg:grid-cols-2 gap-6">
@@ -136,7 +136,7 @@ function FormSelect({ label, icon: Icon, value, onChange, options, disabled = fa
 // ─── SECTION CARD ─────────────────────────────────────────────
 function SectionCard({ title, icon: Icon, iconColor = 'text-[#364153]', iconBg = 'bg-[#364153]/10', children }) {
   return (
-    <div className="bg-white rounded-[5px] border border-gray-300 overflow-hidden">
+    <div className="bg-white rounded-[5px] border border-gray-200 overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-3">
         <div className={`w-8 h-8 ${iconBg} rounded-[5px] flex items-center justify-center`}>
           <Icon className={`w-4 h-4 ${iconColor}`} />
@@ -362,36 +362,69 @@ export default function BusinessDetailsPage() {
   }
 
   return (
-    <div className={`p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto ${isRTL ? 'rtl' : 'ltr'}`}>
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#364153] to-[#4a5568] rounded-[5px] p-6 mb-6 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute -right-10 -top-10 w-40 h-40 bg-white rounded-full" />
-          <div className="absolute -right-5 -bottom-5 w-24 h-24 bg-white rounded-full" />
-        </div>
-        <div className="relative z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-[5px] flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-xl sm:text-2xl font-bold text-white">
-                {t('businessDetails.title') || 'Business Details'}
-              </h1>
-            </div>
-            <button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-[5px] transition-colors disabled:opacity-50"
-              title={t('common.refresh') || 'Refresh'}
-            >
-              <RotateCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-            </button>
+    <div className={`p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto ${isRTL ? 'rtl' : 'ltr'}`}>
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center justify-between sm:justify-start gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-[#364153] flex items-center gap-2">
+              <Building2 className="w-6 h-6" />
+              {t('businessDetails.title') || 'Business Details'}
+            </h1>
+            <p className="text-sm text-gray-400 mt-1">
+              {t('businessDetails.subtitle') || 'View and update your business information'}
+            </p>
           </div>
-          <p className="text-sm text-white/70 ml-13">
-            {t('businessDetails.subtitle') || 'View and update your business information'}
-          </p>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="sm:hidden p-2.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-[5px] transition-colors disabled:opacity-50"
+            title={t('common.refresh') || 'Refresh'}
+          >
+            <RotateCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
+      </div>
+
+      {/* Save Button Bar */}
+      <div className="mb-6 bg-white rounded-[5px] border border-gray-200 p-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm">
+          {saveStatus === 'success' && (
+            <>
+              <CheckCircle className="w-4 h-4 text-green-500" />
+              <span className="text-green-600">{t('businessDetails.saveSuccess') || 'Saved successfully'}</span>
+            </>
+          )}
+          {saveStatus === 'error' && (
+            <>
+              <AlertCircle className="w-4 h-4 text-red-500" />
+              <span className="text-red-600">{t('businessDetails.saveError') || 'Error saving changes'}</span>
+            </>
+          )}
+          {!saveStatus && (
+            <span className="text-gray-400 text-xs hidden sm:block">
+              {t('businessDetails.unsavedHint') || 'Changes will be saved when you click the button'}
+            </span>
+          )}
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={saving || !hasChanges}
+          className="relative flex items-center gap-2 px-6 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+        >
+          {saving ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          {saving ? (t('businessDetails.saving') || 'Saving...') : (t('businessDetails.save') || 'Save Changes')}
+          {hasChanges && !saving && (
+            <span className="absolute -top-2 -right-2 min-w-[20px] h-5 flex items-center justify-center px-1 text-[11px] font-bold bg-red-500 text-white rounded-full">
+              {changeCount}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Main Grid */}
@@ -504,47 +537,6 @@ export default function BusinessDetailsPage() {
             </div>
           </SectionCard>
         </div>
-      </div>
-
-      {/* Save Button Bar */}
-      <div className="mt-6 bg-white rounded-[5px] border border-gray-300 p-4 flex items-center justify-between sticky bottom-4">
-        <div className="flex items-center gap-2 text-sm">
-          {saveStatus === 'success' && (
-            <>
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="text-green-600">{t('businessDetails.saveSuccess') || 'Saved successfully'}</span>
-            </>
-          )}
-          {saveStatus === 'error' && (
-            <>
-              <AlertCircle className="w-4 h-4 text-red-500" />
-              <span className="text-red-600">{t('businessDetails.saveError') || 'Error saving changes'}</span>
-            </>
-          )}
-          {!saveStatus && (
-            <span className="text-gray-400 text-xs hidden sm:block">
-              {t('businessDetails.unsavedHint') || 'Changes will be saved when you click the button'}
-            </span>
-          )}
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving || !hasChanges}
-          className="relative flex items-center gap-2 px-6 py-2.5 bg-[#364153] text-white rounded-[5px] text-sm font-medium hover:bg-[#364153]/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {saving ? (t('businessDetails.saving') || 'Saving...') : (t('businessDetails.save') || 'Save Changes')}
-          {hasChanges && !saving && (
-            <span className="absolute -top-2 -right-2 min-w-[20px] h-5 flex items-center justify-center px-1 text-[11px] font-bold bg-red-500 text-white rounded-full">
-              {changeCount}
-            </span>
-          )}
-        </button>
       </div>
 
       {/* ── Unsaved Changes Dialog ── */}

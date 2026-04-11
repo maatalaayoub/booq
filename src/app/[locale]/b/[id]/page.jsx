@@ -38,6 +38,7 @@ import {
   Wand2,
   Bath,
   SprayCan,
+  Images,
 } from 'lucide-react';
 
 const ACCENT_COLORS = {
@@ -869,6 +870,105 @@ function SuccessModal({ appointment, onClose, accent, t, locale }) {
 }
 
 /* ================================================================
+   GALLERY LIGHTBOX — fullscreen photo viewer with animated grid
+   ================================================================ */
+function GalleryLightbox({ images, open, onClose, startIndex = 0, isRTL }) {
+  const [viewIndex, setViewIndex] = useState(0);
+  const [closing, setClosing] = useState(false);
+  const touchRef = useRef(null);
+
+  useEffect(() => { if (open) { setViewIndex(startIndex); setClosing(false); } }, [open, startIndex]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape') handleClose();
+      if (e.key === 'ArrowRight') setViewIndex(prev => (prev + 1) % images.length);
+      if (e.key === 'ArrowLeft') setViewIndex(prev => (prev - 1 + images.length) % images.length);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, images.length]);
+
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
+  if (!open || !images.length) return null;
+
+  const handleClose = () => {
+    setClosing(true);
+    setTimeout(() => { onClose(); setClosing(false); }, 250);
+  };
+
+  const handleSwipe = (e) => {
+    if (touchRef.current === null) return;
+    const diff = touchRef.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      setViewIndex(prev => diff > 0 ? (prev + 1) % images.length : (prev - 1 + images.length) % images.length);
+    }
+    touchRef.current = null;
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center"
+      style={{ animation: closing ? 'glbFadeOut 0.25s ease-in forwards' : 'glbFadeIn 0.3s ease-out forwards' }}
+      onTouchStart={(e) => { touchRef.current = e.touches[0].clientX; }}
+      onTouchEnd={handleSwipe}
+    >
+      <div className="absolute inset-0 bg-black/95" onClick={handleClose} />
+      {/* Top bar */}
+      <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-10">
+        <button onClick={handleClose} className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/20 transition-colors">
+          <X className="w-5 h-5" />
+        </button>
+        <span className="text-white/80 text-sm font-medium">{viewIndex + 1} / {images.length}</span>
+        <div className="w-10" />
+      </div>
+      {/* Image */}
+      <div className="relative z-[1] w-full h-full flex items-center justify-center px-4">
+        <img
+          key={viewIndex}
+          src={images[viewIndex]}
+          alt=""
+          className="max-w-full max-h-[80vh] object-contain rounded-lg"
+          style={{ animation: 'glbImgPop 0.35s cubic-bezier(0.16,1,0.3,1) forwards' }}
+        />
+      </div>
+      {/* Nav arrows — desktop */}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={() => setViewIndex((viewIndex - 1 + images.length) % images.length)}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/25 transition z-10 hidden sd:flex"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            onClick={() => setViewIndex((viewIndex + 1) % images.length)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/25 transition z-10 hidden sd:flex"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </>
+      )}
+      {/* Thumbnail strip at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 pb-6 pt-3 px-4 z-10 bg-gradient-to-t from-black/60 to-transparent">
+        <div className="flex gap-2 justify-center overflow-x-auto scrollbar-hide max-w-lg mx-auto">
+          {images.map((url, i) => (
+            <button key={i} onClick={() => setViewIndex(i)} className={`shrink-0 w-12 h-12 rounded-lg overflow-hidden transition-all duration-200 ${i === viewIndex ? 'ring-2 ring-white scale-110' : 'opacity-50 hover:opacity-80'}`}>
+              <img src={url} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================
    MAIN PAGE
    ================================================================ */
 export default function BusinessPage() {
@@ -908,6 +1008,8 @@ export default function BusinessPage() {
   const [favAnimating, setFavAnimating] = useState(false);
   const [favToast, setFavToast] = useState(null);
   const [favToastVisible, setFavToastVisible] = useState(false);
+  const [showGalleryLightbox, setShowGalleryLightbox] = useState(false);
+  const [galleryStartIndex, setGalleryStartIndex] = useState(0);
 
   const favKey = user?.id ? `favoriteBusinesses_${user.id}` : null;
 
@@ -1163,77 +1265,198 @@ export default function BusinessPage() {
   return (
     <div className={`min-h-screen bg-white ${isRTL ? 'rtl' : 'ltr'}`}>
       {/* ── HERO GALLERY ──────────────────────────────────── */}
-      <div className="relative">
-        <HeroGallery
-          gallery={business.coverGallery}
-          accent={accent}
-          showCover={business.showCoverPhoto}
-          businessName={business.businessName}
-          businessType={t(`home.type.${business.professionalType}`) || business.professionalType?.replace(/_/g, ' ')}
-          avatarUrl={business.showProfile ? business.avatarUrl : null}
-          isRTL={isRTL}
-        />
-        {/* Top nav buttons */}
-        <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-20">
-          <button onClick={() => {
-              const referrer = document.referrer;
-              const isAuthPage = referrer && (referrer.includes('/auth/') || referrer.includes('/sign-in') || referrer.includes('/sign-up'));
-              if (!referrer || isAuthPage || window.history.length <= 1) {
-                router.push(`/${locale}`);
-              } else {
-                router.back();
-              }
-            }}
-            className="w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/40 transition-colors">
-            <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
-          </button>
-          <div className="flex gap-2">
-            <div className="relative">
-              <button onClick={toggleFavorite}
-                className="w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md flex items-center justify-center hover:bg-black/40 transition-colors relative overflow-hidden">
-                <Heart className={`w-[18px] h-[18px] transition-all duration-300 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-white'} ${favAnimating ? 'animate-[heartPop_0.6s_ease-in-out]' : ''}`} />
-                {favAnimating && (
-                  <span className="absolute inset-0 rounded-xl animate-[heartRing_0.6s_ease-out] border-2 border-red-400 opacity-0" />
-                )}
-              </button>
-              {favToast && (
-                <div
-                  className="absolute top-full mt-2 ltr:right-0 rtl:left-0 z-[70] pointer-events-none whitespace-nowrap"
-                  style={{ animation: favToastVisible ? 'favToastIn 0.35s ease-out forwards' : 'favToastOut 0.35s ease-in forwards' }}
-                >
-                  <div className={`flex items-center gap-2 px-3.5 py-2 rounded-lg shadow-xl backdrop-blur-md text-[13px] font-medium ${
-                    favToast === 'added'
-                      ? 'bg-red-500/90 text-white'
-                      : 'bg-gray-800/90 text-gray-200'
-                  }`}>
-                    <Heart className={`w-3.5 h-3.5 shrink-0 ${favToast === 'added' ? 'fill-white text-white' : 'text-gray-400'}`} />
-                    {t(favToast === 'added' ? 'bp.addedToFavorites' : 'bp.removedFromFavorites')}
+      {(() => {
+        const hasGallery = (business.galleryImages || []).length > 0;
+        return (
+      <div className={hasGallery ? "sd:flex sd:max-w-5xl sd:mx-auto sd:px-8 sd:pt-6 sd:gap-4" : "relative"}>
+        {/* Left: Cover + profile + nav */}
+        <div className={`relative ${hasGallery ? "sd:w-1/2 sd:rounded-2xl sd:overflow-hidden sd:shadow-lg" : ""}`}>
+          <HeroGallery
+            gallery={business.coverGallery}
+            accent={accent}
+            showCover={business.showCoverPhoto}
+            businessName={business.businessName}
+            businessType={t(`home.type.${business.professionalType}`) || business.professionalType?.replace(/_/g, ' ')}
+            avatarUrl={business.showProfile ? business.avatarUrl : null}
+            isRTL={isRTL}
+          />
+          {/* Top nav buttons */}
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between p-4 z-20">
+            <button onClick={() => {
+                const referrer = document.referrer;
+                const isAuthPage = referrer && (referrer.includes('/auth/') || referrer.includes('/sign-in') || referrer.includes('/sign-up'));
+                if (!referrer || isAuthPage || window.history.length <= 1) {
+                  router.push(`/${locale}`);
+                } else {
+                  router.back();
+                }
+              }}
+              className="w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/40 transition-colors">
+              <ArrowLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
+            </button>
+            <div className="flex gap-2">
+              <div className="relative">
+                <button onClick={toggleFavorite}
+                  className="w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md flex items-center justify-center hover:bg-black/40 transition-colors relative overflow-hidden">
+                  <Heart className={`w-[18px] h-[18px] transition-all duration-300 ${isFavorited ? 'fill-red-500 text-red-500' : 'text-white'} ${favAnimating ? 'animate-[heartPop_0.6s_ease-in-out]' : ''}`} />
+                  {favAnimating && (
+                    <span className="absolute inset-0 rounded-xl animate-[heartRing_0.6s_ease-out] border-2 border-red-400 opacity-0" />
+                  )}
+                </button>
+                {favToast && (
+                  <div
+                    className="absolute top-full mt-2 ltr:right-0 rtl:left-0 z-[70] pointer-events-none whitespace-nowrap"
+                    style={{ animation: favToastVisible ? 'favToastIn 0.35s ease-out forwards' : 'favToastOut 0.35s ease-in forwards' }}
+                  >
+                    <div className={`flex items-center gap-2 px-3.5 py-2 rounded-lg shadow-xl backdrop-blur-md text-[13px] font-medium ${
+                      favToast === 'added'
+                        ? 'bg-red-500/90 text-white'
+                        : 'bg-gray-800/90 text-gray-200'
+                    }`}>
+                      <Heart className={`w-3.5 h-3.5 shrink-0 ${favToast === 'added' ? 'fill-white text-white' : 'text-gray-400'}`} />
+                      {t(favToast === 'added' ? 'bp.addedToFavorites' : 'bp.removedFromFavorites')}
+                    </div>
+                    <div className={`absolute -top-1 ltr:right-4 rtl:left-4 w-2 h-2 rotate-45 ${
+                      favToast === 'added' ? 'bg-red-500/90' : 'bg-gray-800/90'
+                    }`} />
                   </div>
-                  <div className={`absolute -top-1 ltr:right-4 rtl:left-4 w-2 h-2 rotate-45 ${
-                    favToast === 'added' ? 'bg-red-500/90' : 'bg-gray-800/90'
-                  }`} />
+                )}
+              </div>
+              <button onClick={async () => {
+                const url = window.location.href;
+                const shareData = { title: document.title, text: document.title, url };
+                if (navigator.canShare && navigator.canShare(shareData)) {
+                  try { await navigator.share(shareData); } catch {}
+                  return;
+                }
+                if (typeof navigator.share === 'function') {
+                  try { await navigator.share(shareData); } catch {}
+                  return;
+                }
+                setShowShareMenu(true);
+              }}
+                className="w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/40 transition-colors">
+                <Share2 className="w-[18px] h-[18px]" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Service portfolio grid (desktop only) */}
+        {hasGallery && (() => {
+          const galleryImages = business.galleryImages || [];
+          return (
+            <div className="hidden sd:grid sd:w-1/2 grid-cols-2 grid-rows-2 gap-2.5 h-56 sd:h-72 md:h-80">
+              {galleryImages.length >= 4 ? (
+                <>
+                  <div className="row-span-2 rounded-2xl overflow-hidden shadow-md group cursor-pointer" onClick={() => { setGalleryStartIndex(1); setShowGalleryLightbox(true); }}>
+                    <img src={galleryImages[1] || galleryImages[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  </div>
+                  <div className="rounded-2xl overflow-hidden shadow-md group cursor-pointer" onClick={() => { setGalleryStartIndex(2); setShowGalleryLightbox(true); }}>
+                    <img src={galleryImages[2] || galleryImages[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  </div>
+                  <div className="rounded-2xl overflow-hidden shadow-md group relative cursor-pointer" onClick={() => { setGalleryStartIndex(3); setShowGalleryLightbox(true); }}>
+                    <img src={galleryImages[3] || galleryImages[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    {galleryImages.length > 4 && (
+                      <div className="absolute inset-0 bg-black/40 hover:bg-black/50 transition-colors flex items-center justify-center rounded-2xl">
+                        <div className="text-center">
+                          <Images className="w-5 h-5 text-white/80 mx-auto mb-1" />
+                          <span className="text-white text-lg font-bold">+{galleryImages.length - 4}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : galleryImages.length === 3 ? (
+                <>
+                  <div className="row-span-2 rounded-2xl overflow-hidden shadow-md group">
+                    <img src={galleryImages[1]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  </div>
+                  <div className="rounded-2xl overflow-hidden shadow-md group">
+                    <img src={galleryImages[2]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  </div>
+                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
+                    <div className="text-center p-3">
+                      <Scissors className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
+                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'More photos coming soon'}</p>
+                    </div>
+                  </div>
+                </>
+              ) : galleryImages.length === 2 ? (
+                <>
+                  <div className="row-span-2 rounded-2xl overflow-hidden shadow-md group">
+                    <img src={galleryImages[1]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  </div>
+                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
+                    <div className="text-center p-3">
+                      <Sparkles className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
+                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'More photos coming soon'}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
+                    <div className="text-center p-3">
+                      <Scissors className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
+                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'More photos coming soon'}</p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="row-span-2 rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
+                    <div className="text-center p-4">
+                      <div className="w-12 h-12 rounded-xl mx-auto mb-2 flex items-center justify-center" style={{ backgroundColor: `${accent.bg}10` }}>
+                        <Scissors className="w-6 h-6" style={{ color: accent.bg }} />
+                      </div>
+                      <p className="text-[12px] text-gray-400 font-medium">{t('bp.portfolio') || 'Portfolio'}</p>
+                      <p className="text-[11px] text-gray-300 mt-0.5">{t('bp.morePhotos') || 'Coming soon'}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
+                    <div className="text-center p-3">
+                      <Sparkles className="w-5 h-5 text-gray-300 mx-auto mb-1" />
+                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'Coming soon'}</p>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
+                    <div className="text-center p-3">
+                      <Flame className="w-5 h-5 text-gray-300 mx-auto mb-1" />
+                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'Coming soon'}</p>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })()}
+      </div>
+        );
+      })()}
+
+      {/* ── MOBILE PORTFOLIO STRIP (below hero, mobile only) ── */}
+      {(() => {
+        const mobileGalleryFull = business.galleryImages || [];
+        const mobileGallery = mobileGalleryFull.slice(0, 8);
+        if (mobileGallery.length < 2) return null;
+        return (
+          <div className="sd:hidden">
+            <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-hide">
+              {mobileGallery.map((url, i) => (
+                <div key={i} className="shrink-0 w-20 h-20 rounded-xl overflow-hidden shadow-sm cursor-pointer" onClick={() => { setGalleryStartIndex(i); setShowGalleryLightbox(true); }}>
+                  <img src={url} alt="" loading="lazy" className="w-full h-full object-cover" />
+                </div>
+              ))}
+              {mobileGalleryFull.length > 8 && (
+                <div className="shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors" onClick={() => { setGalleryStartIndex(0); setShowGalleryLightbox(true); }}>
+                  <div className="text-center">
+                    <Images className="w-4 h-4 text-gray-400 mx-auto mb-0.5" />
+                    <span className="text-[13px] font-bold text-gray-400">+{mobileGalleryFull.length - 8}</span>
+                  </div>
                 </div>
               )}
             </div>
-            <button onClick={async () => {
-              const url = window.location.href;
-              const shareData = { title: document.title, text: document.title, url };
-              if (navigator.canShare && navigator.canShare(shareData)) {
-                try { await navigator.share(shareData); } catch {}
-                return;
-              }
-              if (typeof navigator.share === 'function') {
-                try { await navigator.share(shareData); } catch {}
-                return;
-              }
-              setShowShareMenu(true);
-            }}
-              className="w-10 h-10 rounded-xl bg-black/25 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/40 transition-colors">
-              <Share2 className="w-[18px] h-[18px]" />
-            </button>
           </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* ── SHARE MENU OVERLAY ─────────────────────────────── */}
       {showShareMenu && (
@@ -1314,7 +1537,7 @@ export default function BusinessPage() {
 
       {/* ── INFO BAR ── rating, location, actions ─────────── */}
       <div className="border-b border-gray-100">
-        <div className="px-5 sd:px-8 py-3 space-y-2.5 sd:space-y-0 sd:flex sd:items-center sd:justify-between sd:gap-3">
+        <div className="max-w-5xl mx-auto px-5 sd:px-8 py-3 space-y-2.5 sd:space-y-0 sd:flex sd:items-center sd:justify-between sd:gap-3">
           {/* Meta chips */}
           <div className="flex flex-wrap items-center gap-2">
             {business.showRating && (
@@ -1381,7 +1604,7 @@ export default function BusinessPage() {
         <div className="sd:bg-white sd:border sd:border-gray-300 sd:rounded-lg sd:p-6">
           <div className="sd:flex sd:gap-6">
             {/* ── LEFT: SERVICES ───────────────────────────── */}
-            <div className="sd:flex-1 min-w-0">
+            <div className="sd:w-1/2 min-w-0">
 
               {/* ─── SERVICES ─────────────────────────────── */}
               <div className={`${activeTab !== 'services' ? 'hidden sd:block' : ''}`}>
@@ -1630,7 +1853,7 @@ export default function BusinessPage() {
 
             {/* ── RIGHT: BOOKING (separated by border on desktop) ── */}
             {canBook && (
-              <div className="hidden sd:block sd:w-[340px] sd:shrink-0 sd:border-l sd:border-gray-200 sd:pl-6">
+              <div className="hidden sd:block sd:w-1/2 sd:border-l sd:border-gray-200 sd:pl-6">
                 <div ref={bookingRef} className="space-y-5 sd:sticky sd:top-[24px]">
                   <p className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">{t('bp.selectedServices')}</p>
 
@@ -1807,7 +2030,7 @@ export default function BusinessPage() {
       </div>
 
       {/* ── FLOATING BOTTOM BAR (mobile) ─────────────────── */}
-      {canBook && !showBookingPanel && activeTab === 'services' && (
+      {canBook && !showBookingPanel && activeTab === 'services' && business.services?.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-30 sd:hidden">
           <div className="bg-white border-t border-gray-200 px-5 py-3 flex items-center gap-3 safe-area-pb">
             {selectedServices.length > 0 ? (
@@ -1858,6 +2081,14 @@ export default function BusinessPage() {
       {canBook && <div className="h-20 sd:h-0" />}
 
       {/* MODALS */}
+      <GalleryLightbox
+        images={business.galleryImages || []}
+        open={showGalleryLightbox}
+        onClose={() => setShowGalleryLightbox(false)}
+        startIndex={galleryStartIndex}
+        isRTL={isRTL}
+      />
+
       <WorkerPickerModal open={showWorkerPickerModal} onClose={() => setShowWorkerPickerModal(false)}
         workers={availableWorkers} selectedWorker={selectedWorker} onSelectWorker={setSelectedWorker}
         onContinue={handleWorkerPickerContinue} loading={workersLoading} accent={accent} t={t}

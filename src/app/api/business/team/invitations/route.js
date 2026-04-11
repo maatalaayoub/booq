@@ -37,6 +37,7 @@ export async function GET(request) {
         id: inv.id,
         businessInfoId: inv.business_info_id,
         businessName,
+        businessAvatar: settings.avatarUrl || null,
         businessCategory: biz?.business_category,
         professionalType: biz?.professional_type,
         invitedBy: inv.users?.username || 'Unknown',

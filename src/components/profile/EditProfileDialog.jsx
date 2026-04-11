@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Check, User, Calendar, ChevronDown, Settings, AtSign, AlertCircle, MapPin, Search, Phone } from 'lucide-react';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { createAuthClient } from '@/lib/supabase/auth-client';
 
 const genderOptions = [
   { value: 'male', labelEn: 'Male', labelAr: 'ذكر', labelFr: 'Homme' },
@@ -280,14 +281,18 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
     setSuccess(false);
 
     try {
-      // Update auth user (first name, last name)
+      // Update auth user metadata (first name, last name)
       try {
-        await user.update({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
+        const supabase = createAuthClient();
+        const { error: authError } = await supabase.auth.updateUser({
+          data: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+          },
         });
+        if (authError) throw authError;
       } catch (authErr) {
-        throw new Error(authErr?.errors?.[0]?.message || authErr?.message || 'Failed to update name');
+        throw new Error(authErr?.message || 'Failed to update name');
       }
 
       // Build request body - only include username if it's non-empty and valid

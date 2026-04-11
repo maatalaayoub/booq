@@ -112,16 +112,16 @@ export async function POST(request) {
       message,
     });
 
-    // Get business name for the notification
-    const businessName = await getBusinessName(supabase, ctx.businessInfoId);
+    // Get business info for the notification
+    const bizInfo = await getBusinessInfo(supabase, ctx.businessInfoId);
 
     // Send notification to invited user
     await createNotification(supabase, {
       userId: targetUser.id,
       type: 'team_invite',
       title: 'Team Invitation',
-      message: `You've been invited to join ${businessName} as a team member.`,
-      data: { invitationId: invitation.id, businessInfoId: ctx.businessInfoId, businessName },
+      message: `You've been invited to join ${bizInfo.name} as a team member.`,
+      data: { invitationId: invitation.id, businessInfoId: ctx.businessInfoId, businessName: bizInfo.name, businessAvatar: bizInfo.avatarUrl },
     });
 
     return apiSuccess({ invitation });
@@ -171,13 +171,13 @@ export async function PATCH(request) {
       await removeTeamMember(supabase, body.teamMemberId, ctx.businessInfoId);
 
       // Notify the removed member
-      const businessName = await getBusinessName(supabase, ctx.businessInfoId);
+      const bizInfo = await getBusinessInfo(supabase, ctx.businessInfoId);
       await createNotification(supabase, {
         userId: member.user_id,
         type: 'member_removed',
         title: 'Removed from Team',
-        message: `You have been removed from ${businessName}.`,
-        data: { businessInfoId: ctx.businessInfoId, businessName },
+        message: `You have been removed from ${bizInfo.name}.`,
+        data: { businessInfoId: ctx.businessInfoId, businessName: bizInfo.name, businessAvatar: bizInfo.avatarUrl },
       });
 
       return apiSuccess({ message: 'Team member removed' });
@@ -218,7 +218,7 @@ export async function PATCH(request) {
 
 // ─── HELPER ─────────────────────────────────────────────────────────────
 
-async function getBusinessName(supabase, businessInfoId) {
+async function getBusinessInfo(supabase, businessInfoId) {
   const { data } = await supabase
     .from('business_info')
     .select(`
@@ -229,8 +229,9 @@ async function getBusinessName(supabase, businessInfoId) {
     .eq('id', businessInfoId)
     .single();
 
-  if (!data) return 'a business';
+  if (!data) return { name: 'a business', avatarUrl: null };
   const settings = data.business_card_settings?.settings;
-  if (settings?.businessName) return settings.businessName;
-  return data.shop_salon_info?.business_name || data.mobile_service_info?.business_name || 'a business';
+  const name = settings?.businessName || data.shop_salon_info?.business_name || data.mobile_service_info?.business_name || 'a business';
+  const avatarUrl = settings?.avatarUrl || null;
+  return { name, avatarUrl };
 }

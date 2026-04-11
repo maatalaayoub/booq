@@ -21,8 +21,8 @@ export async function POST(request) {
       return apiError('Missing file or type', 400);
     }
 
-    if (!['avatar', 'cover', 'gallery_cover', 'business_avatar'].includes(type)) {
-      return apiError('Invalid type. Must be avatar, cover, gallery_cover, or business_avatar.', 400);
+    if (!['avatar', 'cover', 'gallery_cover', 'business_avatar', 'gallery'].includes(type)) {
+      return apiError('Invalid type. Must be avatar, cover, gallery_cover, business_avatar, or gallery.', 400);
     }
 
     // Validate file size
@@ -62,7 +62,9 @@ export async function POST(request) {
       ? `covers/${dbUser.id}-${Date.now()}.${ext}`
       : type === 'business_avatar'
         ? `business_avatars/${dbUser.id}-${Date.now()}.${ext}`
-        : `${type}s/${dbUser.id}.${ext}`;
+        : type === 'gallery'
+          ? `gallery/${dbUser.id}-${Date.now()}.${ext}`
+          : `${type}s/${dbUser.id}.${ext}`;
 
     // Upload (upsert — overwrite previous)
     const { error: uploadError } = await supabase.storage
@@ -86,7 +88,7 @@ export async function POST(request) {
     const url = `${publicUrl}?t=${Date.now()}`;
 
     // For gallery covers and business avatars, just return the URL — caller saves it in settings
-    if (type === 'gallery_cover' || type === 'business_avatar') {
+    if (type === 'gallery_cover' || type === 'business_avatar' || type === 'gallery') {
       return apiData({ url });
     }
 

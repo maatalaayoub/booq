@@ -61,22 +61,22 @@ const DAYS_OF_WEEK = [
 ];
 
 const MOROCCO_CITIES = [
-  'Casablanca', 'Rabat', 'FÃ¨s', 'Marrakech', 'Tanger', 'MeknÃ¨s', 'Agadir',
-  'Oujda', 'KÃ©nitra', 'TÃ©touan', 'SalÃ©', 'Temara', 'Safi', 'MohammÃ©dia',
-  'Khouribga', 'El Jadida', 'BÃ©ni Mellal', 'Nador', 'Taza', 'Settat',
-  'Berrechid', 'KhÃ©misset', 'Inezgane', 'Larache', 'Guelmim', 'Ksar El Kebir',
+  'Casablanca', 'Rabat', 'Fes', 'Marrakech', 'Tanger', 'Meknes', 'Agadir',
+  'Oujda', 'Kenitra', 'Tetouan', 'Sale', 'Temara', 'Safi', 'Mohammedia',
+  'Khouribga', 'El Jadida', 'Beni Mellal', 'Nador', 'Taza', 'Settat',
+  'Berrechid', 'Khemisset', 'Inezgane', 'Larache', 'Guelmim', 'Ksar El Kebir',
   'Taourirt', 'Berkane', 'Sidi Kacem', 'Sidi Slimane', 'Errachidia',
   'Guercif', 'Ouarzazate', 'Fquih Ben Salah', 'Tiznit', 'Tan-Tan',
   'Sefrou', 'Ifrane', 'Azrou', 'Essaouira', 'Taroudant', 'Oulad Teima',
-  'Youssoufia', 'Midelt', 'Chefchaouen', 'Al HoceÃ¯ma', 'Ben Guerir',
+  'Youssoufia', 'Midelt', 'Chefchaouen', 'Al Hoceima', 'Ben Guerir',
   'Asilah', 'Azemmour', 'Skhirat', 'Bir Jdid', 'Ouazzane',
-  'Tinghir', 'Zagora', 'Dakhla', 'LaÃ¢youne', 'Boujdour', 'Smara',
+  'Tinghir', 'Zagora', 'Dakhla', 'Laayoune', 'Boujdour', 'Smara',
   'Es-Semara', 'Assa', 'Tata', 'Bouarfa', 'Fnideq', 'Martil',
   'M\'diq', 'Imzouren', 'Driouch', 'Jerada', 'Ain Taoujdate',
   'Moulay Idriss Zerhoun', 'Missour', 'Azilal', 'Demnate', 'Kasba Tadla',
   'Souk El Arbaa', 'Mechra Bel Ksiri', 'Sidi Bennour', 'Ait Melloul',
   'Biougra', 'Chichaoua', 'El Kelaa des Sraghna', 'Ben Slimane',
-  'Bouznika', 'Tifelt', 'Sidi Yahia El Gharb', 'AÃ¯n Harrouda',
+  'Bouznika', 'Tifelt', 'Sidi Yahia El Gharb', 'Ain Harrouda',
   'Oued Zem', 'Bejaad'
 ];
 

@@ -221,9 +221,13 @@ export default function NotificationBell() {
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-                        <IconComp className="w-4 h-4" />
-                      </div>
+                      {n.data?.businessAvatar ? (
+                        <img src={n.data.businessAvatar} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                      ) : (
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                          <IconComp className="w-4 h-4" />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className={`text-sm ${!n.read_at ? 'font-semibold' : 'font-medium'} text-gray-900 truncate`}>

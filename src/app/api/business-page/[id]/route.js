@@ -81,6 +81,7 @@ export async function GET(_request, { params }) {
       // Card display settings
       avatarUrl: settings.avatarUrl || null,
       coverGallery: settings.coverGallery || [],
+      galleryImages: settings.hideAllGallery ? [] : (settings.galleryImages || []).filter(url => !(settings.hiddenGalleryImages || []).includes(url)),
       accentColor: settings.accentColor || 'slate',
       showProfile: settings.showProfile !== false,
       showLocation: settings.showLocation !== false,

@@ -274,9 +274,13 @@ export default function NotificationPopup({ className, iconSize = 'h-5 w-5' }) {
                         }`}
                       >
                         <div className="flex items-start gap-2.5">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-                            <IconComponent className="w-3.5 h-3.5" />
-                          </div>
+                          {n.data?.businessAvatar ? (
+                            <img src={n.data.businessAvatar} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                              <IconComponent className="w-3.5 h-3.5" />
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className={`text-[13px] leading-snug ${!n.read_at ? 'font-semibold' : 'font-medium'} text-gray-900 line-clamp-2`}>
                               {translateNotification(n, t).title}
