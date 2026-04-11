@@ -37,12 +37,14 @@ export async function POST(request) {
     let email = null;
     let firstName = null;
     let lastName = null;
+    let phone = null;
     try {
       const authClient = await createAuthServerClient();
       const { data: { user: authUser } } = await authClient.auth.getUser();
       email = authUser?.email || null;
       firstName = authUser?.user_metadata?.first_name || authUser?.user_metadata?.firstName || null;
       lastName = authUser?.user_metadata?.last_name || authUser?.user_metadata?.lastName || null;
+      phone = authUser?.user_metadata?.phone || null;
     } catch (err) {
       console.log('[set-role] Could not fetch auth user details:', err.message);
     }
@@ -182,6 +184,7 @@ export async function POST(request) {
         user_id: newUser.id,
         first_name: firstName,
         last_name: lastName,
+        ...(phone ? { phone } : {}),
       });
 
     if (profileError) {

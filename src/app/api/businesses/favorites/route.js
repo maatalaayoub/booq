@@ -44,6 +44,7 @@ export async function POST(request) {
     const results = (businesses || [])
       .filter(b => {
         const settings = b.business_card_settings?.settings;
+        if (!b.business_card_settings) return true;
         return settings && settings.pageEnabled === true;
       })
       .map(biz => {

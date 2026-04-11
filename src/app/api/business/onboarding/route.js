@@ -114,7 +114,8 @@ export async function POST(request) {
       travelRadiusKm,
       preferredCity,
       bio,
-      completeOnboarding 
+      completeOnboarding,
+      services,
     } = validated;
 
     const supabase = createServerSupabaseClient();
@@ -234,6 +235,62 @@ export async function POST(request) {
     if (categoryError) {
       console.error('[onboarding POST] Category data error:', categoryError);
       return apiError('Failed to save category data', 500, categoryError.message);
+    }
+
+    // Step 3: Create default business_card_settings with pageEnabled so the business shows on the home page
+    if (completeOnboarding && (businessCategory === 'business_owner' || businessCategory === 'mobile_service')) {
+      const defaultSettings = {
+        pageEnabled: true,
+        showProfile: true,
+        businessName: sanitizeText(businessName) || '',
+        showCoverPhoto: true,
+        showServices: true,
+        showPrices: true,
+        showLocation: true,
+        showRating: true,
+        showResponseTime: true,
+        showBookingButton: serviceMode === 'walkin' ? false : true,
+        showGetDirections: serviceMode === 'walkin' ? true : false,
+        showCallButton: false,
+        showMessageButton: false,
+        accentColor: 'slate',
+        coverGallery: [],
+        avatarUrl: null,
+      };
+
+      const { error: settingsError } = await supabase
+        .from('business_card_settings')
+        .upsert({
+          business_info_id: businessInfoId,
+          settings: defaultSettings,
+        }, { onConflict: 'business_info_id' });
+
+      if (settingsError) {
+        console.error('[onboarding POST] Card settings error:', settingsError);
+        // Non-blocking: settings can be configured later from the dashboard
+      }
+    }
+
+    // Step 4: Insert services if provided
+    if (services && services.length > 0) {
+      const serviceRows = services.map(s => ({
+        business_info_id: businessInfoId,
+        name: sanitizeText(s.name),
+        description: null,
+        duration_minutes: s.duration_minutes,
+        price: s.price,
+        currency: s.currency || 'MAD',
+        is_active: s.is_active !== false,
+      }));
+
+      const { error: servicesError } = await supabase
+        .from('business_services')
+        .insert(serviceRows);
+
+      if (servicesError) {
+        console.error('[onboarding POST] Services insert error:', servicesError);
+        // Non-blocking: services can be added later from the dashboard
+      }
     }
 
     return apiSuccess({ 

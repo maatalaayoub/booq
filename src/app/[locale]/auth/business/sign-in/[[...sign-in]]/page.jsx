@@ -4,7 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Scissors, LayoutDashboard, Users, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Users, TrendingUp, CalendarCheck, Settings, BarChart3 } from 'lucide-react';
 import AuthPageNav from '@/components/AuthPageNav';
 import SignInForm from '@/components/auth/SignInForm';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -36,6 +36,23 @@ export default function BusinessSignInPage() {
           if (data.role) {
             router.push(`/${locale}/business/dashboard`);
           } else {
+            // User exists in Supabase Auth but not in users table — try to create the row
+            console.log('[BusinessSignIn] No role found, attempting to assign business role...');
+            try {
+              const roleRes = await fetch('/api/set-role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: 'business' }),
+              });
+              const roleData = await roleRes.json();
+              if (roleRes.ok || roleData.role) {
+                console.log('[BusinessSignIn] Role assigned, redirecting to dashboard');
+                router.push(`/${locale}/business/dashboard?setup=business`);
+                return;
+              }
+            } catch (err) {
+              console.error('[BusinessSignIn] Failed to assign role:', err);
+            }
             const { createAuthClient } = await import('@/lib/supabase/auth-client');
             await createAuthClient().auth.signOut();
             setIsCheckingRole(false);
@@ -73,36 +90,37 @@ export default function BusinessSignInPage() {
 
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Left Side - Hero Section */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-100/40 rounded-full blur-[120px]" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-slate-200/40 rounded-full blur-[100px]" />
-          <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.15) 1px, transparent 0)',
-            backgroundSize: '32px 32px'
-          }} />
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-slate-50/80 via-white to-amber-50/40">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-100/30 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-slate-100/40 rounded-full blur-[100px]" />
 
           <div className="relative z-10 flex flex-col justify-center p-12 xl:p-16 h-full w-full">
-            <h1 className="text-4xl xl:text-5xl font-bold text-slate-900 mb-4 leading-[1.15]">
+            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-amber-200/60 rounded-full px-4 py-1.5 w-fit mb-6 shadow-sm">
+              <LayoutDashboard className="w-3.5 h-3.5 text-amber-600" />
+              <span className="text-amber-700 text-xs font-semibold tracking-wide uppercase">
+                {t('auth.barber.professionalPortal') || 'Professional Portal'}
+              </span>
+            </div>
+
+            <h1 className="text-4xl xl:text-5xl font-bold text-slate-900 mb-3 leading-[1.15]">
               {t('auth.barber.signInHeroTitle') || 'Welcome back'}
             </h1>
-            <p className="text-slate-500 text-lg max-w-md mb-10 leading-relaxed">
-              {t('auth.barber.signInHeroSubtitle') || 'Access your dashboard to manage appointments, clients, and grow your business.'}
+            <p className="text-slate-500 text-base max-w-sm mb-8 leading-relaxed">
+              {t('auth.barber.signInHeroSubtitle') || 'Access your dashboard to manage appointments, team, services, and grow your business.'}
             </p>
             <div className="grid grid-cols-2 gap-3 max-w-md">
               {[
-                { icon: LayoutDashboard, label: t('auth.barber.featureDashboard') || 'Dashboard', desc: t('auth.barber.featureDashboardDesc') || 'Full overview' },
-                { icon: Users, label: t('auth.barber.featureClients') || 'Clients', desc: t('auth.barber.featureClientsDesc') || 'Manage easily' },
-                { icon: Scissors, label: t('auth.barber.featureServices') || 'Services', desc: t('auth.barber.featureServicesDesc') || 'Custom pricing' },
-                { icon: TrendingUp, label: t('auth.barber.featureGrowth') || 'Growth', desc: t('auth.barber.featureGrowthDesc') || 'Track revenue' },
-              ].map(({ icon: Icon, label, desc }) => (
-                <div key={label} className="flex items-start gap-3 bg-white border-2 border-gray-200 rounded-sm p-3.5">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-50 shrink-0">
-                    <Icon className="w-4 h-4 text-amber-600" />
+                { icon: LayoutDashboard, label: t('auth.barber.featureDashboard') || 'Dashboard', desc: t('auth.barber.featureDashboardDesc') || 'Full overview', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' },
+                { icon: CalendarCheck, label: t('auth.barber.featureAppointments') || 'Appointments', desc: t('auth.barber.featureAppointmentsDesc') || 'Manage bookings', bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' },
+                { icon: Users, label: t('auth.barber.featureTeam') || 'Team', desc: t('auth.barber.featureTeamDesc') || 'Multi-worker support', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' },
+                { icon: BarChart3, label: t('auth.barber.featureAnalytics') || 'Analytics', desc: t('auth.barber.featureAnalyticsDesc') || 'Track performance', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' },
+              ].map(({ icon: Icon, label, desc, bg, border, text }) => (
+                <div key={label} className={`group bg-white/70 backdrop-blur-sm border ${border} rounded-xl p-4 hover:bg-white transition-all duration-200`}>
+                  <div className={`flex items-center justify-center w-9 h-9 rounded-lg ${bg} border ${border} mb-3`}>
+                    <Icon className={`w-4 h-4 ${text}`} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-slate-900 text-sm font-semibold leading-tight">{label}</p>
-                    <p className="text-slate-400 text-xs mt-0.5">{desc}</p>
-                  </div>
+                  <p className="text-slate-800 text-sm font-semibold">{label}</p>
+                  <p className="text-slate-400 text-xs mt-0.5">{desc}</p>
                 </div>
               ))}
             </div>
@@ -138,6 +156,7 @@ export default function BusinessSignInPage() {
                 redirectTo={`/${locale}/business/dashboard`}
                 onSuccess={handleSignInSuccess}
                 variant="business"
+                forgotPasswordUrl={`/${locale}/auth/forgot-password`}
               />
             </div>
           </div>

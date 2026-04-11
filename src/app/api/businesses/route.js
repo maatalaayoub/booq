@@ -37,9 +37,11 @@ export async function GET(request) {
       return apiError(error.message);
     }
 
-    // Filter to only businesses with public page enabled
+    // Filter to only businesses with public page enabled (or no settings row yet = default enabled)
     const activeBiz = (businesses || []).filter(b => {
       const settings = b.business_card_settings?.settings;
+      // If no settings row exists, default to showing the business
+      if (!b.business_card_settings) return true;
       return settings && settings.pageEnabled === true;
     });
 

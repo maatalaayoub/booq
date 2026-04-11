@@ -40,7 +40,7 @@ export async function GET(_request, { params }) {
     }
 
     const settings = biz.business_card_settings?.settings || {};
-    if (!settings.pageEnabled) {
+    if (biz.business_card_settings && !settings.pageEnabled) {
       return apiError('Business page is not active', 404);
     }
 

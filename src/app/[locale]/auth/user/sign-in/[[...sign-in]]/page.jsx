@@ -4,7 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Calendar, Clock, Star, Shield } from 'lucide-react';
+import { Calendar, Clock, Star, Shield, MapPin, Search, Layers } from 'lucide-react';
 import AuthPageNav from '@/components/AuthPageNav';
 import SignInForm from '@/components/auth/SignInForm';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
@@ -42,7 +42,24 @@ export default function UserSignInPage() {
           if (data.role) {
             router.replace(redirectUrl || `/${locale}`);
           } else {
-            // User not in database — sign out and show error
+            // User not in database — try to create the row
+            console.log('[UserSignIn] No role found, attempting to assign user role...');
+            try {
+              const roleRes = await fetch('/api/set-role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role: 'user' }),
+              });
+              const roleData = await roleRes.json();
+              if (roleRes.ok || roleData.role) {
+                console.log('[UserSignIn] Role assigned, redirecting');
+                router.replace(redirectUrl || `/${locale}?setup=user`);
+                return;
+              }
+            } catch (err) {
+              console.error('[UserSignIn] Failed to assign role:', err);
+            }
+            // Still failed — sign out and show error
             const { createAuthClient } = await import('@/lib/supabase/auth-client');
             await createAuthClient().auth.signOut();
             setIsCheckingRole(false);
@@ -80,36 +97,37 @@ export default function UserSignInPage() {
 
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Left Side - Hero Section */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-100/40 rounded-full blur-[120px]" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-100/30 rounded-full blur-[100px]" />
-          <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(0,0,0,0.15) 1px, transparent 0)',
-            backgroundSize: '32px 32px'
-          }} />
+        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-amber-50/80 via-white to-slate-50">
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-100/30 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-orange-50/40 rounded-full blur-[100px]" />
 
           <div className="relative z-10 flex flex-col justify-center p-12 xl:p-16 h-full w-full">
-            <h1 className="text-4xl xl:text-5xl font-bold text-slate-900 mb-4 leading-[1.15]">
+            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-amber-200/60 rounded-full px-4 py-1.5 w-fit mb-6 shadow-sm">
+              <Layers className="w-3.5 h-3.5 text-amber-600" />
+              <span className="text-amber-700 text-xs font-semibold tracking-wide uppercase">
+                {t('auth.user.allInOne') || 'All-in-one platform'}
+              </span>
+            </div>
+
+            <h1 className="text-4xl xl:text-5xl font-bold text-slate-900 mb-3 leading-[1.15]">
               {t('auth.user.signInHeroTitle') || 'Welcome Back'}
             </h1>
-            <p className="text-slate-500 text-lg max-w-md mb-10 leading-relaxed">
-              {t('auth.user.signInHeroSubtitle') || 'Sign in to book your next appointment and enjoy a premium grooming experience.'}
+            <p className="text-slate-500 text-base max-w-sm mb-8 leading-relaxed">
+              {t('auth.user.signInHeroSubtitle') || 'Sign in to book appointments, discover services, and manage all your bookings in one place.'}
             </p>
             <div className="grid grid-cols-2 gap-3 max-w-md">
               {[
-                { icon: Calendar, label: t('auth.user.featureBooking') || 'Easy Booking', desc: t('auth.user.featureBookingDesc') || 'Book in seconds' },
-                { icon: Clock, label: t('auth.user.featureInstant') || 'Instant Confirm', desc: t('auth.user.featureInstantDesc') || 'Real-time updates' },
-                { icon: Star, label: t('auth.user.featureRated') || 'Top Rated', desc: t('auth.user.featureRatedDesc') || 'Verified reviews' },
-                { icon: Shield, label: t('auth.user.featureSecure') || 'Secure', desc: t('auth.user.featureSecureDesc') || 'Data protected' },
-              ].map(({ icon: Icon, label, desc }) => (
-                <div key={label} className="flex items-start gap-3 bg-white border-2 border-gray-200 rounded-sm p-3.5">
-                  <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-50 shrink-0">
-                    <Icon className="w-4 h-4 text-amber-600" />
+                { icon: Search, label: t('auth.user.featureDiscover') || 'Discover', desc: t('auth.user.featureDiscoverDesc') || 'Find any service', bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-600' },
+                { icon: Calendar, label: t('auth.user.featureBooking') || 'Easy Booking', desc: t('auth.user.featureBookingDesc') || 'Book in seconds', bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-600' },
+                { icon: MapPin, label: t('auth.user.featureNearby') || 'Nearby', desc: t('auth.user.featureNearbyDesc') || 'Closest providers', bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-600' },
+                { icon: Shield, label: t('auth.user.featureSecure') || 'Secure', desc: t('auth.user.featureSecureDesc') || 'Data protected', bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-600' },
+              ].map(({ icon: Icon, label, desc, bg, border, text }) => (
+                <div key={label} className={`group bg-white/70 backdrop-blur-sm border ${border} rounded-xl p-4 hover:bg-white transition-all duration-200`}>
+                  <div className={`flex items-center justify-center w-9 h-9 rounded-lg ${bg} border ${border} mb-3`}>
+                    <Icon className={`w-4 h-4 ${text}`} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-slate-900 text-sm font-semibold leading-tight">{label}</p>
-                    <p className="text-slate-400 text-xs mt-0.5">{desc}</p>
-                  </div>
+                  <p className="text-slate-800 text-sm font-semibold">{label}</p>
+                  <p className="text-slate-400 text-xs mt-0.5">{desc}</p>
                 </div>
               ))}
             </div>
@@ -145,6 +163,7 @@ export default function UserSignInPage() {
                 redirectTo={redirectUrl || `/${locale}`}
                 onSuccess={handleSignInSuccess}
                 variant="user"
+                forgotPasswordUrl={`/${locale}/auth/forgot-password`}
               />
             </div>
           </div>

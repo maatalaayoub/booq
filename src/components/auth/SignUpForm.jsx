@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createAuthClient } from '@/lib/supabase/auth-client';
-import { Eye, EyeOff } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { Eye, EyeOff, Phone } from 'lucide-react';
 
 const supabase = createAuthClient();
 
@@ -17,10 +18,12 @@ const supabase = createAuthClient();
  * @param {string} [props.variant='user'] - 'user' | 'business' — changes button gradient
  */
 export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant = 'user' }) {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -54,6 +57,7 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
         data: {
           first_name: firstName.trim(),
           last_name: lastName.trim(),
+          phone: phone.trim(),
           intended_role: variant,
         },
         emailRedirectTo: `${window.location.origin}/api/auth/callback?next=${encodeURIComponent(redirectTo || '/')}`,
@@ -122,7 +126,7 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
   async function handleVerifyOtp(e) {
     e.preventDefault();
     const code = otpCode.join('');
-    if (code.length !== 6) { setError('Please enter the 6-digit code'); return; }
+if (code.length !== 6) { setError(t('auth.form.enterCode') || 'Please enter the 6-digit code'); return; }
 
     setError('');
     setVerifying(true);
@@ -194,9 +198,9 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
         </div>
-        <h3 className="text-xl font-semibold text-slate-900">Check your email</h3>
+        <h3 className="text-xl font-semibold text-slate-900">{t('auth.form.checkEmail') || 'Check your email'}</h3>
         <p className="text-slate-500 max-w-sm mx-auto">
-          We sent a 6-digit code to <span className="font-medium text-slate-700">{email}</span>. Enter it below to activate your account.
+          {t('auth.form.otpSent') || 'We sent a 6-digit code to'} <span className="font-medium text-slate-700">{email}</span>. {t('auth.form.otpActivate') || 'Enter it below to activate your account.'}
         </p>
 
         <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -223,19 +227,19 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
             disabled={verifying}
             className={`w-full ${buttonGradient} text-white rounded-xl h-12 text-base font-semibold transition-all disabled:opacity-50`}
           >
-            {verifying ? 'Verifying...' : 'Verify & continue'}
+            {verifying ? (t('auth.form.verifying') || 'Verifying...') : (t('auth.form.verifyAndContinue') || 'Verify & continue')}
           </button>
         </form>
 
         <p className="text-slate-500 text-sm">
-          Didn't receive the code?{' '}
+          {t('auth.form.didntReceive') || "Didn't receive the code?"}{' '}
           <button
             type="button"
             onClick={handleResendCode}
             disabled={loading || resendCooldown > 0}
             className="text-amber-600 hover:text-amber-700 font-semibold disabled:opacity-50"
           >
-            {loading ? 'Sending...' : resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend code'}
+            {loading ? (t('auth.form.sending') || 'Sending...') : resendCooldown > 0 ? `${t('auth.form.resendIn') || 'Resend in'} ${resendCooldown}s` : (t('auth.form.resendCode') || 'Resend code')}
           </button>
         </p>
       </div>
@@ -248,7 +252,7 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
       <form onSubmit={handleEmailSignUp} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-slate-700 font-medium text-sm mb-1.5">First name</label>
+            <label className="block text-slate-700 font-medium text-sm mb-1.5">{t('auth.form.firstNameLabel') || 'First name'}</label>
             <input
               type="text"
               value={firstName}
@@ -259,7 +263,7 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
             />
           </div>
           <div>
-            <label className="block text-slate-700 font-medium text-sm mb-1.5">Last name</label>
+            <label className="block text-slate-700 font-medium text-sm mb-1.5">{t('auth.form.lastNameLabel') || 'Last name'}</label>
             <input
               type="text"
               value={lastName}
@@ -272,7 +276,23 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
         </div>
 
         <div>
-          <label className="block text-slate-700 font-medium text-sm mb-1.5">Email address</label>
+          <label className="block text-slate-700 font-medium text-sm mb-1.5">{t('auth.form.phoneLabel') || 'Phone number'}</label>
+          <div className="relative">
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
+              className="w-full bg-slate-50 border-2 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-0 focus:bg-white rounded-xl h-12 px-4 pl-11 transition-all"
+              placeholder="+212 6XX XXX XXX"
+              dir="ltr"
+            />
+            <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400" />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-slate-700 font-medium text-sm mb-1.5">{t('auth.form.emailLabel') || 'Email address'}</label>
           <input
             type="email"
             value={email}
@@ -285,7 +305,7 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
         </div>
 
         <div>
-          <label className="block text-slate-700 font-medium text-sm mb-1.5">Password</label>
+          <label className="block text-slate-700 font-medium text-sm mb-1.5">{t('auth.form.passwordLabel') || 'Password'}</label>
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
@@ -318,14 +338,14 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
           disabled={loading || oauthLoading}
           className={`w-full ${buttonGradient} text-white rounded-xl h-12 text-base font-semibold transition-all disabled:opacity-50`}
         >
-          {loading ? 'Creating account...' : 'Continue'}
+          {loading ? (t('auth.form.creatingAccount') || 'Creating account...') : (t('auth.form.continue') || 'Continue')}
         </button>
       </form>
 
       {/* Divider */}
       <div className="flex items-center gap-4">
         <div className="flex-1 h-px bg-slate-200" />
-        <span className="text-slate-400 text-sm">or</span>
+        <span className="text-slate-400 text-sm">{t('auth.form.or') || 'or'}</span>
         <div className="flex-1 h-px bg-slate-200" />
       </div>
 
@@ -342,15 +362,15 @@ export default function SignUpForm({ signInUrl, redirectTo, onSuccess, variant =
           <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
           <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
         </svg>
-        {oauthLoading ? 'Redirecting...' : 'Continue with Google'}
+        {oauthLoading ? (t('auth.form.redirecting') || 'Redirecting...') : (t('auth.form.continueWithGoogle') || 'Continue with Google')}
       </button>
 
       {/* Footer — sign-in link */}
       {signInUrl && (
         <p className="text-center text-slate-600 text-sm">
-          Already have an account?{' '}
+          {t('auth.form.haveAccount') || 'Already have an account?'}{' '}
           <a href={signInUrl} className="text-amber-600 hover:text-amber-700 font-semibold">
-            Sign in
+            {t('auth.form.signIn') || 'Sign in'}
           </a>
         </p>
       )}
