@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useLanguage } from '@/contexts/LanguageContext';
 import {
   Sparkles,
@@ -23,6 +24,15 @@ const CATEGORY_ICONS = {
   Car,
   CarFront,
   HardHat,
+};
+
+const CATEGORY_IMAGES = {
+  Sparkles: '/images/makeup.jpeg',
+  Heart: '/images/doctor.jpeg',
+  Trophy: '/images/sport.jpeg',
+  UtensilsCrossed: '/images/restaurant.jpeg',
+  Car: '/images/automotive.jpeg',
+  CarFront: '/images/vehicle-rental.jpeg',
 };
 
 const CATEGORY_COLORS = [
@@ -144,15 +154,26 @@ export default function CategoryBrowse() {
             {categories.map((cat, index) => {
               const IconComponent = CATEGORY_ICONS[cat.icon] || Sparkles;
               const color = CATEGORY_COLORS[index % CATEGORY_COLORS.length];
+              const imageSrc = CATEGORY_IMAGES[cat.icon];
               return (
                 <button
                   key={cat.id}
                   onClick={() => handleCategoryClick(cat)}
                   className="flex flex-col items-center gap-3 flex-shrink-0 snap-start group cursor-pointer min-w-[90px] sm:min-w-[110px]"
                 >
-                  {/* Circle icon */}
-                  <div className={`w-[76px] h-[76px] sm:w-[90px] sm:h-[90px] rounded-full ${color.bg} ring-2 ${color.ring} flex items-center justify-center transition-all duration-300 group-hover:ring-4 group-hover:shadow-lg group-hover:scale-105`}>
-                    <IconComponent className={`w-8 h-8 sm:w-9 sm:h-9 ${color.text} transition-transform duration-300 group-hover:scale-110`} strokeWidth={1.8} />
+                  {/* Circle image or icon */}
+                  <div className={`w-[76px] h-[76px] sm:w-[90px] sm:h-[90px] rounded-full ring-2 ${color.ring} overflow-hidden transition-all duration-300 group-hover:ring-4 group-hover:shadow-lg group-hover:scale-105 ${imageSrc ? 'relative' : `${color.bg} flex items-center justify-center`}`}>
+                    {imageSrc ? (
+                      <Image
+                        src={imageSrc}
+                        alt={cat.name}
+                        fill
+                        sizes="90px"
+                        className="object-cover transition-transform duration-300 group-hover:scale-110"
+                      />
+                    ) : (
+                      <IconComponent className={`w-8 h-8 sm:w-9 sm:h-9 ${color.text} transition-transform duration-300 group-hover:scale-110`} strokeWidth={1.8} />
+                    )}
                   </div>
                   {/* Label */}
                   <span className="text-xs sm:text-sm font-semibold text-[#364153] text-center leading-tight max-w-[100px] sm:max-w-[120px] group-hover:text-[#1E293B] transition-colors">

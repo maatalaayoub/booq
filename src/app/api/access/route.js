@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAccessToken } from '@/lib/access-token';
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MINUTES = 10;
@@ -85,11 +86,11 @@ export async function POST(request) {
       );
     }
 
-    // Success — set secure cookie
+    // Success — set secure signed cookie
     const isProduction = process.env.NODE_ENV === 'production';
     const response = NextResponse.json({ success: true });
 
-    response.cookies.set('site_access', 'granted', {
+    response.cookies.set('site_access', createAccessToken(), {
       httpOnly: true,
       secure: isProduction,
       sameSite: 'lax',
