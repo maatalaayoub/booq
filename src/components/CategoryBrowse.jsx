@@ -117,7 +117,7 @@ export default function CategoryBrowse() {
   if (categories.length === 0) return null;
 
   return (
-    <section className="bg-white py-10 border-b border-gray-100">
+    <section className="bg-white pt-10 pb-4 border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

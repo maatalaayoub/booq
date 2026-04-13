@@ -374,7 +374,7 @@ export default function BusinessCards() {
   const hasBusinesses = Object.values(businesses).some(arr => arr && arr.length > 0);
 
   return (
-    <section className="bg-white py-10">
+    <section className="bg-white pt-4 pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section header */}
         <div className="mb-6">

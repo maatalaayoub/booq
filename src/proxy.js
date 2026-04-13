@@ -52,7 +52,7 @@ function getPreferredLocale(request) {
   return defaultLocale;
 }
 
-export async function middleware(req) {
+export async function proxy(req) {
   const pathname = req.nextUrl.pathname;
 
   // Skip static files
