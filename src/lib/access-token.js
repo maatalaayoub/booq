@@ -2,12 +2,8 @@ import { createHmac, timingSafeEqual } from 'crypto';
 
 const SECRET = process.env.ACCESS_TOKEN_SECRET || process.env.NEXTAUTH_SECRET;
 
-if (!SECRET) {
-  console.warn('[Access Token] ACCESS_TOKEN_SECRET is not set');
-}
-
 /**
- * Create a signed access token that can't be forged without the secret.
+ * Create a signed access token (Node.js only — used in API routes).
  * Format: timestamp.signature
  */
 export function createAccessToken() {
@@ -19,8 +15,7 @@ export function createAccessToken() {
 }
 
 /**
- * Verify a signed access token.
- * Returns true if the token is valid and not expired (1 hour).
+ * Verify a signed access token (Node.js only — used in API routes).
  */
 export function verifyAccessToken(token) {
   if (!token || typeof token !== 'string' || !SECRET) return false;
@@ -32,10 +27,8 @@ export function verifyAccessToken(token) {
   const ts = parseInt(timestamp, 10);
   if (isNaN(ts)) return false;
 
-  // Check expiry (1 hour)
   if (Date.now() - ts > 60 * 60 * 1000) return false;
 
-  // Recompute and compare using timing-safe comparison
   const expected = createHmac('sha256', SECRET)
     .update(`site_access:${timestamp}`)
     .digest('hex');

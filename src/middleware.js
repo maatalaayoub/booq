@@ -1,6 +1,6 @@
 import { createMiddlewareClient } from '@/lib/supabase/middleware-client';
 import { NextResponse } from 'next/server';
-import { verifyAccessToken } from '@/lib/access-token';
+import { verifyAccessTokenEdge } from '@/lib/access-token-edge';
 
 // Supported locales
 const locales = ['en', 'fr', 'ar'];
@@ -71,7 +71,8 @@ export async function middleware(req) {
 
   if (!isAccessPage && !isAccessApi && !pathname.startsWith('/api')) {
     const accessCookie = req.cookies.get('site_access');
-    if (!accessCookie || !verifyAccessToken(accessCookie.value)) {
+    const isValid = accessCookie ? await verifyAccessTokenEdge(accessCookie.value) : false;
+    if (!isValid) {
       return NextResponse.redirect(new URL('/access', req.url));
     }
   }
