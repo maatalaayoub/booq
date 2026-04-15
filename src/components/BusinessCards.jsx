@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { MapPin, Star, Clock, Briefcase, ChevronLeft, ChevronRight, Scissors, Sparkles, Hand, Palette, Phone, MessageCircle, Navigation } from 'lucide-react';
+import { MapPin, Star, Clock, Briefcase, ChevronLeft, ChevronRight, Scissors, Sparkles, Hand, Palette, Phone, MessageCircle, Navigation, Heart } from 'lucide-react';
 
 const ACCENT_COLORS = {
   slate:  { bg: '#364153', light: '#e8ecf0' },
@@ -20,15 +20,24 @@ const CATEGORY_ICONS = {
   makeup: Palette,
   nails: Hand,
   massage: Sparkles,
+  health_medical: Heart,
 };
 
 const CATEGORY_STYLES = {
-  barber:      { bg: 'bg-violet-100', text: 'text-violet-600' },
-  hairdresser: { bg: 'bg-rose-100', text: 'text-rose-600' },
-  makeup:      { bg: 'bg-amber-100', text: 'text-amber-600' },
-  nails:       { bg: 'bg-orange-100', text: 'text-orange-600' },
-  massage:     { bg: 'bg-cyan-100', text: 'text-cyan-600' },
+  barber:         { bg: 'bg-violet-100', text: 'text-violet-600' },
+  hairdresser:    { bg: 'bg-rose-100', text: 'text-rose-600' },
+  makeup:         { bg: 'bg-amber-100', text: 'text-amber-600' },
+  nails:          { bg: 'bg-orange-100', text: 'text-orange-600' },
+  massage:        { bg: 'bg-cyan-100', text: 'text-cyan-600' },
+  health_medical: { bg: 'bg-red-100', text: 'text-red-600' },
 };
+
+// Health & Medical specialty slugs — these get merged into one group
+const HEALTH_MEDICAL_TYPES = new Set([
+  'general_practitioner', 'orthodontist', 'cardiologist', 'ophthalmologist',
+  'psychiatrist', 'gastroenterologist', 'neurologist', 'allergist',
+  'urologist', 'pediatrician', 'std_specialist', 'hepatologist',
+]);
 
 // ─── SINGLE BUSINESS CARD ────────────────────────────────────
 function BusinessCard({ business, t, locale }) {
@@ -89,7 +98,7 @@ function BusinessCard({ business, t, locale }) {
           {business.businessName || t('businessCard.previewName')}
         </p>
         <p className="text-xs text-gray-400 truncate capitalize mb-2">
-          {t(`home.type.${business.professionalType}`) || business.professionalType?.replace(/_/g, ' ')}
+          {(() => { const key = `home.type.${business.professionalType}`; const v = t(key); return v !== key ? v : business.professionalType?.replace(/_/g, ' '); })()}
         </p>
 
         {/* Info chips */}
@@ -114,25 +123,33 @@ function BusinessCard({ business, t, locale }) {
           )}
         </div>
 
-        {/* Services */}
-        {business.showServices && business.services.length > 0 && (
-          <div className="mb-2">
-            <div className="space-y-0.5">
-              {business.services.slice(0, 2).map((s, i) => (
-                <div key={s.id || i} className="flex justify-between items-center text-[11px]">
-                  <span className="text-gray-600 truncate mr-2">{s.name}</span>
-                  {business.showPrices && (
-                    <span className="font-medium text-gray-800 whitespace-nowrap">{s.price} {s.currency}</span>
-                  )}
-                </div>
-              ))}
+        {/* Services / Specialization description */}
+        {HEALTH_MEDICAL_TYPES.has(business.professionalType) ? (
+          business.specializationDescription && (
+            <div className="mb-2">
+              <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">{business.specializationDescription}</p>
             </div>
-            {business.totalServices > 2 && (
-              <p className="text-[11px] font-medium mt-1" style={{ color: accent.bg }}>
-                +{business.totalServices - 2} {t('home.moreServices')}
-              </p>
-            )}
-          </div>
+          )
+        ) : (
+          business.showServices && business.services.length > 0 && (
+            <div className="mb-2">
+              <div className="space-y-0.5">
+                {business.services.slice(0, 2).map((s, i) => (
+                  <div key={s.id || i} className="flex justify-between items-center text-[11px]">
+                    <span className="text-gray-600 truncate mr-2">{s.name}</span>
+                    {business.showPrices && (
+                      <span className="font-medium text-gray-800 whitespace-nowrap">{s.price} {s.currency}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {business.totalServices > 2 && (
+                <p className="text-[11px] font-medium mt-1" style={{ color: accent.bg }}>
+                  +{business.totalServices - 2} {t('home.moreServices')}
+                </p>
+              )}
+            </div>
+          )
         )}
 
         {/* Spacer pushes button to bottom */}
@@ -265,7 +282,7 @@ function CategoryRow({ type, businesses, t, locale }) {
           </div>
           <div>
             <h3 className="text-[15px] font-bold text-[#364153] leading-tight">
-              {t(`home.category.${type}`)}
+              {(() => { const key = `home.category.${type}`; const v = t(key); return v !== key ? v : type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()); })()}
             </h3>
             <p className="text-[11px] text-gray-400 font-medium">
               {businesses.length} {businesses.length === 1 ? t('home.professional') || 'professional' : t('home.professionals') || 'professionals'}
@@ -343,7 +360,21 @@ function SkeletonRow() {
 }
 
 // ─── CATEGORY ORDER ──────────────────────────────────────────
-const CATEGORY_ORDER = ['barber', 'hairdresser', 'makeup', 'nails', 'massage'];
+const CATEGORY_ORDER = ['barber', 'hairdresser', 'makeup', 'nails', 'massage', 'health_medical'];
+
+/** Merge health/medical specialty groups into a single "health_medical" bucket */
+function mergeHealthMedical(raw) {
+  const merged = {};
+  for (const [type, list] of Object.entries(raw)) {
+    if (HEALTH_MEDICAL_TYPES.has(type)) {
+      if (!merged.health_medical) merged.health_medical = [];
+      merged.health_medical.push(...list);
+    } else {
+      merged[type] = list;
+    }
+  }
+  return merged;
+}
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────
 export default function BusinessCards() {
@@ -358,7 +389,7 @@ export default function BusinessCards() {
         const res = await fetch('/api/businesses');
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
-        setBusinesses(data.businesses || {});
+        setBusinesses(mergeHealthMedical(data.businesses || {}));
       } catch (e) {
         console.error('Failed to load businesses:', e);
         setFetchError(true);
@@ -409,7 +440,10 @@ export default function BusinessCards() {
 
         {/* Business cards by category */}
         {!loading && !fetchError && hasBusinesses && (
-          CATEGORY_ORDER.map(type => (
+          [
+            ...CATEGORY_ORDER,
+            ...Object.keys(businesses).filter(type => !CATEGORY_ORDER.includes(type)),
+          ].map(type => (
             <CategoryRow
               key={type}
               type={type}

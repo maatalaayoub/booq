@@ -19,5 +19,6 @@ ALTER TABLE business_info
 INSERT INTO service_categories (name, slug, description, icon, display_order) VALUES
   ('Sports & Recreation', 'sports_recreation', 'Football fields, sports facilities, and recreational venues', 'Trophy', 3),
   ('Restaurants & Hospitality', 'restaurants_hospitality', 'Restaurants, cafes, and hospitality venues', 'UtensilsCrossed', 4),
-  ('Automotive & Vehicles', 'automotive_vehicles', 'Car wash services, mechanical maintenance, and inspection centers', 'Car', 5)
+  ('Car & Vehicle Repair', 'automotive_vehicles', 'Car wash services, mechanical maintenance, and inspection centers', 'Car', 5),
+  ('Men''s Barbering', 'mens_barbering', 'Men''s haircuts, beard trims, shaves, and grooming services', 'Scissors', 8)
 ON CONFLICT (slug) DO NOTHING;

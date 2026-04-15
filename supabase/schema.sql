@@ -144,7 +144,7 @@ INSERT INTO service_categories (name, slug, description, icon, display_order) VA
   ('Health & Medical', 'health_medical', 'Health, wellness, and medical services', 'Heart', 2),
   ('Sports & Recreation', 'sports_recreation', 'Football fields, sports facilities, and recreational venues', 'Trophy', 3),
   ('Restaurants & Hospitality', 'restaurants_hospitality', 'Restaurants, cafes, and hospitality venues', 'UtensilsCrossed', 4),
-  ('Automotive & Vehicles', 'automotive_vehicles', 'Car wash services, mechanical maintenance, and inspection centers', 'Car', 5),
+  ('Car & Vehicle Repair', 'automotive_vehicles', 'Car wash services, mechanical maintenance, and inspection centers', 'Car', 5),
   ('Vehicle Rental', 'vehicle_rental', 'Cars, bicycles, motorcycles, and other transportation rental services', 'CarFront', 6),
   ('Construction & Equipment Rental', 'construction_equipment_rental', 'Tools and machinery for construction, home maintenance, and repair', 'HardHat', 7),
   ('Men''s Barbering', 'mens_barbering', 'Men''s haircuts, beard trims, shaves, and grooming services', 'Scissors', 8)
@@ -164,6 +164,27 @@ CROSS JOIN (VALUES
 WHERE sc.slug = 'beauty_personal_care'
 ON CONFLICT (slug) DO NOTHING;
 
+-- Seed specialties for Health & Medical
+INSERT INTO specialties (service_category_id, name, slug, description, icon, custom_icon, display_order)
+SELECT sc.id, s.name, s.slug, s.description, s.icon, s.custom_icon, s.display_order
+FROM service_categories sc
+CROSS JOIN (VALUES
+  ('General Practitioner', 'general_practitioner', 'General medical consultations and primary care.', 'Stethoscope', NULL, 1),
+  ('Orthodontist', 'orthodontist', 'Braces, aligners, and dental alignment treatments.', 'SmilePlus', NULL, 2),
+  ('Cardiologist', 'cardiologist', 'Heart and cardiovascular system specialist.', 'HeartPulse', NULL, 3),
+  ('Ophthalmologist', 'ophthalmologist', 'Eye care, vision tests, and eye surgery.', 'Eye', NULL, 4),
+  ('Psychiatrist', 'psychiatrist', 'Mental health diagnosis and treatment.', 'Brain', NULL, 5),
+  ('Gastroenterologist', 'gastroenterologist', 'Digestive system and gastrointestinal disorders.', 'Pill', NULL, 6),
+  ('Neurologist', 'neurologist', 'Brain, spine, and nervous system specialist.', 'Activity', NULL, 7),
+  ('Allergist', 'allergist', 'Allergy and immunology diagnosis and treatment.', 'ShieldPlus', NULL, 8),
+  ('Urologist', 'urologist', 'Urinary tract and male reproductive health.', 'Cross', NULL, 9),
+  ('Pediatrician', 'pediatrician', 'Medical care for infants, children, and adolescents.', 'Baby', NULL, 10),
+  ('STD Specialist', 'std_specialist', 'Sexual health and sexually transmitted disease care.', 'Ribbon', NULL, 11),
+  ('Hepatologist', 'hepatologist', 'Liver, gallbladder, and biliary system specialist.', 'Heart', NULL, 12)
+) AS s(name, slug, description, icon, custom_icon, display_order)
+WHERE sc.slug = 'health_medical'
+ON CONFLICT (slug) DO NOTHING;
+
 -- ============================================
 -- BUSINESS INFO (onboarding data)
 -- ============================================
@@ -171,7 +192,7 @@ CREATE TABLE IF NOT EXISTS business_info (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
   business_category TEXT NOT NULL CHECK (business_category IN ('business_owner', 'mobile_service', 'job_seeker')),
-  professional_type TEXT NOT NULL CHECK (professional_type IN ('barber', 'hairdresser', 'makeup', 'nails', 'massage')),
+  professional_type TEXT NOT NULL,
   service_category_id UUID REFERENCES service_categories(id),
   specialty_id UUID REFERENCES specialties(id),
   service_mode TEXT CHECK (service_mode IN ('booking', 'walkin', 'both')),
@@ -449,7 +470,7 @@ CREATE TABLE IF NOT EXISTS business_info (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
   business_category TEXT NOT NULL CHECK (business_category IN ('business_owner', 'mobile_service', 'job_seeker')),
-  professional_type TEXT NOT NULL CHECK (professional_type IN ('barber', 'hairdresser', 'makeup', 'nails', 'massage')),
+  professional_type TEXT NOT NULL,
   service_category_id UUID REFERENCES service_categories(id),
   specialty_id UUID REFERENCES specialties(id),
   service_mode TEXT CHECK (service_mode IN ('booking', 'walkin', 'both')),
@@ -1119,7 +1140,7 @@ INSERT INTO service_categories (name, slug, description, icon, display_order) VA
   ('Health & Medical', 'health_medical', 'Health, wellness, and medical services', 'Heart', 2),
   ('Sports & Recreation', 'sports_recreation', 'Football fields, sports facilities, and recreational venues', 'Trophy', 3),
   ('Restaurants & Hospitality', 'restaurants_hospitality', 'Restaurants, cafes, and hospitality venues', 'UtensilsCrossed', 4),
-  ('Automotive & Vehicles', 'automotive_vehicles', 'Car wash services, mechanical maintenance, and inspection centers', 'Car', 5),
+  ('Car & Vehicle Repair', 'automotive_vehicles', 'Car wash services, mechanical maintenance, and inspection centers', 'Car', 5),
   ('Vehicle Rental', 'vehicle_rental', 'Cars, bicycles, motorcycles, and other transportation rental services', 'CarFront', 6),
   ('Construction & Equipment Rental', 'construction_equipment_rental', 'Tools and machinery for construction, home maintenance, and repair', 'HardHat', 7),
   ('Men''s Barbering', 'mens_barbering', 'Men''s haircuts, beard trims, shaves, and grooming services', 'Scissors', 8)

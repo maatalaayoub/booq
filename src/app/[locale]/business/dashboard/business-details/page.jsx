@@ -170,7 +170,7 @@ export default function BusinessDetailsPage() {
     address: '',
     city: '',
     phone: '',
-    professionalType: 'barber',
+    professionalType: '',
     workLocation: 'my_place',
     serviceArea: '',
     travelRadiusKm: '',
@@ -193,7 +193,7 @@ export default function BusinessDetailsPage() {
             address: data.address || '',
             city: data.city || '',
             phone: data.phone || '',
-            professionalType: data.professionalType || 'barber',
+            professionalType: data.professionalType || '',
             workLocation: data.workLocation || 'my_place',
             serviceArea: data.serviceArea || '',
             travelRadiusKm: data.travelRadiusKm || '',
@@ -223,7 +223,7 @@ export default function BusinessDetailsPage() {
           address: data.address || '',
           city: data.city || '',
           phone: data.phone || '',
-          professionalType: data.professionalType || 'barber',
+          professionalType: data.professionalType || '',
           workLocation: data.workLocation || 'my_place',
           serviceArea: data.serviceArea || '',
           travelRadiusKm: data.travelRadiusKm || '',
@@ -343,10 +343,17 @@ export default function BusinessDetailsPage() {
     if (url) router.push(url);
   };
 
-  const professionalTypeOptions = PROFESSIONAL_TYPES.map((type) => ({
-    value: type,
-    label: t(`businessDetails.professionalType.${type}`) || type.charAt(0).toUpperCase() + type.slice(1),
-  }));
+  const professionalTypeList = PROFESSIONAL_TYPES.includes(form.professionalType)
+    ? PROFESSIONAL_TYPES
+    : [...PROFESSIONAL_TYPES, form.professionalType];
+  const professionalTypeOptions = professionalTypeList.map((type) => {
+    const key = `businessDetails.professionalType.${type}`;
+    const translated = t(key);
+    return {
+      value: type,
+      label: translated !== key ? translated : type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    };
+  });
 
   const cityOptions = MOROCCAN_CITIES.map((c) => ({
     value: c,

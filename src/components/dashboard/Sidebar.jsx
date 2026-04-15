@@ -36,7 +36,7 @@ import {
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
-  const { businessCategory, serviceMode, isLoading: isCategoryLoading } = useBusinessCategory();
+  const { businessCategory, serviceMode, serviceCategorySlug, isLoading: isCategoryLoading } = useBusinessCategory();
 
   // Listen for toggle event from header
   useEffect(() => {
@@ -99,6 +99,7 @@ export default function Sidebar() {
       label: t('dashboard.sidebar.services') || 'Services & Prices', 
       href: `/${locale}/business/dashboard/services`,
       categories: ['business_owner', 'mobile_service'],
+      excludeServiceCategorySlugs: ['health_medical'],
     },
     { 
       icon: UsersRound, 
@@ -187,7 +188,8 @@ export default function Sidebar() {
     : allMenuItems.filter(
         (item) =>
           (!businessCategory || item.categories.includes(businessCategory)) &&
-          (!item.excludeServiceModes || !item.excludeServiceModes.includes(serviceMode))
+          (!item.excludeServiceModes || !item.excludeServiceModes.includes(serviceMode)) &&
+          (!item.excludeServiceCategorySlugs || !item.excludeServiceCategorySlugs.includes(serviceCategorySlug))
       );
 
   const bottomItems = [

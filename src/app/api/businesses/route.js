@@ -81,6 +81,7 @@ export async function GET(request) {
         phone: details?.phone || null,
         latitude: validCoord(details?.latitude, details?.longitude)?.latitude ?? null,
         longitude: validCoord(details?.latitude, details?.longitude)?.longitude ?? null,
+        specializationDescription: settings.specializationDescription || '',
         totalServices: services.length,
         services: services.slice(0, 3).map(s => ({
           name: s.name,

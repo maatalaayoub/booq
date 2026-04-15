@@ -5,8 +5,8 @@ import { zUUID, zDateStr, zTimeStr } from '@/lib/validate';
 
 export const createBookingSchema = z.object({
   businessId: zUUID,
-  // Accept either serviceIds array or single serviceId
-  serviceIds: z.array(zUUID).min(1).max(10).optional(),
+  // Accept either serviceIds array or single serviceId (both optional for direct bookings)
+  serviceIds: z.array(zUUID).max(10).optional(),
   serviceId: zUUID.optional(),
   date: zDateStr,
   startTime: zTimeStr,
@@ -14,10 +14,8 @@ export const createBookingSchema = z.object({
   clientPhone: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
   assignedWorkerId: zUUID.nullable().optional(),
-}).refine(
-  data => (data.serviceIds && data.serviceIds.length > 0) || data.serviceId,
-  { message: 'At least one service must be selected', path: ['serviceIds'] }
-);
+  duration: z.number().int().min(5).max(480).optional(),
+});
 
 // ─── EDIT BOOKING (PATCH /api/bookings) ─────────────────────────────────
 

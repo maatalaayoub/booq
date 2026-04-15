@@ -35,6 +35,8 @@ const CATEGORY_IMAGES = {
   UtensilsCrossed: '/images/restaurant.jpeg',
   Car: '/images/automotive.jpeg',
   CarFront: '/images/vehicle-rental.jpeg',
+  Scissors: '/images/barber.jpeg',
+  HardHat: '/images/Construction-equipment.jpeg',
 };
 
 const CATEGORY_COLORS = [

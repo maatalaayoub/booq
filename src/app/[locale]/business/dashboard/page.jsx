@@ -22,7 +22,7 @@ export default function BusinessDashboard() {
     refetch 
   } = useRole();
   const { t } = useLanguage();
-  const { businessCategory } = useBusinessCategory();
+  const { businessCategory, serviceCategorySlug } = useBusinessCategory();
   const searchParams = useSearchParams();
   const params = useParams();
   const router = useRouter();
@@ -753,6 +753,7 @@ export default function BusinessDashboard() {
           </div>
         </div>
         
+        {serviceCategorySlug !== 'health_medical' && (
         <div className="bg-white rounded-[3px] p-6 border border-gray-200">
           <div className="flex items-start justify-between">
             <div>
@@ -768,6 +769,7 @@ export default function BusinessDashboard() {
             </div>
           </div>
         </div>
+        )}
 
         {businessCategory === 'mobile_service' ? (
           <>

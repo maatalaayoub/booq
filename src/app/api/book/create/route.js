@@ -16,15 +16,15 @@ export async function POST(request) {
     const { error: validationError, data: validated } = parseBody(createBookingSchema, body);
     if (validationError) return validationResponse(validationError);
 
-    const { businessId, date, startTime, clientName, clientPhone, notes, assignedWorkerId } = validated;
+    const { businessId, date, startTime, clientName, clientPhone, notes, assignedWorkerId, duration } = validated;
     const serviceIds = validated.serviceIds && validated.serviceIds.length > 0
       ? validated.serviceIds
-      : [validated.serviceId];
+      : validated.serviceId ? [validated.serviceId] : [];
 
     const supabase = createServerSupabaseClient();
 
     const appointment = await createBooking(supabase, {
-      authId, businessId, serviceIds, date, startTime, clientName, clientPhone, notes, assignedWorkerId,
+      authId, businessId, serviceIds, date, startTime, clientName, clientPhone, notes, assignedWorkerId, duration,
     });
 
     return apiData({

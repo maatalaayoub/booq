@@ -6,6 +6,7 @@ import { useAuthUser } from '@/hooks/useAuthUser';
 const BusinessCategoryContext = createContext({
   businessCategory: null,
   serviceMode: null,
+  serviceCategorySlug: null,
   isLoading: true,
 });
 
@@ -13,6 +14,7 @@ export function BusinessCategoryProvider({ children }) {
   const { user, isLoaded } = useAuthUser();
   const [businessCategory, setBusinessCategory] = useState(null);
   const [serviceMode, setServiceMode] = useState(null);
+  const [serviceCategorySlug, setServiceCategorySlug] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +27,7 @@ export function BusinessCategoryProvider({ children }) {
             const data = JSON.parse(text);
             setBusinessCategory(data.businessCategory || null);
             setServiceMode(data.businessInfo?.service_mode || null);
+            setServiceCategorySlug(data.serviceCategorySlug || null);
           }
         }
       } catch (err) {
@@ -42,7 +45,7 @@ export function BusinessCategoryProvider({ children }) {
   }, [isLoaded, user]);
 
   return (
-    <BusinessCategoryContext.Provider value={{ businessCategory, serviceMode, isLoading }}>
+    <BusinessCategoryContext.Provider value={{ businessCategory, serviceMode, serviceCategorySlug, isLoading }}>
       {children}
     </BusinessCategoryContext.Provider>
   );

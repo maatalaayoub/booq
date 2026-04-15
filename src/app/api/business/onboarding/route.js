@@ -58,6 +58,7 @@ export async function GET(request) {
     // Get category-specific data if business info exists
     let categoryData = null;
     let businessHours = [];
+    let serviceCategorySlug = null;
     
     if (businessInfo?.id && businessInfo?.business_category) {
       categoryData = await getCategoryData(supabase, businessInfo.id, businessInfo.business_category);
@@ -68,10 +69,21 @@ export async function GET(request) {
       }
     }
 
+    // Fetch service category slug
+    if (businessInfo?.service_category_id) {
+      const { data: sc } = await supabase
+        .from('service_categories')
+        .select('slug')
+        .eq('id', businessInfo.service_category_id)
+        .single();
+      serviceCategorySlug = sc?.slug || null;
+    }
+
     return apiData({
       onboardingCompleted: businessInfo?.onboarding_completed || false,
       businessInfo: businessInfo || null,
       businessCategory: businessInfo?.business_category || null,
+      serviceCategorySlug,
       categoryData: categoryData || null,
       businessHours: businessHours,
     });

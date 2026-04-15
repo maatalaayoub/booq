@@ -26,11 +26,12 @@ const mapStyles = `
   .custom-popup .leaflet-popup-content-wrapper {
     padding: 0;
     overflow: hidden;
-    border-radius: 12px;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
   }
   .custom-popup .leaflet-popup-content {
     margin: 0;
-    width: 280px !important;
+    width: 260px !important;
   }
   .custom-popup .leaflet-popup-tip-container {
     display: none;
@@ -39,7 +40,7 @@ const mapStyles = `
     color: inherit !important;
     text-decoration: none !important;
   }
-  .custom-popup .leaflet-popup-content a.text-white {
+  .custom-popup .leaflet-popup-content a.popup-cta {
     color: #fff !important;
   }
 `;
@@ -286,111 +287,103 @@ export default function PlacesMap({ businesses, locale, hoveredBusinessId, selec
               popupclose: () => { if (onPopupClose) onPopupClose(); },
             }}
           >
-            <Popup className="custom-popup" closeButton={false} minWidth={280}>
-              <div className="flex flex-col overflow-hidden rounded-xl bg-white shadow-lg border border-gray-100 p-0 m-0">
-                {/* Image gallery */}
-                {biz.coverGallery && biz.coverGallery.length > 0 ? (
-                  <div className="relative h-32 w-full bg-gray-200 overflow-hidden">
-                    <div className="flex h-full w-full">
-                      {biz.coverGallery.slice(0, 3).map((img, i) => (
-                        <div key={i} className={`relative h-full ${biz.coverGallery.length === 1 ? 'w-full' : biz.coverGallery.length === 2 ? 'w-1/2' : 'w-1/3'}`}>
-                          <Image 
-                            src={img} 
-                            alt={biz.businessName}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                      ))}
+            <Popup className="custom-popup" closeButton={false} minWidth={260}>
+              <div className="flex flex-col overflow-hidden bg-white p-0 m-0">
+                {/* Cover image - single full-width */}
+                <div className="relative h-36 w-full bg-gray-50 overflow-hidden">
+                  {biz.coverGallery && biz.coverGallery[0] ? (
+                    <Image 
+                      src={biz.coverGallery[0]} 
+                      alt={biz.businessName}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                      <Scissors className="w-8 h-8 text-gray-300" />
                     </div>
-                    {/* Rating badge */}
-                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full text-xs font-bold text-gray-800 flex items-center gap-1 shadow-sm">
+                  )}
+                  {/* Rating badge */}
+                  {biz.rating > 0 && (
+                    <div className="absolute top-2.5 right-2.5 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg text-[11px] font-bold text-gray-800 flex items-center gap-1 shadow-sm">
                       <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
-                      4.9
+                      {(biz.rating || 0).toFixed(1)}
                     </div>
-                  </div>
-                ) : (
-                  <div className="h-24 w-full bg-gradient-to-r from-[#244C70] to-[#4a7aa8] flex items-center justify-center">
-                    <Scissors className="w-8 h-8 text-white/40" />
-                  </div>
-                )}
+                  )}
+                  {/* Gradient overlay */}
+                  <div className="absolute bottom-0 inset-x-0 h-12 bg-gradient-to-t from-black/30 to-transparent" />
+                </div>
                 
-                <div className="p-3">
-                  <h3 className="font-bold text-gray-900 text-base mb-0.5 truncate">{biz.businessName}</h3>
-                  <div className="flex items-center text-gray-500 text-xs mb-2 gap-1">
-                    <MapPin className="w-3 h-3" />
+                <div className="px-3.5 pt-3 pb-3.5">
+                  <h3 className="font-bold text-gray-900 text-[14px] leading-snug truncate">{biz.businessName}</h3>
+                  <div className="flex items-center text-gray-400 text-[11px] mt-1 gap-1">
+                    <MapPin className="w-3 h-3 shrink-0" />
                     <span className="truncate">{biz.city || 'Location'}</span>
                   </div>
 
                   {/* Services preview */}
                   {biz.services && biz.services.length > 0 && (
-                    <div className="space-y-1 mb-3 py-2 border-t border-gray-100">
+                    <div className="space-y-1.5 mt-2.5 pt-2.5 border-t border-gray-100">
                       {biz.services.slice(0, 2).map((s, i) => (
-                        <div key={i} className="flex justify-between items-center text-xs">
-                          <span className="text-gray-600 truncate pr-2">{s.name}</span>
-                          <span className="font-semibold text-gray-900 whitespace-nowrap">{s.price} {s.currency}</span>
+                        <div key={i} className="flex justify-between items-center">
+                          <span className="text-[12px] text-gray-500 truncate pr-2">{s.name}</span>
+                          <span className="text-[12px] font-bold text-gray-900 whitespace-nowrap">{s.price} {s.currency}</span>
                         </div>
                       ))}
                     </div>
                   )}
                   
-                  {/* Action buttons based on config */}
-                  <div className="flex gap-2">
+                  {/* CTA button */}
+                  <div className="mt-3">
                     {biz.showBookingButton ? (
                       <Link
                         href={`/${locale}/b/${biz.id}`}
-                        className="flex-1 bg-[#244C70] text-white text-center py-2 rounded-lg text-sm font-medium hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
+                        className="popup-cta block w-full bg-[#244C70] text-white text-center py-2.5 rounded-xl text-[13px] font-semibold hover:bg-[#1a3a5a] transition-colors"
                       >
-                        <CalendarCheck className="w-3.5 h-3.5" />
                         Book Now
                       </Link>
                     ) : biz.showGetDirections ? (
-                      <>
+                      <div className="flex gap-2">
                         <a
                           href={`https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex-1 bg-[#244C70] text-white text-center py-2 rounded-lg text-sm font-medium hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
+                          className="popup-cta flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-xl text-[12px] font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1"
                         >
-                          <Navigation className="w-3.5 h-3.5" />
+                          <Navigation className="w-3 h-3" />
                           Directions
                         </a>
                         <Link
                           href={`/${locale}/b/${biz.id}`}
-                          className="flex-1 bg-gray-100 text-gray-700 text-center py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
+                          className="flex-1 bg-gray-50 text-gray-600 text-center py-2.5 rounded-xl text-[12px] font-semibold hover:bg-gray-100 transition-colors border border-gray-200"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
                           Details
                         </Link>
-                      </>
-                    ) : (biz.showCallButton || biz.showMessageButton) ? (
-                      <>
-                        {biz.phone ? (
-                          <a
-                            href={`tel:${biz.phone}`}
-                            className="flex-1 bg-[#244C70] text-white text-center py-2 rounded-lg text-sm font-medium hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            <Phone className="w-3.5 h-3.5" />
-                            Contact
-                          </a>
-                        ) : (
-                          <Link
-                            href={`/${locale}/b/${biz.id}`}
-                            className="flex-1 bg-[#244C70] text-white text-center py-2 rounded-lg text-sm font-medium hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            Contact
-                          </Link>
-                        )}
+                      </div>
+                    ) : (biz.showCallButton || biz.showMessageButton) && biz.phone ? (
+                      <div className="flex gap-2">
+                        <a
+                          href={`tel:${biz.phone}`}
+                          className="popup-cta flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-xl text-[12px] font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Phone className="w-3 h-3" />
+                          Contact
+                        </a>
                         <Link
                           href={`/${locale}/b/${biz.id}`}
-                          className="flex-1 bg-gray-100 text-gray-700 text-center py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5"
+                          className="flex-1 bg-gray-50 text-gray-600 text-center py-2.5 rounded-xl text-[12px] font-semibold hover:bg-gray-100 transition-colors border border-gray-200"
                         >
-                          <ExternalLink className="w-3.5 h-3.5" />
                           Details
                         </Link>
-                      </>
-                    ) : null}
+                      </div>
+                    ) : (
+                      <Link
+                        href={`/${locale}/b/${biz.id}`}
+                        className="popup-cta block w-full bg-[#244C70] text-white text-center py-2.5 rounded-xl text-[13px] font-semibold hover:bg-[#1a3a5a] transition-colors"
+                      >
+                        View Details
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

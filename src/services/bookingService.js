@@ -104,21 +104,28 @@ async function validateAgainstSchedule(supabase, businessId, startTimeISO, endTi
  * @throws {ServiceError} on business rule violations
  * @returns {object} the created appointment
  */
-export async function createBooking(supabase, { authId, businessId, serviceIds, date, startTime, clientName, clientPhone, notes, assignedWorkerId }) {
+export async function createBooking(supabase, { authId, businessId, serviceIds, date, startTime, clientName, clientPhone, notes, assignedWorkerId, duration }) {
   // Verify business exists and accepts bookings
   const bizInfo = await findBusinessById(supabase, businessId, 'id, business_category, service_mode, onboarding_completed');
   if (!bizInfo || !bizInfo.onboarding_completed) throw new ServiceError('Business not found', 404);
   if (bizInfo.service_mode === 'walkin') throw new ServiceError('This business only accepts walk-in customers');
 
-  // Get & validate services
-  const services = await findServicesByIds(supabase, businessId, serviceIds);
-  if (!services || services.length !== serviceIds.length || services.some(s => !s.is_active)) {
-    throw new ServiceError('One or more services not found or inactive', 404);
+  // Get & validate services (or use direct booking defaults)
+  let totalDuration, totalPrice, combinedName;
+  if (serviceIds && serviceIds.length > 0) {
+    const services = await findServicesByIds(supabase, businessId, serviceIds);
+    if (!services || services.length !== serviceIds.length || services.some(s => !s.is_active)) {
+      throw new ServiceError('One or more services not found or inactive', 404);
+    }
+    totalDuration = services.reduce((sum, s) => sum + s.duration_minutes, 0);
+    totalPrice = services.reduce((sum, s) => sum + (s.price || 0), 0);
+    combinedName = services.map(s => s.name).join(' + ');
+  } else {
+    // Direct booking (no specific service) — e.g. health_medical
+    totalDuration = duration || 20;
+    totalPrice = 0;
+    combinedName = 'Consultation';
   }
-
-  const totalDuration = services.reduce((sum, s) => sum + s.duration_minutes, 0);
-  const totalPrice = services.reduce((sum, s) => sum + (s.price || 0), 0);
-  const combinedName = services.map(s => s.name).join(' + ');
 
   // Calculate times
   const startDate = new Date(`${date}T${startTime}:00Z`);
@@ -297,7 +304,7 @@ export async function getAvailableSlots(supabase, { businessId, dateStr, duratio
     ? [...exResult.blockedRanges]
     : [...exResult.blockedRanges, ...appointmentRanges];
 
-  let slots = generateTimeSlots({ openTime, closeTime, duration, blockedRanges: allBlocked, dateStr });
+  let slots = generateTimeSlots({ openTime, closeTime, duration, blockedRanges: allBlocked, dateStr, interval: duration });
 
   // ─── Worker availability filter ───────────────────────────────────
   // If the business has a team, mark a slot as unavailable when NO worker can serve it.

@@ -156,7 +156,7 @@ export default function AppointmentDetailModal({
     setRescheduleError(null);
     try {
       const bizId = appointment.extendedProps?.businessInfoId || appointment.extendedProps?.business_info_id;
-      const dur = duration || 30;
+      const dur = duration || 20;
       const res = await fetch(`/api/book/available-slots?businessId=${encodeURIComponent(bizId)}&date=${dateStr}&duration=${dur}`);
       const data = await res.json();
 

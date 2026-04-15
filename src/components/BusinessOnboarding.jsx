@@ -37,6 +37,17 @@ import {
   Car,
   CarFront,
   HardHat,
+  Stethoscope,
+  SmilePlus,
+  HeartPulse,
+  Eye,
+  Brain,
+  Pill,
+  Activity,
+  ShieldPlus,
+  Baby,
+  Ribbon,
+  Cross,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -120,6 +131,25 @@ const SERVICE_CATEGORY_ICONS = {
   Car,
   CarFront,
   HardHat,
+};
+
+const SPECIALTY_ICONS = {
+  Stethoscope,
+  SmilePlus,
+  HeartPulse,
+  Eye,
+  Brain,
+  Pill,
+  Activity,
+  ShieldPlus,
+  Baby,
+  Ribbon,
+  Cross,
+  Heart,
+  Scissors,
+  Sparkles,
+  Palette,
+  Hand,
 };
 
 const PROFESSIONAL_TYPES = [
@@ -681,7 +711,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                   <button
                     key={category.id}
                     onClick={() => setBusinessCategory(category.id)}
-                    className={`group w-full flex items-center gap-4 p-5 rounded-[5px] border transition-all duration-300 text-left ${
+                    className={`group w-full flex items-center gap-4 p-5 rounded-[5px] border transition-all duration-300 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'} ${
                       isSelected 
                         ? 'border-amber-400 bg-white' 
                         : 'border-gray-100 hover:border-gray-200 bg-white hover:bg-gray-50'
@@ -745,7 +775,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                     <button
                       key={cat.id}
                       onClick={() => setServiceCategoryId(cat.id)}
-                      className={`group w-full flex items-center gap-4 p-5 rounded-[5px] border transition-all duration-300 text-left ${
+                      className={`group w-full flex items-center gap-4 p-5 rounded-[5px] border transition-all duration-300 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'} ${
                         isSelected 
                           ? 'border-amber-400 bg-white' 
                           : 'border-gray-100 hover:border-gray-200 bg-white hover:bg-gray-50'
@@ -817,7 +847,7 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                     <button
                       key={type.id}
                       onClick={() => setProfessionalType(type.slug)}
-                      className={`group w-full flex items-center gap-4 p-4 rounded-[5px] border transition-all duration-300 text-left ${
+                      className={`group w-full flex items-center gap-4 p-4 rounded-[5px] border transition-all duration-300 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'} ${
                         isSelected 
                           ? 'border-amber-400 bg-white' 
                           : 'border-gray-100 hover:border-gray-200 bg-white hover:bg-gray-50'
@@ -826,9 +856,10 @@ export default function BusinessOnboarding({ userName, onComplete }) {
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 bg-gray-100 group-hover:bg-gray-200 transition-all">
                         {type.custom_icon ? (
                           <img src={type.custom_icon} alt={type.name} className="w-8 h-8" />
-                        ) : (
-                          <Scissors className="w-6 h-6 text-gray-500 group-hover:text-gray-700" />
-                        )}
+                        ) : (() => {
+                          const SpecIcon = SPECIALTY_ICONS[type.icon] || Scissors;
+                          return <SpecIcon className="w-6 h-6 text-gray-500 group-hover:text-gray-700" />;
+                        })()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className={`font-semibold transition-colors ${

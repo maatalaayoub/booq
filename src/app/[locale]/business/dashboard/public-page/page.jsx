@@ -73,7 +73,7 @@ function SectionToggle({ icon: Icon, label, description, value, onChange, accent
 }
 
 // ─── LIVE PREVIEW CARD ────────────────────────────────────────
-function PreviewCard({ settings, user, businessData, serviceMode }) {
+function PreviewCard({ settings, user, businessData, serviceMode, isHealthMedical }) {
   const { t } = useLanguage();
   const gallery = settings.coverGallery || [];
   const [slideIndex, setSlideIndex] = useState(0);
@@ -169,21 +169,30 @@ function PreviewCard({ settings, user, businessData, serviceMode }) {
           )}
         </div>
 
-        {/* Services preview */}
-        {settings.showServices && (
-          <div className="mb-3">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('businessCard.servicesHeading')}</p>
-            <div className="space-y-1">
-              {['Classic Haircut', 'Beard Trim'].map(s => (
-                <div key={s} className="flex justify-between items-center text-xs">
-                  <span className="text-gray-700">{s}</span>
-                  <span className="font-medium text-gray-900">
-                    {settings.showPrices ? '80 MAD' : <EyeOff className="w-3 h-3 text-gray-300" />}
-                  </span>
-                </div>
-              ))}
+        {/* Services preview / Specialization description */}
+        {isHealthMedical ? (
+          settings.specializationDescription && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('businessCard.specializationHeading') !== 'businessCard.specializationHeading' ? t('businessCard.specializationHeading') : 'Specialization'}</p>
+              <p className="text-xs text-gray-600 leading-relaxed line-clamp-3">{settings.specializationDescription}</p>
             </div>
-          </div>
+          )
+        ) : (
+          settings.showServices && (
+            <div className="mb-3">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('businessCard.servicesHeading')}</p>
+              <div className="space-y-1">
+                {['Classic Haircut', 'Beard Trim'].map(s => (
+                  <div key={s} className="flex justify-between items-center text-xs">
+                    <span className="text-gray-700">{s}</span>
+                    <span className="font-medium text-gray-900">
+                      {settings.showPrices ? '80 MAD' : <EyeOff className="w-3 h-3 text-gray-300" />}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
         )}
 
         {/* Action buttons row */}
@@ -275,6 +284,7 @@ const DEFAULT_SETTINGS = {
   pageEnabled:       true,
   showProfile:       true,
   businessName:      '',
+  specializationDescription: '',
   showCoverPhoto:    true,
   showServices:      true,
   showPrices:        true,
@@ -296,7 +306,9 @@ export default function PublicPageManager() {
   const params = useParams();
   const locale = params.locale || 'en';
   const { t, isRTL } = useLanguage();
-  const { businessCategory, serviceMode } = useBusinessCategory();
+  const { businessCategory, serviceMode, serviceCategorySlug } = useBusinessCategory();
+
+  const isHealthMedical = serviceCategorySlug === 'health_medical';
 
   const router = useRouter();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -379,6 +391,7 @@ export default function PublicPageManager() {
       ['pageEnabled'],
       ['showProfile'],
       ['businessName'],
+      ['specializationDescription'],
       ['showBookingButton', 'showGetDirections', 'showCallButton', 'showMessageButton'],
       ['showCoverPhoto'],
       ['showServices'],
@@ -755,6 +768,22 @@ export default function PublicPageManager() {
                 <p className="text-xs text-gray-400 mt-1">{settings.businessName.length}/60</p>
               </div>
 
+              {/* Specialization description — health_medical only */}
+              {isHealthMedical && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">{t('businessCard.specializationDescription') || 'Specialization Description'}</label>
+                  <textarea
+                    value={settings.specializationDescription || ''}
+                    onChange={e => set('specializationDescription', e.target.value.replace(/<[^>]*>/g, '').slice(0, 300))}
+                    maxLength={300}
+                    rows={3}
+                    placeholder={t('businessCard.specializationDescriptionPlaceholder') || 'Describe your medical specialization, expertise, and services...'}
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-[5px] text-sm focus:outline-none focus:ring-2 focus:ring-[#364153]/20 focus:border-[#364153] resize-none"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">{(settings.specializationDescription || '').length}/300</p>
+                </div>
+              )}
+
             </div>
           </div>
 
@@ -1066,14 +1095,16 @@ export default function PublicPageManager() {
                 onChange={v => set('showCoverPhoto', v)}
                 accent="blue"
               />
-              <SectionToggle
-                icon={DollarSign}
-                label={t('businessCard.prices')}
-                description={t('businessCard.pricesDesc')}
-                value={settings.showPrices}
-                onChange={v => set('showPrices', v)}
-                accent="green"
-              />
+              {!isHealthMedical && (
+                <SectionToggle
+                  icon={DollarSign}
+                  label={t('businessCard.prices')}
+                  description={t('businessCard.pricesDesc')}
+                  value={settings.showPrices}
+                  onChange={v => set('showPrices', v)}
+                  accent="green"
+                />
+              )}
               <SectionToggle
                 icon={Star}
                 label={t('businessCard.rating')}
@@ -1159,6 +1190,7 @@ export default function PublicPageManager() {
                 user={user}
                 businessData={businessData}
                 serviceMode={serviceMode}
+                isHealthMedical={isHealthMedical}
               />
             )}
 
@@ -1224,6 +1256,7 @@ export default function PublicPageManager() {
                     user={user}
                     businessData={businessData}
                     serviceMode={serviceMode}
+                    isHealthMedical={isHealthMedical}
                   />
                 </div>
               )}

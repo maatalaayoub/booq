@@ -26,7 +26,8 @@ export async function GET(_request, { params }) {
     const { data: biz, error } = await supabase
       .from('business_info')
       .select(`
-        id, business_category, professional_type, service_mode, onboarding_completed,
+        id, business_category, professional_type, service_mode, onboarding_completed, service_category_id,
+        service_categories ( slug ),
         shop_salon_info ( business_name, address, city, phone, latitude, longitude, business_hours ),
         mobile_service_info ( business_name, address, city, phone, latitude, longitude, business_hours, service_area, travel_radius_km, cities_covered, travel_fee ),
         business_card_settings ( settings ),
@@ -72,6 +73,7 @@ export async function GET(_request, { params }) {
       id: biz.id,
       businessCategory: biz.business_category,
       professionalType: biz.professional_type,
+      serviceCategorySlug: biz.service_categories?.slug || null,
       serviceMode: biz.service_mode || 'booking',
       businessName: settings.businessName || details.business_name || '',
       address: details.address || '',
@@ -96,6 +98,7 @@ export async function GET(_request, { params }) {
       showMessageButton: settings.showMessageButton || false,
       showBookingButton: biz.service_mode === 'walkin' ? false : settings.showBookingButton !== false,
       showGetDirections: biz.service_mode === 'walkin' ? true : (settings.showGetDirections || false),
+      specializationDescription: settings.specializationDescription || '',
       // Mobile service specific
       serviceArea: details.service_area || null,
       travelRadiusKm: details.travel_radius_km || null,

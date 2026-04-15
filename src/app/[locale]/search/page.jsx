@@ -23,93 +23,108 @@ const PlacesMap = dynamic(() => import('@/components/PlacesMap'), {
 
 const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
 
+  const accent = biz.accentColor
+    ? { bg: { slate: '#364153', amber: '#D4AF37', rose: '#e11d48', teal: '#0d9488', violet: '#7c3aed', blue: '#2563eb' }[biz.accentColor] || '#244C70' }
+    : { bg: '#244C70' };
+
   /* ── Desktop vertical card (md+) ── */
   const desktopButtons = biz.showBookingButton ? (
-    <div className="flex items-center gap-3 px-5 pb-5 mt-auto">
-      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-2.5 border border-gray-300 rounded-full">
+    <div className="flex items-center gap-2.5 px-5 pb-5 mt-auto">
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-[13px] font-medium text-gray-500 hover:text-gray-800 transition-colors py-2.5 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50">
         {t('search.details') || 'Details'}
       </Link>
-      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-full text-sm font-semibold hover:bg-[#1a3a5a] transition-colors">
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-white text-center py-2.5 rounded-xl text-[13px] font-semibold hover:opacity-90 transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1.5" style={{ backgroundColor: accent.bg }}>
+        <CalendarCheck className="w-3.5 h-3.5" />
         {t('search.bookNow')}
       </Link>
     </div>
   ) : biz.showGetDirections ? (
-    <div className="flex items-center gap-3 px-5 pb-5 mt-auto">
-      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-2.5 border border-gray-300 rounded-full">
+    <div className="flex items-center gap-2.5 px-5 pb-5 mt-auto">
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-[13px] font-medium text-gray-500 hover:text-gray-800 transition-colors py-2.5 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50">
         {t('search.details') || 'Details'}
       </Link>
       <a
         href={biz.latitude && biz.longitude ? `https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}` : '#'}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-full text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5"
+        className="flex-1 text-white text-center py-2.5 rounded-xl text-[13px] font-semibold hover:opacity-90 transition-all shadow-sm flex items-center justify-center gap-1.5" style={{ backgroundColor: accent.bg }}
       >
-        <Navigation className="w-4 h-4" />
+        <Navigation className="w-3.5 h-3.5" />
         {t('search.directions') || 'Directions'}
       </a>
     </div>
   ) : (biz.showCallButton || biz.showMessageButton) ? (
-    <div className="flex items-center gap-3 px-5 pb-5 mt-auto">
-      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-2.5 border border-gray-300 rounded-full">
+    <div className="flex items-center gap-2.5 px-5 pb-5 mt-auto">
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-[13px] font-medium text-gray-500 hover:text-gray-800 transition-colors py-2.5 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50">
         {t('search.details') || 'Details'}
       </Link>
       {biz.phone ? (
-        <a href={`tel:${biz.phone}`} className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-full text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5">
-          <Phone className="w-4 h-4" />
+        <a href={`tel:${biz.phone}`} className="flex-1 text-white text-center py-2.5 rounded-xl text-[13px] font-semibold hover:opacity-90 transition-all shadow-sm flex items-center justify-center gap-1.5" style={{ backgroundColor: accent.bg }}>
+          <Phone className="w-3.5 h-3.5" />
           {t('search.contact')}
         </a>
       ) : (
-        <Link href={`/${locale}/b/${biz.id}`} className="flex-1 bg-[#244C70] text-white text-center py-2.5 rounded-full text-sm font-semibold hover:bg-[#1a3a5a] transition-colors flex items-center justify-center gap-1.5">
-          <MessageCircle className="w-4 h-4" />
+        <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-white text-center py-2.5 rounded-xl text-[13px] font-semibold hover:opacity-90 transition-all shadow-sm flex items-center justify-center gap-1.5" style={{ backgroundColor: accent.bg }}>
+          <MessageCircle className="w-3.5 h-3.5" />
           {t('search.contact')}
         </Link>
       )}
     </div>
   ) : (
-    <div className="flex items-center gap-3 px-5 pb-5 mt-auto">
-      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors py-2.5 border border-gray-300 rounded-full">
+    <div className="flex items-center gap-2.5 px-5 pb-5 mt-auto">
+      <Link href={`/${locale}/b/${biz.id}`} className="flex-1 text-center text-[13px] font-medium text-gray-500 hover:text-gray-800 transition-colors py-2.5 border border-gray-200 rounded-xl hover:border-gray-300 hover:bg-gray-50">
         {t('search.details') || 'Details'}
       </Link>
     </div>
   );
 
   const desktopCard = (
-    <div className="hidden md:flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all group h-full" onMouseEnter={onHover} onMouseLeave={onLeave}>
+    <div className="hidden md:flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group h-full" onMouseEnter={onHover} onMouseLeave={onLeave}>
       {/* Cover image */}
-      <div className="relative w-full h-44 bg-gray-100 overflow-hidden shrink-0">
+      <div className="relative w-full h-48 bg-gray-50 overflow-hidden shrink-0">
         {biz.coverGallery && biz.coverGallery[0] ? (
           <img src={biz.coverGallery[0]} alt={biz.businessName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-[#244C70]/10 to-[#244C70]/20 flex items-center justify-center">
-            <Scissors className="w-8 h-8 text-[#244C70]/40" />
+          <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+            <Scissors className="w-10 h-10 text-gray-300" />
           </div>
         )}
-        {/* Badge */}
+        {/* Rating badge */}
         {biz.rating > 0 && (
-        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-bold text-gray-800 flex items-center gap-1 shadow-sm">
-          <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-          {(biz.rating || 0).toFixed(1)}
-        </div>
+          <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl text-xs font-bold text-gray-800 flex items-center gap-1.5 shadow-sm">
+            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            {(biz.rating || 0).toFixed(1)}
+          </div>
         )}
+        {/* Service mode badge */}
+        {biz.serviceMode && (
+          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider shadow-sm" style={{ backgroundColor: `${accent.bg}e6`, color: '#fff' }}>
+            {biz.serviceMode === 'mobile' ? t('search.mobile') || 'Mobile' : biz.serviceMode === 'both' ? t('search.both') || 'Both' : t('search.inStore') || 'In-Store'}
+          </div>
+        )}
+        {/* Gradient overlay at bottom */}
+        <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-black/20 to-transparent" />
       </div>
 
       {/* Body */}
       <div className="flex flex-col flex-1 px-5 pt-4">
-        <h3 className="font-bold text-[#1e293b] text-base leading-tight line-clamp-1">{biz.businessName}</h3>
-        <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-1.5">
-          <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-bold text-[#1e293b] text-[15px] leading-snug line-clamp-1">{biz.businessName}</h3>
+        </div>
+        <div className="flex items-center gap-1.5 text-[13px] text-gray-400 mt-1">
+          <MapPin className="w-3.5 h-3.5 shrink-0" />
           <span className="line-clamp-1">{biz.city || t('search.morocco')}</span>
         </div>
 
-        {/* Divider + services */}
+        {/* Services */}
         {biz.services && biz.services.length > 0 && (
           <>
             <div className="h-px bg-gray-100 my-3" />
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {biz.services.slice(0, 2).map((s, i) => (
-                <div key={i} className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600 line-clamp-1 pr-2">{s.name}</span>
-                  <span className="font-semibold text-[#1e293b] whitespace-nowrap">{s.price} {s.currency}</span>
+                <div key={i} className="flex justify-between items-center">
+                  <span className="text-[13px] text-gray-500 line-clamp-1 pr-3">{s.name}</span>
+                  <span className="text-[13px] font-bold text-[#1e293b] whitespace-nowrap">{s.price} {s.currency}</span>
                 </div>
               ))}
             </div>
@@ -125,102 +140,115 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
     </div>
   );
 
-  // Desktop: conditional wrapper based on button config
-  // Mobile: card taps select on map, action buttons rendered separately (no nested <a>)
+  // Mobile card
   return (
     <>
       {desktopCard}
       <div className="md:hidden" onClick={() => onSelect?.(biz.id)}>
-        <div className="bg-white rounded-xl border border-gray-100 overflow-hidden transition-all group flex flex-row h-full w-full">
-            {/* Image */}
-            <div className="relative w-28 self-stretch bg-gray-100 shrink-0 overflow-hidden">
-              {biz.coverGallery && biz.coverGallery[0] ? (
-                <img src={biz.coverGallery[0]} alt={biz.businessName} className="absolute inset-0 w-full h-full object-cover" />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-[#244C70]/10 to-[#244C70]/20 flex items-center justify-center">
-                  <Scissors className="w-6 h-6 text-[#244C70]/40" />
-                </div>
-              )}
-              {biz.rating > 0 && (
-              <div className="absolute top-2 right-2 bg-white px-1.5 py-0.5 rounded-full text-[10px] font-bold text-gray-800 flex items-center gap-0.5 shadow-sm">
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all group flex flex-row h-full w-full shadow-sm active:shadow-md">
+          {/* Image */}
+          <div className="relative w-32 self-stretch bg-gray-50 shrink-0 overflow-hidden">
+            {biz.coverGallery && biz.coverGallery[0] ? (
+              <img src={biz.coverGallery[0]} alt={biz.businessName} className="absolute inset-0 w-full h-full object-cover" />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                <Scissors className="w-6 h-6 text-gray-300" />
+              </div>
+            )}
+            {biz.rating > 0 && (
+              <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm px-1.5 py-0.5 rounded-lg text-[10px] font-bold text-gray-800 flex items-center gap-0.5 shadow-sm">
                 <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
                 {(biz.rating || 0).toFixed(1)}
               </div>
-              )}
+            )}
+          </div>
+          {/* Info + Buttons */}
+          <div className="p-3.5 flex-1 flex flex-col gap-1 min-w-0">
+            <h3 className="font-bold text-[#1e293b] text-sm leading-tight line-clamp-1">{biz.businessName}</h3>
+            <div className="flex items-center gap-1 text-xs text-gray-400">
+              <MapPin className="w-3 h-3 shrink-0" />
+              <span className="line-clamp-1">{biz.city || t('search.morocco')}</span>
             </div>
-            {/* Info + Buttons */}
-            <div className="p-3 flex-1 flex flex-col gap-1.5 min-w-0">
-              <h3 className="font-bold text-[#1e293b] text-sm leading-tight line-clamp-1">{biz.businessName}</h3>
-              <p className="text-xs text-gray-500 capitalize">{biz.professionalType?.replace('_', ' ') || t('search.salon')}</p>
-              <div className="flex items-center gap-1 text-xs text-gray-600">
-                <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                <span className="line-clamp-1">{biz.city || t('search.morocco')}</span>
+            {/* Services preview */}
+            {biz.services && biz.services.length > 0 && (
+              <div className="mt-1 space-y-0.5">
+                {biz.services.slice(0, 2).map((s, i) => (
+                  <div key={i} className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 line-clamp-1 pr-2">{s.name}</span>
+                    <span className="font-bold text-[#1e293b] whitespace-nowrap">{s.price} {s.currency}</span>
+                  </div>
+                ))}
               </div>
-              {/* Action buttons based on config */}
-              <div className="flex items-center gap-2 mt-auto pt-1">
-                {biz.showBookingButton ? (
-                  <Link
-                    href={`/${locale}/b/${biz.id}`}
-                    className="flex-1 bg-[#244C70] text-white text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1a3a5a] transition-colors"
+            )}
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 mt-auto pt-1.5">
+              {biz.showBookingButton ? (
+                <Link
+                  href={`/${locale}/b/${biz.id}`}
+                  className="flex-1 text-white text-center py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 active:opacity-90 transition-all shadow-sm"
+                  style={{ backgroundColor: accent.bg }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <CalendarCheck className="w-3 h-3" />
+                  {t('search.bookNow')}
+                </Link>
+              ) : biz.showGetDirections ? (
+                <>
+                  <a
+                    href={biz.latitude && biz.longitude ? `https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}` : '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 text-white text-center py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 active:opacity-90 transition-all shadow-sm"
+                    style={{ backgroundColor: accent.bg }}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <CalendarCheck className="w-3 h-3" />
-                    {t('search.bookNow')}
+                    <Navigation className="w-3 h-3" />
+                    {t('search.directions')}
+                  </a>
+                  <Link
+                    href={`/${locale}/b/${biz.id}`}
+                    className="flex-1 bg-gray-50 text-gray-600 text-center py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 active:bg-gray-100 transition-colors border border-gray-200"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {t('search.details')}
                   </Link>
-                ) : biz.showGetDirections ? (
-                  <>
+                </>
+              ) : (biz.showCallButton || biz.showMessageButton) ? (
+                <>
+                  {biz.phone ? (
                     <a
-                      href={biz.latitude && biz.longitude ? `https://www.google.com/maps/dir/?api=1&destination=${biz.latitude},${biz.longitude}` : '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 bg-[#244C70] text-white text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1a3a5a] transition-colors"
+                      href={`tel:${biz.phone}`}
+                      className="flex-1 text-white text-center py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 active:opacity-90 transition-all shadow-sm"
+                      style={{ backgroundColor: accent.bg }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <Navigation className="w-3 h-3" />
-                      {t('search.directions')}
+                      <Phone className="w-3 h-3" />
+                      {t('search.contact')}
                     </a>
+                  ) : (
                     <Link
                       href={`/${locale}/b/${biz.id}`}
-                      className="flex-1 bg-gray-100 text-gray-700 text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-gray-200 transition-colors"
+                      className="flex-1 text-white text-center py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 active:opacity-90 transition-all shadow-sm"
+                      style={{ backgroundColor: accent.bg }}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <ExternalLink className="w-3 h-3" />
-                      {t('search.details')}
+                      <MessageCircle className="w-3 h-3" />
+                      {t('search.contact')}
                     </Link>
-                  </>
-                ) : (biz.showCallButton || biz.showMessageButton) ? (
-                  <>
-                    {biz.phone ? (
-                      <a
-                        href={`tel:${biz.phone}`}
-                        className="flex-1 bg-[#244C70] text-white text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1a3a5a] transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Phone className="w-3 h-3" />
-                        {t('search.contact')}
-                      </a>
-                    ) : (
-                      <Link
-                        href={`/${locale}/b/${biz.id}`}
-                        className="flex-1 bg-[#244C70] text-white text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-[#1a3a5a] transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MessageCircle className="w-3 h-3" />
-                        {t('search.contact')}
-                      </Link>
-                    )}
-                    <Link
-                      href={`/${locale}/b/${biz.id}`}
-                      className="flex-1 bg-gray-100 text-gray-700 text-center py-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 active:bg-gray-200 transition-colors"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ExternalLink className="w-3 h-3" />
-                      {t('search.details')}
-                    </Link>
-                  </>
-                ) : null}
-              </div>
+                  )}
+                  <Link
+                    href={`/${locale}/b/${biz.id}`}
+                    className="flex-1 bg-gray-50 text-gray-600 text-center py-2 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 active:bg-gray-100 transition-colors border border-gray-200"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    {t('search.details')}
+                  </Link>
+                </>
+              ) : null}
             </div>
+          </div>
         </div>
       </div>
     </>

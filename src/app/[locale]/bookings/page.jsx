@@ -12,6 +12,12 @@ import {
   X, ChevronLeft, Pencil, Plus, Navigation, RotateCw,
 } from 'lucide-react';
 
+const HEALTH_MEDICAL_TYPES = new Set([
+  'general_practitioner', 'orthodontist', 'cardiologist', 'ophthalmologist',
+  'psychiatrist', 'gastroenterologist', 'neurologist', 'allergist',
+  'urologist', 'pediatrician', 'std_specialist', 'hepatologist',
+]);
+
 const ACCENT_COLORS = {
   slate:  { bg: '#364153' },
   amber:  { bg: '#D4AF37' },
@@ -484,7 +490,7 @@ export default function BookingsPage() {
                       {/* Service */}
                       <div className="mt-2 flex items-center justify-between">
                         <p className="text-[13px] text-gray-700 font-medium truncate">{booking.service}</p>
-                        {booking.price > 0 && (
+                        {booking.price > 0 && !HEALTH_MEDICAL_TYPES.has(booking.professionalType) && (
                           <span className="text-[13px] font-bold text-gray-900 whitespace-nowrap ml-2">
                             {booking.price} MAD
                           </span>
@@ -610,7 +616,7 @@ export default function BookingsPage() {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900">{selectedBooking.service}</p>
                           </div>
-                          {selectedBooking.price > 0 && (
+                          {selectedBooking.price > 0 && !HEALTH_MEDICAL_TYPES.has(selectedBooking.professionalType) && (
                             <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">{selectedBooking.price} MAD</span>
                           )}
                         </div>
@@ -673,13 +679,15 @@ export default function BookingsPage() {
                     <p className="text-xs text-gray-500 mb-1">{t('bookings.currentTime')}</p>
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold text-gray-900">
-                        {formatDate(selectedBooking.startTime)} · {formatTime(selectedBooking.startTime)} - {(() => {
+                        {formatDate(selectedBooking.startTime)} · {formatTime(selectedBooking.startTime)}{!HEALTH_MEDICAL_TYPES.has(selectedBooking.professionalType) && (() => {
                           const start = new Date(selectedBooking.startTime);
                           const end = new Date(start.getTime() + getSelectedDuration() * 60000);
-                          return formatTime(end.toISOString());
+                          return ` - ${formatTime(end.toISOString())}`;
                         })()}
                       </p>
-                      <span className="text-xs text-gray-500">{getSelectedDuration()} min</span>
+                      {!HEALTH_MEDICAL_TYPES.has(selectedBooking.professionalType) && (
+                        <span className="text-xs text-gray-500">{getSelectedDuration()} min</span>
+                      )}
                     </div>
                   </div>
 
@@ -821,7 +829,7 @@ export default function BookingsPage() {
                     {/* Service + Price */}
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-semibold text-gray-900">{selectedBooking.service}</p>
-                      {selectedBooking.price > 0 && (
+                      {selectedBooking.price > 0 && !HEALTH_MEDICAL_TYPES.has(selectedBooking.professionalType) && (
                         <span className="text-sm font-bold text-gray-900">{selectedBooking.price} MAD</span>
                       )}
                     </div>
@@ -834,15 +842,19 @@ export default function BookingsPage() {
                       </span>
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="w-4 h-4 text-gray-400" />
-                        {formatTime(selectedBooking.startTime)} - {formatTime(selectedBooking.endTime)}
+                        {HEALTH_MEDICAL_TYPES.has(selectedBooking.professionalType)
+                          ? formatTime(selectedBooking.startTime)
+                          : `${formatTime(selectedBooking.startTime)} - ${formatTime(selectedBooking.endTime)}`}
                       </span>
                     </div>
 
                     {/* Duration */}
-                    <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span>{getDurationFromBooking(selectedBooking)} min</span>
-                    </div>
+                    {!HEALTH_MEDICAL_TYPES.has(selectedBooking.professionalType) && (
+                      <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                        <Clock className="w-4 h-4 text-gray-400" />
+                        <span>{getDurationFromBooking(selectedBooking)} min</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Notes */}

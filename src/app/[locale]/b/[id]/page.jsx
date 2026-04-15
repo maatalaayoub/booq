@@ -352,7 +352,7 @@ function DateStrip({ selectedDate, onSelectDate, businessHours, accent, t, local
 /* ================================================================
    TIME SLOT GRID
    ================================================================ */
-function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, userBookings, crossBusinessBookings, totalDuration, isRTL }) {
+function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, userBookings, crossBusinessBookings, totalDuration, isRTL, hideTimeSummary }) {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-10">
@@ -392,7 +392,7 @@ function TimeSlotGrid({ slots, selectedSlot, onSelectSlot, loading, accent, t, u
   return (
     <div>
       <p className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('bp.selectTime')}</p>
-      {selectedSlot && (
+      {selectedSlot && !hideTimeSummary && (
         <div className="flex items-center gap-2 mb-3 px-3 py-2 rounded-xl border" style={{ borderColor: accent.bg + '40', backgroundColor: accent.bg + '08' }}>
           <Clock className="w-4 h-4" style={{ color: accent.bg }} />
           <span className="text-[13px] font-semibold" style={{ color: accent.bg }}>
@@ -653,7 +653,7 @@ function WorkerPickerModal({ open, onClose, workers, selectedWorker, onSelectWor
 /* ================================================================
    BOOKING FORM MODAL
    ================================================================ */
-function BookingModal({ open, onClose, business, services, date, slot, accent, t, locale, onSuccess, assignedWorkerId }) {
+function BookingModal({ open, onClose, business, services, date, slot, accent, t, locale, onSuccess, assignedWorkerId, isHealthMedical }) {
   const { user } = useAuthUser();
   const [step, setStep] = useState('form'); // 'form' | 'summary'
   const [clientName, setClientName] = useState('');
@@ -663,7 +663,7 @@ function BookingModal({ open, onClose, business, services, date, slot, accent, t
   const [error, setError] = useState(null);
 
   const totalPrice = services?.reduce((sum, s) => sum + (s.price || 0), 0) || 0;
-  const totalDuration = services?.reduce((sum, s) => sum + s.durationMinutes, 0) || 0;
+  const totalDuration = services?.length > 0 ? services.reduce((sum, s) => sum + s.durationMinutes, 0) : (isHealthMedical ? 20 : 30);
 
   useEffect(() => {
     if (open && user) {
@@ -695,19 +695,24 @@ function BookingModal({ open, onClose, business, services, date, slot, accent, t
     setSubmitting(true);
     setError(null);
     try {
+      const payload = {
+        businessId: business.id,
+        date: formatDate(date),
+        startTime: slot.start,
+        clientName: clientName.trim(),
+        clientPhone: clientPhone.trim() || null,
+        notes: notes.trim() || null,
+        assignedWorkerId: assignedWorkerId || null,
+      };
+      if (services && services.length > 0) {
+        payload.serviceIds = services.map(s => s.id);
+      } else {
+        payload.duration = totalDuration;
+      }
       const res = await fetch('/api/book/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessId: business.id,
-          serviceIds: services.map(s => s.id),
-          date: formatDate(date),
-          startTime: slot.start,
-          clientName: clientName.trim(),
-          clientPhone: clientPhone.trim() || null,
-          notes: notes.trim() || null,
-          assignedWorkerId: assignedWorkerId || null,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Booking failed');
@@ -756,7 +761,7 @@ function BookingModal({ open, onClose, business, services, date, slot, accent, t
                 <span className="text-gray-300">•</span>
                 <span>{slot.start}</span>
               </div>
-              {business.showPrices && (
+              {business.showPrices && !isHealthMedical && (
                 <span className="font-bold" style={{ color: accent.bg }}>{totalPrice} {services[0]?.currency || 'MAD'}</span>
               )}
             </div>
@@ -799,6 +804,7 @@ function BookingModal({ open, onClose, business, services, date, slot, accent, t
           /* ── STEP 2: Full Booking Summary ── */
           <div className="px-5 pb-6">
             {/* Services list */}
+            {services && services.length > 0 ? (
             <div className="border border-gray-200 rounded-xl overflow-hidden mb-4">
               <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
                 <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">{t('bp.services')}</p>
@@ -820,6 +826,22 @@ function BookingModal({ open, onClose, business, services, date, slot, accent, t
                 ))}
               </div>
             </div>
+            ) : (
+              <div className="border border-gray-200 rounded-xl overflow-hidden mb-4">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                  <p className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide">{t('bp.appointment') || 'Appointment'}</p>
+                </div>
+                <div className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${accent.bg}15` }}>
+                    <Calendar className="w-4 h-4" style={{ color: accent.bg }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-semibold text-gray-900">{t('bp.consultation') || 'Consultation'}</p>
+                    {!isHealthMedical && <span className="text-[12px] text-gray-400">{totalDuration} min</span>}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Date & Time */}
             <div className="border border-gray-200 rounded-xl overflow-hidden mb-4">
@@ -835,8 +857,8 @@ function BookingModal({ open, onClose, business, services, date, slot, accent, t
                 </div>
                 <div className="flex items-center gap-3">
                   <Clock className="w-4 h-4 text-gray-400" />
-                  <span className="text-[14px] text-gray-900">{slot.start} – {slot.end}</span>
-                  <span className="text-[12px] text-gray-400">({totalDuration} min)</span>
+                  <span className="text-[14px] text-gray-900">{isHealthMedical ? slot.start : `${slot.start} – ${slot.end}`}</span>
+                  {!isHealthMedical && <span className="text-[12px] text-gray-400">({totalDuration} min)</span>}
                 </div>
               </div>
             </div>
@@ -867,7 +889,7 @@ function BookingModal({ open, onClose, business, services, date, slot, accent, t
             </div>
 
             {/* Total */}
-            {business.showPrices && (
+            {business.showPrices && !isHealthMedical && (
               <div className="flex items-center justify-between px-4 py-3 border border-gray-200 rounded-xl mb-6">
                 <span className="text-[14px] font-medium text-gray-600">{t('bp.total')}</span>
                 <span className="text-lg font-bold" style={{ color: accent.bg }}>{totalPrice} {services[0]?.currency || 'MAD'}</span>
@@ -900,7 +922,7 @@ function BookingModal({ open, onClose, business, services, date, slot, accent, t
 /* ================================================================
    SUCCESS MODAL
    ================================================================ */
-function SuccessModal({ appointment, onClose, accent, t, locale }) {
+function SuccessModal({ appointment, onClose, accent, t, locale, isHealthMedical }) {
   if (!appointment) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -930,10 +952,12 @@ function SuccessModal({ appointment, onClose, accent, t, locale }) {
                 <span className="font-semibold text-gray-900">{val}</span>
               </div>
             ))}
-            <div className="pt-2 border-t border-gray-200 flex justify-between text-[14px]">
-              <span className="text-gray-400">{t('bp.price')}</span>
-              <span className="font-bold text-lg" style={{ color: accent.bg }}>{appointment.price} MAD</span>
-            </div>
+            {!isHealthMedical && (
+              <div className="pt-2 border-t border-gray-200 flex justify-between text-[14px]">
+                <span className="text-gray-400">{t('bp.price')}</span>
+                <span className="font-bold text-lg" style={{ color: accent.bg }}>{appointment.price} MAD</span>
+              </div>
+            )}
           </div>
 
           <button onClick={onClose}
@@ -1124,7 +1148,9 @@ export default function BusinessPage() {
     });
   };
 
-  const totalDuration = selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0);
+  const isHealthMedical = business?.serviceCategorySlug === 'health_medical';
+  const defaultDuration = 20; // minutes for direct booking (health_medical)
+  const totalDuration = selectedServices.length > 0 ? selectedServices.reduce((sum, s) => sum + s.durationMinutes, 0) : (isHealthMedical ? defaultDuration : 0);
   const totalPrice = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
 
   const bookingRef = useRef(null);
@@ -1134,7 +1160,17 @@ export default function BusinessPage() {
     setLoading(true);
     fetch(`/api/business-page/${businessId}`)
       .then(res => { if (!res.ok) throw new Error('not found'); return res.json(); })
-      .then(data => { setBusiness(data); setHasTeam((data.teamMembers || []).length > 0); })
+      .then(data => {
+        setBusiness(data);
+        setHasTeam((data.teamMembers || []).length > 0);
+        // Auto-set today's date for health_medical direct booking
+        if (data.serviceCategorySlug === 'health_medical') {
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          setSelectedDate(today);
+          setActiveTab('booking');
+          setShowBookingPanel(true);
+        }
+      })
       .catch(() => setError('not_found'))
       .finally(() => setLoading(false));
   }, [businessId]);
@@ -1170,7 +1206,11 @@ export default function BusinessPage() {
   }, [business, isSignedIn, businessId]);
 
   useEffect(() => {
-    if (!selectedDate || selectedServices.length === 0 || !business) return;
+    if (!selectedDate || !business) return;
+    // For health_medical, no services needed; for others, require services
+    const hasServices = selectedServices.length > 0;
+    const isHealthCat = business.serviceCategorySlug === 'health_medical';
+    if (!hasServices && !isHealthCat) return;
     setSlotsLoading(true);
     setSelectedSlot(null);
     const workerParam = selectedWorker?.id ? `&workerId=${selectedWorker.id}` : '';
@@ -1260,7 +1300,7 @@ export default function BusinessPage() {
     setShowBookingModal(false);
     setBookedAppointment(appointment);
     setSelectedSlot(null);
-    if (selectedDate && selectedServices.length > 0 && business) {
+    if (selectedDate && (selectedServices.length > 0 || isHealthMedical) && business) {
       const workerParam = selectedWorker?.id ? `&workerId=${selectedWorker.id}` : '';
       fetch(`/api/book/available-slots?businessId=${business.id}&date=${formatDate(selectedDate)}&duration=${totalDuration}${workerParam}`)
         .then(res => res.json()).then(data => {
@@ -1273,7 +1313,8 @@ export default function BusinessPage() {
 
   // TAB DEFINITIONS
   const tabs = [
-    { id: 'services', label: t('bp.services') },
+    ...(!isHealthMedical ? [{ id: 'services', label: t('bp.services') }] : []),
+    ...(isHealthMedical ? [{ id: 'booking', label: t('bp.consultation') || 'Consultation' }] : []),
     { id: 'hours', label: t('bp.workingHours') },
     { id: 'about', label: t('bp.location') },
   ];
@@ -1413,86 +1454,46 @@ export default function BusinessPage() {
         {/* Right: Service portfolio grid (desktop only) */}
         {hasGallery && (() => {
           const galleryImages = business.galleryImages || [];
+          // Supplement with cover gallery images if needed to fill the grid
+          const coverExtras = (business.coverGallery || []).filter(url => !galleryImages.includes(url));
+          const allImages = [...galleryImages, ...coverExtras];
+          const gridImages = allImages.slice(1); // skip first (used as hero cover)
           return (
             <div className="hidden sd:grid sd:w-1/2 grid-cols-2 grid-rows-2 gap-2.5 h-56 sd:h-72 md:h-80">
-              {galleryImages.length >= 4 ? (
+              {gridImages.length >= 3 ? (
                 <>
                   <div className="row-span-2 rounded-2xl overflow-hidden shadow-md group cursor-pointer" onClick={() => { setGalleryStartIndex(1); setShowGalleryLightbox(true); }}>
-                    <img src={galleryImages[1] || galleryImages[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <img src={gridImages[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
                   <div className="rounded-2xl overflow-hidden shadow-md group cursor-pointer" onClick={() => { setGalleryStartIndex(2); setShowGalleryLightbox(true); }}>
-                    <img src={galleryImages[2] || galleryImages[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <img src={gridImages[1]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
                   <div className="rounded-2xl overflow-hidden shadow-md group relative cursor-pointer" onClick={() => { setGalleryStartIndex(3); setShowGalleryLightbox(true); }}>
-                    <img src={galleryImages[3] || galleryImages[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    {galleryImages.length > 4 && (
+                    <img src={gridImages[2]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    {gridImages.length > 3 && (
                       <div className="absolute inset-0 bg-black/40 hover:bg-black/50 transition-colors flex items-center justify-center rounded-2xl">
                         <div className="text-center">
                           <Images className="w-5 h-5 text-white/80 mx-auto mb-1" />
-                          <span className="text-white text-lg font-bold">+{galleryImages.length - 4}</span>
+                          <span className="text-white text-lg font-bold">+{gridImages.length - 3}</span>
                         </div>
                       </div>
                     )}
                   </div>
                 </>
-              ) : galleryImages.length === 3 ? (
+              ) : gridImages.length === 2 ? (
                 <>
-                  <div className="row-span-2 rounded-2xl overflow-hidden shadow-md group">
-                    <img src={galleryImages[1]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <div className="row-span-2 rounded-2xl overflow-hidden shadow-md group cursor-pointer" onClick={() => { setGalleryStartIndex(1); setShowGalleryLightbox(true); }}>
+                    <img src={gridImages[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
-                  <div className="rounded-2xl overflow-hidden shadow-md group">
-                    <img src={galleryImages[2]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  </div>
-                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
-                    <div className="text-center p-3">
-                      <Scissors className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
-                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'More photos coming soon'}</p>
-                    </div>
+                  <div className="row-span-2 rounded-2xl overflow-hidden shadow-md group cursor-pointer" onClick={() => { setGalleryStartIndex(2); setShowGalleryLightbox(true); }}>
+                    <img src={gridImages[1]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   </div>
                 </>
-              ) : galleryImages.length === 2 ? (
-                <>
-                  <div className="row-span-2 rounded-2xl overflow-hidden shadow-md group">
-                    <img src={galleryImages[1]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  </div>
-                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
-                    <div className="text-center p-3">
-                      <Sparkles className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
-                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'More photos coming soon'}</p>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
-                    <div className="text-center p-3">
-                      <Scissors className="w-6 h-6 text-gray-300 mx-auto mb-1.5" />
-                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'More photos coming soon'}</p>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="row-span-2 rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
-                    <div className="text-center p-4">
-                      <div className="w-12 h-12 rounded-xl mx-auto mb-2 flex items-center justify-center" style={{ backgroundColor: `${accent.bg}10` }}>
-                        <Scissors className="w-6 h-6" style={{ color: accent.bg }} />
-                      </div>
-                      <p className="text-[12px] text-gray-400 font-medium">{t('bp.portfolio') || 'Portfolio'}</p>
-                      <p className="text-[11px] text-gray-300 mt-0.5">{t('bp.morePhotos') || 'Coming soon'}</p>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
-                    <div className="text-center p-3">
-                      <Sparkles className="w-5 h-5 text-gray-300 mx-auto mb-1" />
-                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'Coming soon'}</p>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl overflow-hidden flex items-center justify-center bg-gray-50 border border-gray-200 border-dashed">
-                    <div className="text-center p-3">
-                      <Flame className="w-5 h-5 text-gray-300 mx-auto mb-1" />
-                      <p className="text-[11px] text-gray-400 font-medium leading-tight">{t('bp.morePhotos') || 'Coming soon'}</p>
-                    </div>
-                  </div>
-                </>
-              )}
+              ) : gridImages.length === 1 ? (
+                <div className="row-span-2 col-span-2 rounded-2xl overflow-hidden shadow-md group cursor-pointer" onClick={() => { setGalleryStartIndex(1); setShowGalleryLightbox(true); }}>
+                  <img src={gridImages[0]} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                </div>
+              ) : null}
             </div>
           );
         })()}
@@ -1661,6 +1662,16 @@ export default function BusinessPage() {
         </div>
       </div>
 
+      {/* ── SPECIALIZATION DESCRIPTION (mobile, health_medical only) ── */}
+      {isHealthMedical && business.specializationDescription && (
+        <div className="sd:hidden max-w-5xl mx-auto px-5 pt-4 pb-0">
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
+            <h3 className="text-[13px] font-semibold text-blue-800 uppercase tracking-wide mb-2">{t('bp.specialization') !== 'bp.specialization' ? t('bp.specialization') : 'Specialization'}</h3>
+            <p className="text-[14px] text-gray-700 leading-relaxed whitespace-pre-line">{business.specializationDescription}</p>
+          </div>
+        </div>
+      )}
+
       {/* ── TAB BAR (mobile only) ────────────────────────── */}
       <div className="sd:hidden">
         <TabBar tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} accent={accent} />
@@ -1674,9 +1685,18 @@ export default function BusinessPage() {
             {/* ── LEFT: SERVICES ───────────────────────────── */}
             <div className="sd:w-1/2 min-w-0">
 
-              {/* ─── SERVICES ─────────────────────────────── */}
+              {/* ─── SERVICES / SPECIALIZATION ─────────────────────────────── */}
               <div className={`${activeTab !== 'services' ? 'hidden sd:block' : ''}`}>
-                {business.showServices && business.services.length > 0 ? (
+                {isHealthMedical ? (
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">{t('bp.specialization') !== 'bp.specialization' ? t('bp.specialization') : 'Specialization'}</h2>
+                    {business.specializationDescription ? (
+                      <p className="text-[14px] text-gray-600 leading-relaxed whitespace-pre-line">{business.specializationDescription}</p>
+                    ) : (
+                      <p className="text-[14px] text-gray-400">{t('bp.noSpecialization') !== 'bp.noSpecialization' ? t('bp.noSpecialization') : 'No specialization description available.'}</p>
+                    )}
+                  </div>
+                ) : business.showServices && business.services.length > 0 ? (
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <h2 className="text-lg font-bold text-gray-900">{t('bp.services')}</h2>
@@ -1756,8 +1776,8 @@ export default function BusinessPage() {
                 </div>
               )}
 
-              {/* Mobile booking panel */}
-              {canBook && showBookingPanel && selectedServices.length > 0 && (
+              {/* Mobile booking panel (non-health_medical only — health_medical uses inline booking in hours tab) */}
+              {canBook && !isHealthMedical && showBookingPanel && selectedServices.length > 0 && (
                 <div ref={bookingRef} className="sd:hidden mt-6">
                   <div className="bg-gray-50 rounded-2xl p-5 space-y-5">
                     <div className="pb-4 border-b border-gray-200">
@@ -1837,22 +1857,56 @@ export default function BusinessPage() {
                       const isToday = h.dayOfWeek === nowDay;
                       return (
                         <div key={h.dayOfWeek}
-                          className={`flex items-center justify-between py-3.5 px-4 rounded-xl transition-colors ${isToday ? 'bg-gray-50' : ''}`}>
+                          className={`flex items-center justify-between py-3.5 px-4 rounded-xl transition-colors ${isToday ? '' : ''}`}
+                          style={isToday ? { backgroundColor: accent.bg + '10' } : undefined}>
                           <div className="flex items-center gap-3">
                             {isToday && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accent.bg }} />}
-                            <span className={`text-[15px] ${isToday ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
+                            <span className={`text-[15px] ${isToday ? 'font-bold' : 'text-gray-600'}`} style={isToday ? { color: accent.bg } : undefined}>
                               {t(`bp.day.${DAY_NAMES[h.dayOfWeek].toLowerCase()}`)}
                             </span>
-                            {isToday && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">{t('bp.today')}</span>}
+                            {isToday && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: accent.bg }}>{t('bp.today')}</span>}
                           </div>
                           {h.isOpen ? (
-                            <span className={`text-[15px] ${isToday ? 'font-bold text-gray-900' : 'text-gray-600'}`}>{h.openTime} – {h.closeTime}</span>
+                            <span className={`text-[15px] ${isToday ? 'font-bold' : 'text-gray-600'}`} style={isToday ? { color: accent.bg } : undefined}>{h.openTime} – {h.closeTime}</span>
                           ) : (
                             <span className="text-[14px] text-red-400 font-medium">{t('bp.closed')}</span>
                           )}
                         </div>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* ─── BOOKING TAB for Health & Medical (mobile only) ── */}
+            <div className={`${activeTab !== 'booking' ? 'hidden' : ''} sd:hidden`}>
+              {isHealthMedical && canBook && (
+                <div ref={bookingRef}>
+                  <div className="bg-gray-50 rounded-2xl p-5 space-y-5">
+                    <div className="pb-4 border-b border-gray-200">
+                      <p className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">{t('bp.consultation') || 'Consultation'}</p>
+                      <p className="text-[13px] text-gray-500 mt-1">{defaultDuration} min</p>
+                    </div>
+                    {hasTeam && workerPickerReady && (
+                      <WorkerSelector workers={availableWorkers} selectedWorker={selectedWorker} onSelectWorker={(w) => { setSelectedWorker(w); setSelectedSlot(null); }} loading={workersLoading} accent={accent} t={t} />
+                    )}
+                    <DateStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} businessHours={business.businessHours} accent={accent} t={t} locale={locale} />
+                    {selectedDate && (
+                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} crossBusinessBookings={crossBusinessBookings} totalDuration={totalDuration} isRTL={isRTL} hideTimeSummary />
+                    )}
+                    {selectedSlot && (
+                      <button onClick={handleBookNow}
+                        className="w-full py-3.5 rounded-xl text-[15px] font-bold text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98] shadow-lg"
+                        style={{ backgroundColor: accent.bg }}>
+                        <Calendar className="w-4 h-4" />
+                        {t('bp.bookFor')} {selectedSlot.start} {isRTL ? '←' : '→'} {selectedSlot.end}
+                      </button>
+                    )}
+                    {selectedSlot && !isSignedIn && (
+                      <p className="text-[11px] text-center text-gray-400">{t('bp.loginToBook')}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -1927,9 +1981,11 @@ export default function BusinessPage() {
             {canBook && (
               <div className="hidden sd:block sd:w-1/2 sd:border-l sd:border-gray-200 sd:pl-6">
                 <div ref={bookingRef} className="space-y-5 sd:sticky sd:top-[24px]">
-                  <p className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">{t('bp.selectedServices')}</p>
+                  {!isHealthMedical && (
+                    <p className="text-[13px] font-semibold text-gray-500 uppercase tracking-wide">{t('bp.selectedServices')}</p>
+                  )}
 
-                {selectedServices.length === 0 ? (
+                {!isHealthMedical && selectedServices.length === 0 ? (
                   /* Empty state */
                   <div className="text-center py-6">
                     <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
@@ -1937,9 +1993,10 @@ export default function BusinessPage() {
                     </div>
                     <p className="text-[14px] text-gray-400">{t('bp.selectServices')}</p>
                   </div>
-                ) : (
+                ) : (isHealthMedical || selectedServices.length > 0) ? (
                   <>
-                    {/* Selected services list */}
+                    {/* Selected services list (only when there are services) */}
+                    {selectedServices.length > 0 && (
                     <div className="pb-4 border-b border-gray-200">
                       <div className="space-y-2">
                         {selectedServices.map(s => {
@@ -1976,6 +2033,7 @@ export default function BusinessPage() {
                         </div>
                       </div>
                     </div>
+                    )}
 
                     {/* Worker selector (for team businesses) */}
                     {hasTeam && workerPickerReady && (
@@ -1987,7 +2045,7 @@ export default function BusinessPage() {
 
                     {/* Time slots */}
                     {selectedDate && (
-                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} crossBusinessBookings={crossBusinessBookings} totalDuration={totalDuration} isRTL={isRTL} />
+                      <TimeSlotGrid slots={slots} selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} loading={slotsLoading} accent={accent} t={t} userBookings={userBookings} crossBusinessBookings={crossBusinessBookings} totalDuration={totalDuration} isRTL={isRTL} hideTimeSummary={isHealthMedical} />
                     )}
 
                     {/* Confirm button */}
@@ -2003,7 +2061,7 @@ export default function BusinessPage() {
                       <p className="text-[11px] text-center text-gray-400">{t('bp.loginToBook')}</p>
                     )}
                   </>
-                )}
+                ) : null}
                 </div>
               </div>
             )}
@@ -2023,16 +2081,17 @@ export default function BusinessPage() {
                     const isToday = h.dayOfWeek === nowDay;
                     return (
                       <div key={h.dayOfWeek}
-                        className={`flex items-center justify-between py-3 px-4 rounded-xl transition-colors ${isToday ? 'bg-gray-50' : ''}`}>
+                        className={`flex items-center justify-between py-3 px-4 rounded-xl transition-colors`}
+                        style={isToday ? { backgroundColor: accent.bg + '10' } : undefined}>
                         <div className="flex items-center gap-3">
                           {isToday && <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accent.bg }} />}
-                          <span className={`text-[15px] ${isToday ? 'font-bold text-gray-900' : 'text-gray-600'}`}>
+                          <span className={`text-[15px] ${isToday ? 'font-bold' : 'text-gray-600'}`} style={isToday ? { color: accent.bg } : undefined}>
                             {t(`bp.day.${DAY_NAMES[h.dayOfWeek].toLowerCase()}`)}
                           </span>
-                          {isToday && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">{t('bp.today')}</span>}
+                          {isToday && <span className="text-[11px] font-medium px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: accent.bg }}>{t('bp.today')}</span>}
                         </div>
                         {h.isOpen ? (
-                          <span className={`text-[15px] ${isToday ? 'font-bold text-gray-900' : 'text-gray-600'}`}>{h.openTime} – {h.closeTime}</span>
+                          <span className={`text-[15px] ${isToday ? 'font-bold' : 'text-gray-600'}`} style={isToday ? { color: accent.bg } : undefined}>{h.openTime} – {h.closeTime}</span>
                         ) : (
                           <span className="text-[14px] text-red-400 font-medium">{t('bp.closed')}</span>
                         )}
@@ -2106,8 +2165,8 @@ export default function BusinessPage() {
         </div>
       </div>
 
-      {/* ── FLOATING BOTTOM BAR (mobile) ─────────────────── */}
-      {canBook && !showBookingPanel && activeTab === 'services' && business.services?.length > 0 && (
+      {/* ── FLOATING BOTTOM BAR (mobile, non-health_medical only) ─────────────────── */}
+      {canBook && !isHealthMedical && !showBookingPanel && (activeTab === 'services' && business.services?.length > 0) && (
         <div className="fixed bottom-0 left-0 right-0 z-30 sd:hidden">
           <div className="bg-white border-t border-gray-200 px-5 py-3 flex items-center gap-3 safe-area-pb">
             {selectedServices.length > 0 ? (
@@ -2169,9 +2228,9 @@ export default function BusinessPage() {
       <BookingModal open={showBookingModal} onClose={() => setShowBookingModal(false)}
         business={business} services={selectedServices} date={selectedDate} slot={selectedSlot}
         accent={accent} t={t} locale={locale} onSuccess={handleBookingSuccess}
-        assignedWorkerId={selectedWorker?.id || null} />
+        assignedWorkerId={selectedWorker?.id || null} isHealthMedical={isHealthMedical} />
 
-      <SuccessModal appointment={bookedAppointment} onClose={() => setBookedAppointment(null)} accent={accent} t={t} locale={locale} />
+      <SuccessModal appointment={bookedAppointment} onClose={() => setBookedAppointment(null)} accent={accent} t={t} locale={locale} isHealthMedical={isHealthMedical} />
     </div>
   );
 }
