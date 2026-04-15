@@ -21,8 +21,15 @@ const PlacesMap = dynamic(() => import('@/components/PlacesMap'), {
   loading: () => <div className="w-full h-full bg-slate-100 flex items-center justify-center"><Loader2 className="animate-spin text-slate-400 w-8 h-8" /></div>
 });
 
+const HEALTH_MEDICAL_TYPES = new Set([
+  'general_practitioner', 'orthodontist', 'cardiologist', 'ophthalmologist',
+  'psychiatrist', 'gastroenterologist', 'neurologist', 'allergist',
+  'urologist', 'pediatrician', 'std_specialist', 'hepatologist',
+]);
+
 const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
 
+  const isHealthMedical = HEALTH_MEDICAL_TYPES.has(biz.professionalType);
   const accent = biz.accentColor
     ? { bg: { slate: '#364153', amber: '#D4AF37', rose: '#e11d48', teal: '#0d9488', violet: '#7c3aed', blue: '#2563eb' }[biz.accentColor] || '#244C70' }
     : { bg: '#244C70' };
@@ -99,7 +106,7 @@ const ServiceCard = ({ biz, locale, t, onHover, onLeave, onSelect }) => {
         {/* Service mode badge */}
         {biz.serviceMode && (
           <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wider shadow-sm" style={{ backgroundColor: `${accent.bg}e6`, color: '#fff' }}>
-            {biz.serviceMode === 'mobile' ? t('search.mobile') || 'Mobile' : biz.serviceMode === 'both' ? t('search.both') || 'Both' : t('search.inStore') || 'In-Store'}
+            {isHealthMedical ? t('search.medicalOffice') || 'Medical Office' : biz.serviceMode === 'mobile' ? t('search.mobile') || 'Mobile' : biz.serviceMode === 'both' ? t('search.both') || 'Both' : t('search.inStore') || 'In-Store'}
           </div>
         )}
         {/* Gradient overlay at bottom */}
