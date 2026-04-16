@@ -259,7 +259,7 @@ if (code.length !== 6) { setError(t('auth.form.enterCode') || 'Please enter the 
               onChange={(e) => setFirstName(e.target.value)}
               autoComplete="given-name"
               className="w-full bg-slate-50 border-2 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-0 focus:bg-white rounded-xl h-12 px-4 transition-all"
-              placeholder="أيوب"
+              placeholder={t('auth.form.firstNameLabel') || 'First name'}
             />
           </div>
           <div>
@@ -270,7 +270,7 @@ if (code.length !== 6) { setError(t('auth.form.enterCode') || 'Please enter the 
               onChange={(e) => setLastName(e.target.value)}
               autoComplete="family-name"
               className="w-full bg-slate-50 border-2 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-0 focus:bg-white rounded-xl h-12 px-4 transition-all"
-              placeholder="معتال"
+              placeholder={t('auth.form.lastNameLabel') || 'Last name'}
             />
           </div>
         </div>
