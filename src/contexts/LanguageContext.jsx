@@ -1870,6 +1870,23 @@ const translations = {
     'dbSpec.std_specialist.desc': 'Sexual health and sexually transmitted disease care.',
     'dbSpec.hepatologist': 'Hepatologist',
     'dbSpec.hepatologist.desc': 'Liver, gallbladder, and biliary system specialist.',
+
+    // Contact Page
+    'contact.title': 'Contact Us',
+    'contact.subtitle': 'Have a question or feedback? We\'d love to hear from you. Send us a message and we\'ll get back to you as soon as possible.',
+    'contact.formTitle': 'Send us a message',
+    'contact.name': 'Full Name',
+    'contact.email': 'Email Address',
+    'contact.subject': 'Subject',
+    'contact.message': 'Message',
+    'contact.send': 'Send Message',
+    'contact.sending': 'Sending...',
+    'contact.success': 'Your message has been sent successfully. We\'ll get back to you soon.',
+    'contact.error': 'Something went wrong. Please try again later.',
+    'contact.getInTouch': 'Get in Touch',
+    'contact.office': 'Our Office',
+    'contact.emailUs': 'Email Us',
+    'contact.callUs': 'Call Us',
   },
   
   fr: {
@@ -3742,6 +3759,23 @@ const translations = {
     'dbSpec.std_specialist.desc': 'Santé sexuelle et soins des maladies sexuellement transmissibles.',
     'dbSpec.hepatologist': 'Hépatologue',
     'dbSpec.hepatologist.desc': 'Spécialiste du foie, de la vésicule biliaire et du système biliaire.',
+
+    // Contact Page
+    'contact.title': 'Contactez-nous',
+    'contact.subtitle': 'Une question ou un commentaire ? Nous serions ravis de vous entendre. Envoyez-nous un message et nous vous répondrons dans les plus brefs délais.',
+    'contact.formTitle': 'Envoyez-nous un message',
+    'contact.name': 'Nom complet',
+    'contact.email': 'Adresse e-mail',
+    'contact.subject': 'Sujet',
+    'contact.message': 'Message',
+    'contact.send': 'Envoyer le message',
+    'contact.sending': 'Envoi en cours...',
+    'contact.success': 'Votre message a été envoyé avec succès. Nous vous répondrons bientôt.',
+    'contact.error': 'Une erreur est survenue. Veuillez réessayer plus tard.',
+    'contact.getInTouch': 'Restons en contact',
+    'contact.office': 'Notre bureau',
+    'contact.emailUs': 'Écrivez-nous',
+    'contact.callUs': 'Appelez-nous',
   },
   
   ar: {
@@ -5614,6 +5648,23 @@ const translations = {
     'dbSpec.std_specialist.desc': 'الصحة الجنسية ورعاية الأمراض المنقولة جنسياً.',
     'dbSpec.hepatologist': 'أخصائي كبد',
     'dbSpec.hepatologist.desc': 'أخصائي الكبد والمرارة والجهاز الصفراوي.',
+
+    // Contact Page
+    'contact.title': 'تواصل معنا',
+    'contact.subtitle': 'هل لديك سؤال أو ملاحظة؟ يسعدنا تواصلك معنا. أرسل لنا رسالة وسنرد عليك في أقرب وقت ممكن.',
+    'contact.formTitle': 'أرسل لنا رسالة',
+    'contact.name': 'الاسم الكامل',
+    'contact.email': 'البريد الإلكتروني',
+    'contact.subject': 'الموضوع',
+    'contact.message': 'الرسالة',
+    'contact.send': 'إرسال الرسالة',
+    'contact.sending': 'جاري الإرسال...',
+    'contact.success': 'تم إرسال رسالتك بنجاح. سنرد عليك قريباً.',
+    'contact.error': 'حدث خطأ ما. يرجى المحاولة مرة أخرى لاحقاً.',
+    'contact.getInTouch': 'ابق على تواصل',
+    'contact.office': 'مكتبنا',
+    'contact.emailUs': 'راسلنا',
+    'contact.callUs': 'اتصل بنا',
   }
 };
 

@@ -54,7 +54,7 @@ export async function PUT(request) {
     const { error: validationError, data: validated } = parseBody(updateProfileSchema, body);
     if (validationError) return validationResponse(validationError);
 
-    const { firstName, lastName, birthday, gender, username, coverImageUrl, coverImagePosition, city, phone } = validated;
+    const { firstName, lastName, birthday, gender, username, coverImageUrl, coverImagePosition, city, address, phone } = validated;
 
     const supabase = createServerSupabaseClient();
 
@@ -78,6 +78,7 @@ export async function PUT(request) {
     if (birthday !== undefined) profileData.birthday = birthday || null;
     if (gender !== undefined) profileData.gender = gender || null;
     if (city !== undefined) profileData.city = city || null;
+    if (address !== undefined) profileData.address = address || null;
     if (phone !== undefined) profileData.phone = phone || null;
     if (coverImageUrl !== undefined) profileData.cover_image_url = coverImageUrl;
     if (coverImagePosition !== undefined) profileData.cover_image_position = coverImagePosition;

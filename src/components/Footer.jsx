@@ -12,6 +12,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useParams } from 'next/navigation';
 
 // Custom X (Twitter) icon
 const XIcon = ({ className }) => (
@@ -29,12 +30,14 @@ const socialLinks = [
 
 export default function Footer() {
   const { t } = useLanguage();
+  const params = useParams();
+  const locale = params?.locale || 'en';
   
   const quickLinks = [
     { name: t('features'), href: '#features' },
     { name: t('howItWorks'), href: '#how-it-works' },
     { name: t('helpCenter'), href: '#' },
-    { name: t('contactUs'), href: '#' },
+    { name: t('contactUs'), href: `/${locale}/contact` },
   ];
 
   const legalLinks = [

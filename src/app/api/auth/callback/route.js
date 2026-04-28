@@ -33,10 +33,17 @@ export async function GET(request) {
           if (!existingUser) {
             // New user — create with role
             const email = data.user.email || null;
-            const firstName = data.user.user_metadata?.full_name?.split(' ')[0] ||
-                              data.user.user_metadata?.first_name || null;
-            const lastName = data.user.user_metadata?.full_name?.split(' ').slice(1).join(' ') ||
-                             data.user.user_metadata?.last_name || null;
+            const meta = data.user.user_metadata || {};
+            let firstName = meta.first_name || meta.firstName || meta.given_name || null;
+            let lastName = meta.last_name || meta.lastName || meta.family_name || null;
+            if (!firstName || !lastName) {
+              const fullName = meta.full_name || meta.name || '';
+              if (fullName) {
+                const parts = fullName.trim().split(/\s+/);
+                if (!firstName) firstName = parts[0] || null;
+                if (!lastName) lastName = parts.slice(1).join(' ') || null;
+              }
+            }
 
             // Generate unique username
             let baseUsername = ((firstName || '') + (lastName || '')).toLowerCase().replace(/[^a-z0-9]/g, '');

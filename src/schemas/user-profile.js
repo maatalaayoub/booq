@@ -19,5 +19,6 @@ export const updateProfileSchema = z.object({
   coverImageUrl: z.string().nullable().optional(),
   coverImagePosition: z.number().nullable().optional(),
   city: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
 });

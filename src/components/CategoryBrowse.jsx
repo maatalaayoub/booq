@@ -54,6 +54,7 @@ export default function CategoryBrowse() {
   const { t, locale, isRTL } = useLanguage();
   const router = useRouter();
   const scrollRef = useRef(null);
+  const [mounted, setMounted] = useState(false);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -66,6 +67,7 @@ export default function CategoryBrowse() {
   };
 
   useEffect(() => {
+    setMounted(true);
     fetch('/api/business/specialty')
       .then(r => r.ok ? r.json() : { categories: [] })
       .then(data => setCategories(data.categories || []))
@@ -100,6 +102,8 @@ export default function CategoryBrowse() {
   const handleCategoryClick = (cat) => {
     router.push(`/${locale}/search?category=${cat.slug}`);
   };
+
+  if (!mounted) return null;
 
   if (loading) {
     return (

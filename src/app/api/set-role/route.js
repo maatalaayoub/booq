@@ -42,9 +42,19 @@ export async function POST(request) {
       const authClient = await createAuthServerClient();
       const { data: { user: authUser } } = await authClient.auth.getUser();
       email = authUser?.email || null;
-      firstName = authUser?.user_metadata?.first_name || authUser?.user_metadata?.firstName || null;
-      lastName = authUser?.user_metadata?.last_name || authUser?.user_metadata?.lastName || null;
-      phone = authUser?.user_metadata?.phone || null;
+      const meta = authUser?.user_metadata || {};
+      // Support both manual signup keys and OAuth provider keys (Google: full_name/name/given_name/family_name)
+      firstName = meta.first_name || meta.firstName || meta.given_name || null;
+      lastName = meta.last_name || meta.lastName || meta.family_name || null;
+      if (!firstName || !lastName) {
+        const fullName = meta.full_name || meta.name || '';
+        if (fullName) {
+          const parts = fullName.trim().split(/\s+/);
+          if (!firstName) firstName = parts[0] || null;
+          if (!lastName) lastName = parts.slice(1).join(' ') || null;
+        }
+      }
+      phone = meta.phone || null;
     } catch (err) {
       console.log('[set-role] Could not fetch auth user details:', err.message);
     }

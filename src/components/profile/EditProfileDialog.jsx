@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, Check, User, Calendar, ChevronDown, Settings, AtSign, AlertCircle, MapPin, Search, Phone } from 'lucide-react';
+import { X, Loader2, Check, User, Calendar, ChevronDown, Settings, AtSign, AlertCircle, MapPin, Search, Phone, Home } from 'lucide-react';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { createAuthClient } from '@/lib/supabase/auth-client';
@@ -61,6 +61,8 @@ const translations = {
     usernameRequired: 'Username is required',
     phone: 'Phone Number',
     phoneHint: 'e.g. +212 6XX XXXXXX',
+    address: 'Address',
+    addressHint: 'Street, building, apt...',
     city: 'City',
     selectCity: 'Select a city',
     searchCity: 'Search city...',
@@ -92,6 +94,8 @@ const translations = {
     usernameRequired: 'اسم المستخدم مطلوب',
     phone: 'رقم الهاتف',
     phoneHint: 'مثال: +212 6XX XXXXXX',
+    address: 'العنوان',
+    addressHint: 'الشارع، المبنى، الشقة...',
     city: 'المدينة',
     selectCity: 'اختر المدينة',
     searchCity: 'ابحث عن مدينة...',
@@ -123,6 +127,8 @@ const translations = {
     usernameRequired: "Le nom d'utilisateur est requis",
     phone: 'Numéro de téléphone',
     phoneHint: 'ex. +212 6XX XXXXXX',
+    address: 'Adresse',
+    addressHint: 'Rue, bâtiment, appartement...',
     city: 'Ville',
     selectCity: 'Sélectionner une ville',
     searchCity: 'Rechercher une ville...',
@@ -162,6 +168,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
     birthday: '',
     gender: '',
     city: '',
+    address: '',
   });
 
   // Track whether the form has been initialized for the current open state
@@ -192,6 +199,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
         birthday: initialProfile.birthday || '',
         gender: initialProfile.gender || '',
         city: initialProfile.city || '',
+        address: initialProfile.address || '',
       });
       return;
     }
@@ -211,6 +219,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
             birthday: data.birthday || '',
             gender: data.gender || '',
             city: data.city || '',
+            address: data.address || '',
           });
         } else {
           setFormData({
@@ -221,6 +230,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
             birthday: '',
             gender: '',
             city: '',
+            address: '',
           });
         }
       } catch (err) {
@@ -233,6 +243,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
           birthday: '',
           gender: '',
           city: '',
+          address: '',
         });
       } finally {
         setIsFetching(false);
@@ -304,6 +315,7 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
         birthday: formData.birthday || null,
         gender: formData.gender || null,
         city: formData.city || null,
+        address: formData.address || null,
       };
       if (trimmedUsername) {
         body.username = trimmedUsername;
@@ -515,6 +527,25 @@ export default function EditProfileDialog({ isOpen, onClose, initialProfile = nu
                         onChange={handleChange}
                         placeholder={labels.phoneHint}
                         maxLength={30}
+                        className={`w-full py-2.5 sm:py-3 border border-gray-200 rounded-[5px] text-gray-900 focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition-colors text-base placeholder:text-gray-400 ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'}`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Address */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
+                      {labels.address}
+                    </label>
+                    <div className="relative">
+                      <Home className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none ${isRTL ? 'right-3.5' : 'left-3.5'}`} />
+                      <input
+                        type="text"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        placeholder={labels.addressHint}
+                        maxLength={200}
                         className={`w-full py-2.5 sm:py-3 border border-gray-200 rounded-[5px] text-gray-900 focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition-colors text-base placeholder:text-gray-400 ${isRTL ? 'pr-10 pl-4' : 'pl-10 pr-4'}`}
                       />
                     </div>

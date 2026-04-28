@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Menu, ChevronDown, User, Bell, Home } from 'lucide-react';
+import { Search, MapPin, Menu, ChevronDown, User, Home } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import ReactCountryFlag from 'react-country-flag';
@@ -43,11 +43,6 @@ export default function Hero() {
   
   // Combined loaded state - both auth and role data must be loaded
   const isLoaded = isAuthLoaded && isRoleLoaded;
-  
-  // Debug logging
-  useEffect(() => {
-    console.log('[Hero] Auth state:', { isLoaded, isSignedIn, isBusiness, userRole, isRoleLoaded });
-  }, [isLoaded, isSignedIn, isBusiness, userRole, isRoleLoaded]);
   
   const handleSearch = () => {
     const params = new URLSearchParams();

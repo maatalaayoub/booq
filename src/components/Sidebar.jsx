@@ -340,15 +340,14 @@ export default function Sidebar({ isOpen, onClose }) {
                 </button>
 
                 {/* Contact */}
-                <button
+                <Link
+                  href={`/${locale}/contact`}
                   onClick={onClose}
-                  className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-[#244C70]/50 transition-all cursor-default"
-                  disabled
+                  className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-[#244C70] hover:bg-[#244C70]/5 transition-all"
                 >
-                  <Mail className="h-5 w-5 text-[#244C70]/50" strokeWidth={1.5} />
+                  <Mail className="h-5 w-5 text-[#244C70]" strokeWidth={1.5} />
                   <span className="font-medium text-base">{t('contact') || 'Contact'}</span>
-                  <span className="ml-auto px-2 py-0.5 text-[10px] font-semibold bg-gray-200 text-gray-500 rounded-full">{t('comingSoon') || 'Soon'}</span>
-                </button>
+                </Link>
 
                 {/* Privacy Policy */}
                 <button
