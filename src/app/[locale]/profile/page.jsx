@@ -192,7 +192,13 @@ export default function UserProfilePage() {
     username: viewedUserData.username,
     imageUrl: viewedUserData.profileImageUrl,
     hasImage: !!viewedUserData.profileImageUrl,
-  } : user;
+  } : {
+    ...user,
+    // Prefer DB profile names (source of truth, updated after edits) over auth metadata
+    firstName: ownProfile?.firstName || user?.firstName || '',
+    lastName: ownProfile?.lastName || user?.lastName || '',
+    username: ownProfile?.username || user?.username,
+  };
 
   return (
     <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 ${isRTL ? 'rtl' : 'ltr'}`}>
